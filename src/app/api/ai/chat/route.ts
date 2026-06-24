@@ -3,18 +3,38 @@ import { askClaude } from "@/server/ai/claude";
 import { resolveLocale } from "@/i18n/config";
 import { ok, fail } from "@/server/http";
 
+// Limites de entrada — corta abuso de custo/DoS antes de chamar a Anthropic.
+// (Em produção, somar rate-limit por IP via Upstash/Vercel KV.)
+const MAX_MESSAGES = 20;
+const MAX_CONTENT = 4000;
+
+type ChatMsg = { role: "user" | "assistant"; content: string };
+
 // POST /api/ai/chat — turno do Copiloto (0A §2.9). Tenta o Claude (se houver
 // chave) e cai no cérebro de domínio determinístico caso contrário.
 export async function POST(req: Request) {
-  let body: { messages?: { role: "user" | "assistant"; content: string }[]; locale?: string };
+  let body: { messages?: unknown; locale?: string };
   try {
     body = await req.json();
   } catch {
     return fail("INVALID_BODY", "errors.invalid_body");
   }
-  const messages = body.messages ?? [];
+
+  // Sanitiza e limita: só papéis válidos, content string, ≤ MAX_CONTENT, últimas N.
+  const raw = Array.isArray(body.messages) ? body.messages : [];
+  const messages: ChatMsg[] = raw
+    .filter(
+      (m): m is ChatMsg =>
+        !!m &&
+        typeof m === "object" &&
+        ((m as ChatMsg).role === "user" || (m as ChatMsg).role === "assistant") &&
+        typeof (m as ChatMsg).content === "string",
+    )
+    .slice(-MAX_MESSAGES)
+    .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_CONTENT) }));
+
   const last = [...messages].reverse().find((m) => m.role === "user");
-  if (!last) return fail("NO_MESSAGE", "errors.no_message");
+  if (!last || !last.content.trim()) return fail("NO_MESSAGE", "errors.no_message");
   const locale = resolveLocale(body.locale);
 
   // 1) cérebro de domínio: sempre calcula ações + fontes a partir dos dados reais

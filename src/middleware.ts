@@ -24,6 +24,12 @@ function detectLocale(req: NextRequest): string {
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Guarda defensiva: nunca processar caminhos protocol-relative/backslash
+  // (cinto-e-suspensório contra open-redirect, além da normalização do Next).
+  if (!pathname.startsWith("/") || pathname.startsWith("//") || pathname.includes("\\")) {
+    return NextResponse.next();
+  }
+
   // Skip internals, API and static assets.
   if (
     pathname.startsWith("/_next") ||

@@ -11,7 +11,24 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react"],
   },
   async headers() {
+    // CSP sem nonce (mantém render estático/CDN). React escapa toda saída e não
+    // há sink de HTML cru; 'unsafe-inline' cobre o ThemeScript + scripts do Next.
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+      "upgrade-insecure-requests",
+    ].join("; ");
+
     const securityHeaders = [
+      { key: "Content-Security-Policy", value: csp },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "X-Frame-Options", value: "SAMEORIGIN" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

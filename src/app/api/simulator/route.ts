@@ -14,14 +14,20 @@ export async function POST(req: Request) {
   } catch {
     return fail("INVALID_BODY", "errors.invalid_body");
   }
-  if (!params?.regime || !params?.jurisdiction || !params?.revenue) {
+  const revenue = Number(params?.revenue);
+  if (
+    typeof params?.regime !== "string" ||
+    typeof params?.jurisdiction !== "string" ||
+    !Number.isFinite(revenue) ||
+    revenue < 0
+  ) {
     return fail("MISSING_PARAMS", "errors.missing_params");
   }
   const result = runScenario({
-    regime: params.regime,
-    jurisdiction: params.jurisdiction,
-    classification: params.classification ?? "Indústria metalúrgica",
-    revenue: Number(params.revenue),
+    regime: params.regime.slice(0, 120),
+    jurisdiction: params.jurisdiction.slice(0, 120),
+    classification: (params.classification ?? "Indústria metalúrgica").slice(0, 120),
+    revenue: Math.min(revenue, 1e15), // teto sanitário
   });
   return ok(result);
 }

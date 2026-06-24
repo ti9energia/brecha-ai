@@ -10,7 +10,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   let approver = "Helena Vasconcelos";
   try {
     const body = await req.json();
-    if (body?.approver) approver = String(body.approver);
+    if (body?.approver) approver = String(body.approver).trim().slice(0, 120) || approver;
   } catch {
     /* corpo opcional */
   }

@@ -6,8 +6,16 @@ export async function GET() {
   return ok(getStructure());
 }
 
+const EDITABLE = ["legalName", "regime", "mainActivity", "headquarters", "annualRevenue", "headcount"] as const;
+
 export async function PUT(req: Request) {
-  // Demo: aceita o patch e devolve a estrutura mesclada (sem persistir em disco).
+  // Demo: aceita só campos conhecidos (sem mass-assignment) e devolve mesclado.
   const patch = await req.json().catch(() => ({}));
-  return ok({ ...getStructure(), ...patch }, { saved: true });
+  const safe: Record<string, unknown> = {};
+  if (patch && typeof patch === "object") {
+    for (const k of EDITABLE) {
+      if (k in patch) safe[k] = (patch as Record<string, unknown>)[k];
+    }
+  }
+  return ok({ ...getStructure(), ...safe }, { saved: true });
 }
