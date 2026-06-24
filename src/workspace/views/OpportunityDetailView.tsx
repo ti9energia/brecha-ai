@@ -8,6 +8,7 @@ import {
 import { getOpportunity, approveExecution } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
+import { useToast } from "@/ui/Toast";
 import { ApertureRing } from "@/ui/ApertureRing";
 import { Chip, Meter, buttonClass } from "@/ui/primitives";
 import { SectorIcon } from "@/ui/SectorIcon";
@@ -23,6 +24,7 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
   const ts = useTranslations("oppStatus");
   const fmt = useFormatter();
   const ws = useWorkspace();
+  const { toast } = useToast();
   const opp = params?.id ? getOpportunity(params.id) : null;
   const [approved, setApproved] = useState(opp?.status === "approved" || opp?.status === "executing");
 
@@ -43,6 +45,11 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
   function approve() {
     approveExecution(opp!.id, "Helena Vasconcelos");
     setApproved(true);
+    toast({
+      title: "Execução aprovada",
+      description: `${opp!.title} · ${fmt.moneyCompact(opp!.estimatedGain)}/ano`,
+      tone: "success",
+    });
     ws.open("execution", { focus: opp!.id });
   }
 

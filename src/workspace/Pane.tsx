@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Plus, X, SplitSquareHorizontal, SplitSquareVertical, Columns2, Maximize2 } from "lucide-react";
 import { useWorkspace, type Pane } from "./store";
 import { MODULE_MAP, tabTitle } from "./registry";
@@ -43,11 +44,13 @@ export function PaneView({
 function TabStrip({ pane, split, onNewTab }: { pane: Pane; split: boolean; onNewTab: (paneId: string) => void }) {
   const ws = useWorkspace();
   const tNav = useTranslations("nav");
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
 
   return (
     <div className="flex items-stretch h-11 border-b border-line bg-surface shrink-0 select-none">
       <div className="flex-1 flex items-stretch gap-1 px-1.5 overflow-x-auto no-scrollbar">
-        {pane.tabIds.map((id) => {
+        {pane.tabIds.map((id, index) => {
           const tab = ws.state.tabs[id];
           if (!tab) return null;
           const def = MODULE_MAP[tab.module];
@@ -56,11 +59,18 @@ function TabStrip({ pane, split, onNewTab }: { pane: Pane; split: boolean; onNew
           return (
             <div
               key={id}
+              draggable
+              onDragStart={(e) => { setDragIdx(index); e.dataTransfer.effectAllowed = "move"; }}
+              onDragOver={(e) => { e.preventDefault(); if (overIdx !== index) setOverIdx(index); }}
+              onDrop={(e) => { e.preventDefault(); if (dragIdx !== null && dragIdx !== index) ws.reorder(pane.id, dragIdx, index); setDragIdx(null); setOverIdx(null); }}
+              onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
               onMouseDown={(e) => { e.stopPropagation(); ws.focusTab(pane.id, id); }}
               onAuxClick={(e) => { if (e.button === 1) ws.closeTab(id, pane.id); }}
               className={cn(
-                "group relative flex items-center gap-2 max-w-[200px] min-w-0 my-1.5 pl-2.5 pr-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-colors",
+                "group relative flex items-center gap-2 max-w-[200px] min-w-0 my-1.5 pl-2.5 pr-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-all",
                 active ? "bg-surface-3 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink-2",
+                dragIdx === index && "opacity-40",
+                overIdx === index && dragIdx !== null && dragIdx !== index && "ring-1 ring-[color:var(--border-gold)]",
               )}
             >
               {active && <span className="absolute -bottom-1.5 left-2 right-2 h-px bg-brand" />}

@@ -37,7 +37,7 @@ export interface WorkspaceState {
   seq: number;
 }
 
-type Action =
+export type Action =
   | { type: "OPEN"; module: ModuleId; params?: Record<string, string>; title?: string; paneId?: string }
   | { type: "CLOSE_TAB"; tabId: string; paneId: string }
   | { type: "FOCUS_TAB"; paneId: string; tabId: string }
@@ -56,7 +56,7 @@ function sameTab(a: Tab, module: ModuleId, params?: Record<string, string>) {
   return true;
 }
 
-function initial(): WorkspaceState {
+export function initial(): WorkspaceState {
   const tab: Tab = { id: "tab-1", module: "opportunities" };
   return {
     tabs: { "tab-1": tab },
@@ -67,7 +67,7 @@ function initial(): WorkspaceState {
   };
 }
 
-function reducer(state: WorkspaceState, action: Action): WorkspaceState {
+export function reducer(state: WorkspaceState, action: Action): WorkspaceState {
   switch (action.type) {
     case "OPEN": {
       const paneId = action.paneId ?? state.focusedPaneId;
@@ -217,6 +217,7 @@ interface WorkspaceApi {
   split: (direction?: "split-v" | "split-h") => void;
   unsplit: () => void;
   moveTab: (tabId: string, fromPaneId: string, toPaneId: string) => void;
+  reorder: (paneId: string, from: number, to: number) => void;
   setLayout: (direction: "split-v" | "split-h") => void;
 }
 
@@ -234,10 +235,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const split = useCallback((direction: "split-v" | "split-h" = "split-v") => dispatch({ type: "SPLIT", direction }), []);
   const unsplit = useCallback(() => dispatch({ type: "UNSPLIT" }), []);
   const moveTab = useCallback((tabId: string, fromPaneId: string, toPaneId: string) => dispatch({ type: "MOVE_TAB", tabId, fromPaneId, toPaneId }), []);
+  const reorder = useCallback((paneId: string, from: number, to: number) => dispatch({ type: "REORDER", paneId, from, to }), []);
   const setLayout = useCallback((direction: "split-v" | "split-h") => dispatch({ type: "SPLIT", direction }), []);
 
   return (
-    <Ctx.Provider value={{ state, open, closeTab, focusTab, focusPane, split, unsplit, moveTab, setLayout }}>
+    <Ctx.Provider value={{ state, open, closeTab, focusTab, focusPane, split, unsplit, moveTab, reorder, setLayout }}>
       {children}
     </Ctx.Provider>
   );

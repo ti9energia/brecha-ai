@@ -9,13 +9,17 @@ import { TopBar } from "./TopBar";
 import { StatusBar } from "./StatusBar";
 import { PaneView } from "./Pane";
 import { CommandPalette } from "./CommandPalette";
+import { ToastProvider } from "@/ui/Toast";
+import { ShortcutsHelp } from "./ShortcutsHelp";
 import { cn } from "@/ui/cn";
 
 export function Workspace() {
   return (
     <WorkspaceProvider>
       <CopilotProvider>
-        <Shell />
+        <ToastProvider>
+          <Shell />
+        </ToastProvider>
       </CopilotProvider>
     </WorkspaceProvider>
   );
@@ -25,6 +29,7 @@ function Shell() {
   const ws = useWorkspace();
   const copilot = useCopilot();
   const [palette, setPalette] = useState<{ open: boolean; pane?: string }>({ open: false });
+  const [help, setHelp] = useState(false);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -34,6 +39,7 @@ function Shell() {
       if (k === "k") { e.preventDefault(); setPalette((p) => ({ open: !p.open })); }
       else if (k === "j") { e.preventDefault(); copilot.toggle(); }
       else if (k === "\\") { e.preventDefault(); ws.state.panes.length > 1 ? ws.unsplit() : ws.split("split-v"); }
+      else if (k === "/") { e.preventDefault(); setHelp((h) => !h); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -66,6 +72,7 @@ function Shell() {
         <StatusBar />
       </div>
       <CommandPalette open={palette.open} onClose={() => setPalette({ open: false })} targetPaneId={palette.pane} />
+      <ShortcutsHelp open={help} onClose={() => setHelp(false)} />
     </div>
   );
 }
