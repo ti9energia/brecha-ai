@@ -1,0 +1,45 @@
+# Backend + front em um container (Next.js standalone). Sobe tudo com um comando:
+#   docker compose up --build
+# Copie .env.example → .env e preencha ANTHROPIC_API_KEY para ligar o Claude.
+services:
+  app:
+    build: .
+    image: brecha-ai
+    container_name: brecha-ai
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_CORE_MODEL: ${AI_CORE_MODEL:-claude-opus-4-8}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Infra opcional (spec 00): descomente para ligar persistência real
+# (Prisma + pgvector) e fila/cache (Redis). O app hoje roda em memória.
+# ─────────────────────────────────────────────────────────────────────────────
+#  db:
+#    image: pgvector/pgvector:pg16
+#    container_name: brecha-db
+#    environment:
+#      POSTGRES_USER: brecha
+#      POSTGRES_PASSWORD: brecha
+#      POSTGRES_DB: brecha
+#    ports: ["5432:5432"]
+#    volumes: ["pgdata:/var/lib/postgresql/data"]
+#
+#  redis:
+#    image: redis:7-alpine
+#    container_name: brecha-redis
+#    ports: ["6379:6379"]
+#
+#volumes:
+#  pgdata:
