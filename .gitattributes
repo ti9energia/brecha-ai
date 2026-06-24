@@ -1,0 +1,10 @@
+# Normaliza finais de linha para LF (evita quebrar Dockerfile/scripts no Linux).
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

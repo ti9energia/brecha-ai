@@ -1,0 +1,256 @@
+"use client";
+
+import { createContext, useContext, useReducer, useCallback, type ReactNode } from "react";
+
+export type ModuleId =
+  | "opportunities"
+  | "opportunity"
+  | "radar"
+  | "structure"
+  | "simulator"
+  | "execution"
+  | "savings"
+  | "settings"
+  | "agent"
+  | "owner";
+
+export interface Tab {
+  id: string;
+  module: ModuleId;
+  params?: Record<string, string>;
+  title?: string;
+}
+
+export interface Pane {
+  id: string;
+  tabIds: string[];
+  activeTabId: string;
+}
+
+export type Layout = "single" | "split-v" | "split-h";
+
+export interface WorkspaceState {
+  tabs: Record<string, Tab>;
+  panes: Pane[];
+  focusedPaneId: string;
+  layout: Layout;
+  seq: number;
+}
+
+type Action =
+  | { type: "OPEN"; module: ModuleId; params?: Record<string, string>; title?: string; paneId?: string }
+  | { type: "CLOSE_TAB"; tabId: string; paneId: string }
+  | { type: "FOCUS_TAB"; paneId: string; tabId: string }
+  | { type: "FOCUS_PANE"; paneId: string }
+  | { type: "SPLIT"; direction: "split-v" | "split-h" }
+  | { type: "UNSPLIT" }
+  | { type: "MOVE_TAB"; tabId: string; fromPaneId: string; toPaneId: string }
+  | { type: "REORDER"; paneId: string; from: number; to: number };
+
+function sameTab(a: Tab, module: ModuleId, params?: Record<string, string>) {
+  if (a.module !== module) return false;
+  const ap = a.params ?? {};
+  const bp = params ?? {};
+  const keys = new Set([...Object.keys(ap), ...Object.keys(bp)]);
+  for (const k of keys) if (ap[k] !== bp[k]) return false;
+  return true;
+}
+
+function initial(): WorkspaceState {
+  const tab: Tab = { id: "tab-1", module: "opportunities" };
+  return {
+    tabs: { "tab-1": tab },
+    panes: [{ id: "pane-1", tabIds: ["tab-1"], activeTabId: "tab-1" }],
+    focusedPaneId: "pane-1",
+    layout: "single",
+    seq: 2,
+  };
+}
+
+function reducer(state: WorkspaceState, action: Action): WorkspaceState {
+  switch (action.type) {
+    case "OPEN": {
+      const paneId = action.paneId ?? state.focusedPaneId;
+      const pane = state.panes.find((p) => p.id === paneId) ?? state.panes[0];
+      // dedupe within the target pane
+      const existingId = pane.tabIds.find((id) => sameTab(state.tabs[id], action.module, action.params));
+      if (existingId) {
+        return {
+          ...state,
+          focusedPaneId: pane.id,
+          panes: state.panes.map((p) => (p.id === pane.id ? { ...p, activeTabId: existingId } : p)),
+        };
+      }
+      const id = `tab-${state.seq}`;
+      const tab: Tab = { id, module: action.module, params: action.params, title: action.title };
+      return {
+        ...state,
+        seq: state.seq + 1,
+        focusedPaneId: pane.id,
+        tabs: { ...state.tabs, [id]: tab },
+        panes: state.panes.map((p) =>
+          p.id === pane.id ? { ...p, tabIds: [...p.tabIds, id], activeTabId: id } : p,
+        ),
+      };
+    }
+
+    case "FOCUS_TAB":
+      return {
+        ...state,
+        focusedPaneId: action.paneId,
+        panes: state.panes.map((p) => (p.id === action.paneId ? { ...p, activeTabId: action.tabId } : p)),
+      };
+
+    case "FOCUS_PANE":
+      return { ...state, focusedPaneId: action.paneId };
+
+    case "CLOSE_TAB": {
+      const pane = state.panes.find((p) => p.id === action.paneId);
+      if (!pane) return state;
+      const idx = pane.tabIds.indexOf(action.tabId);
+      const remaining = pane.tabIds.filter((id) => id !== action.tabId);
+      const { [action.tabId]: _removed, ...restTabs } = state.tabs;
+
+      // pane still has tabs → pick a neighbour as active
+      if (remaining.length > 0) {
+        const nextActive = pane.activeTabId === action.tabId ? remaining[Math.max(0, idx - 1)] : pane.activeTabId;
+        return {
+          ...state,
+          tabs: restTabs,
+          panes: state.panes.map((p) => (p.id === pane.id ? { ...p, tabIds: remaining, activeTabId: nextActive } : p)),
+        };
+      }
+
+      // pane became empty
+      if (state.panes.length > 1) {
+        const panes = state.panes.filter((p) => p.id !== pane.id);
+        return {
+          ...state,
+          tabs: restTabs,
+          panes,
+          layout: "single",
+          focusedPaneId: panes[0].id,
+        };
+      }
+
+      // last tab of the only pane → reopen default
+      const id = `tab-${state.seq}`;
+      return {
+        ...state,
+        seq: state.seq + 1,
+        tabs: { [id]: { id, module: "opportunities" } },
+        panes: [{ id: pane.id, tabIds: [id], activeTabId: id }],
+      };
+    }
+
+    case "SPLIT": {
+      if (state.panes.length > 1) return { ...state, layout: action.direction };
+      const focused = state.panes.find((p) => p.id === state.focusedPaneId) ?? state.panes[0];
+      const activeTab = state.tabs[focused.activeTabId];
+      // new pane mirrors the focused tab so you can compare side by side
+      const id = `tab-${state.seq}`;
+      const clone: Tab = { id, module: activeTab.module, params: activeTab.params, title: activeTab.title };
+      const newPane: Pane = { id: `pane-${state.seq + 1}`, tabIds: [id], activeTabId: id };
+      return {
+        ...state,
+        seq: state.seq + 2,
+        tabs: { ...state.tabs, [id]: clone },
+        panes: [...state.panes, newPane],
+        layout: action.direction,
+        focusedPaneId: newPane.id,
+      };
+    }
+
+    case "UNSPLIT": {
+      if (state.panes.length < 2) return state;
+      const [first, ...rest] = state.panes;
+      const mergedTabIds = [first.tabIds, ...rest.map((p) => p.tabIds)].flat();
+      return {
+        ...state,
+        panes: [{ id: first.id, tabIds: mergedTabIds, activeTabId: first.activeTabId }],
+        layout: "single",
+        focusedPaneId: first.id,
+      };
+    }
+
+    case "MOVE_TAB": {
+      if (action.fromPaneId === action.toPaneId) return state;
+      return {
+        ...state,
+        panes: state.panes.map((p) => {
+          if (p.id === action.fromPaneId) {
+            const remaining = p.tabIds.filter((id) => id !== action.tabId);
+            return { ...p, tabIds: remaining, activeTabId: remaining[0] ?? p.activeTabId };
+          }
+          if (p.id === action.toPaneId) {
+            return { ...p, tabIds: [...p.tabIds, action.tabId], activeTabId: action.tabId };
+          }
+          return p;
+        }),
+      };
+    }
+
+    case "REORDER": {
+      return {
+        ...state,
+        panes: state.panes.map((p) => {
+          if (p.id !== action.paneId) return p;
+          const ids = [...p.tabIds];
+          const [moved] = ids.splice(action.from, 1);
+          ids.splice(action.to, 0, moved);
+          return { ...p, tabIds: ids };
+        }),
+      };
+    }
+
+    default:
+      return state;
+  }
+}
+
+interface WorkspaceApi {
+  state: WorkspaceState;
+  open: (module: ModuleId, params?: Record<string, string>, title?: string, paneId?: string) => void;
+  closeTab: (tabId: string, paneId: string) => void;
+  focusTab: (paneId: string, tabId: string) => void;
+  focusPane: (paneId: string) => void;
+  split: (direction?: "split-v" | "split-h") => void;
+  unsplit: () => void;
+  moveTab: (tabId: string, fromPaneId: string, toPaneId: string) => void;
+  setLayout: (direction: "split-v" | "split-h") => void;
+}
+
+const Ctx = createContext<WorkspaceApi | null>(null);
+
+export function WorkspaceProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, undefined, initial);
+
+  const open = useCallback((module: ModuleId, params?: Record<string, string>, title?: string, paneId?: string) => {
+    dispatch({ type: "OPEN", module, params, title, paneId });
+  }, []);
+  const closeTab = useCallback((tabId: string, paneId: string) => dispatch({ type: "CLOSE_TAB", tabId, paneId }), []);
+  const focusTab = useCallback((paneId: string, tabId: string) => dispatch({ type: "FOCUS_TAB", paneId, tabId }), []);
+  const focusPane = useCallback((paneId: string) => dispatch({ type: "FOCUS_PANE", paneId }), []);
+  const split = useCallback((direction: "split-v" | "split-h" = "split-v") => dispatch({ type: "SPLIT", direction }), []);
+  const unsplit = useCallback(() => dispatch({ type: "UNSPLIT" }), []);
+  const moveTab = useCallback((tabId: string, fromPaneId: string, toPaneId: string) => dispatch({ type: "MOVE_TAB", tabId, fromPaneId, toPaneId }), []);
+  const setLayout = useCallback((direction: "split-v" | "split-h") => dispatch({ type: "SPLIT", direction }), []);
+
+  return (
+    <Ctx.Provider value={{ state, open, closeTab, focusTab, focusPane, split, unsplit, moveTab, setLayout }}>
+      {children}
+    </Ctx.Provider>
+  );
+}
+
+export function useWorkspace(): WorkspaceApi {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error("useWorkspace must be used within <WorkspaceProvider>");
+  return ctx;
+}
+
+// Versão segura para componentes que podem viver fora do workspace (ex.: card
+// reusado na landing): retorna null em vez de lançar.
+export function useWorkspaceOptional(): WorkspaceApi | null {
+  return useContext(Ctx);
+}
