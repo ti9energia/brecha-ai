@@ -1,20 +1,72 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
-  Building2, Pencil, MapPin, Users, Receipt, Landmark, CalendarClock,
+  Building2, Pencil, MapPin, Users, Receipt, Landmark, CalendarClock, Check, X, Plus,
 } from "lucide-react";
 import { getStructure } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
+import { useToast } from "@/ui/Toast";
 import { ApertureRing } from "@/ui/ApertureRing";
 import { Button, Chip } from "@/ui/primitives";
 import { ViewScroll, ViewHeader, Section } from "./shared";
+
+const REGIMES = ["Lucro Real", "Lucro Presumido", "Simples Nacional"];
+const UFS = ["SP", "RJ", "MG", "SC", "RS", "PR", "BA", "PE", "CE", "GO", "AM", "DF"];
 
 export function StructureView() {
   const t = useTranslations("structure");
   const tc = useTranslations("common");
   const fmt = useFormatter();
-  const s = getStructure();
+  const { toast } = useToast();
+  const base = getStructure();
+
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState({
+    legalName: base.legalName,
+    regime: base.regime,
+    headquarters: base.headquarters,
+    annualRevenue: base.annualRevenue,
+    headcount: base.headcount,
+    jurisdictions: [...base.jurisdictions],
+  });
+  const [newUf, setNewUf] = useState("");
+
+  function cancel() {
+    setDraft({
+      legalName: base.legalName, regime: base.regime, headquarters: base.headquarters,
+      annualRevenue: base.annualRevenue, headcount: base.headcount, jurisdictions: [...base.jurisdictions],
+    });
+    setEditing(false);
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await fetch("/api/structure", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          legalName: draft.legalName, regime: draft.regime,
+          headquarters: draft.headquarters, annualRevenue: draft.annualRevenue, headcount: draft.headcount,
+        }),
+      });
+    } catch {
+      /* demo: persiste local */
+    }
+    setSaving(false);
+    setEditing(false);
+    toast({ title: t("saved"), description: draft.legalName, tone: "success" });
+  }
+
+  function addUf(uf: string) {
+    const u = uf.trim().toUpperCase().slice(0, 4);
+    if (u && !draft.jurisdictions.includes(u)) {
+      setDraft((d) => ({ ...d, jurisdictions: [...d.jurisdictions, u] }));
+    }
+    setNewUf("");
+  }
 
   return (
     <ViewScroll>
@@ -23,84 +75,97 @@ export function StructureView() {
         title={t("title")}
         subtitle={t("subtitle")}
         actions={
-          <Button variant="secondary" size="sm">
-            <Pencil size={14} /> {t("edit")}
-          </Button>
+          editing ? (
+            <>
+              <Button variant="ghost" size="sm" onClick={cancel}><X size={14} /> {tc("cancel")}</Button>
+              <Button variant="primary" size="sm" onClick={save} disabled={saving}>
+                <Check size={14} /> {tc("save")}
+              </Button>
+            </>
+          ) : (
+            <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+              <Pencil size={14} /> {t("edit")}
+            </Button>
+          )
         }
       />
 
-      {/* identidade fiscal/jurídica + completude */}
       <div className="grid lg:grid-cols-3 gap-5 mb-6">
-        {/* esquerda: ficha de identidade */}
         <div className="lg:col-span-2 panel hairline p-6">
           <p className="eyebrow mb-5">{t("title")}</p>
           <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-5">
             <Field icon={<Landmark size={13} />} label={t("legalName")}>
-              <span className="text-ink font-medium">{s.legalName}</span>
+              {editing ? (
+                <input className="input" value={draft.legalName} onChange={(e) => setDraft((d) => ({ ...d, legalName: e.target.value }))} />
+              ) : (
+                <span className="text-ink font-medium">{draft.legalName}</span>
+              )}
             </Field>
             <Field icon={<Receipt size={13} />} label={t("taxId")}>
-              <span className="mono text-ink tnum">{s.taxId}</span>
+              <span className="mono text-ink tnum">{base.taxId}</span>
             </Field>
             <Field label={t("regime")}>
-              <Chip tone="gold">{s.regime}</Chip>
+              {editing ? (
+                <select className="input" value={draft.regime} onChange={(e) => setDraft((d) => ({ ...d, regime: e.target.value }))}>
+                  {REGIMES.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              ) : (
+                <Chip tone="gold">{draft.regime}</Chip>
+              )}
             </Field>
             <Field icon={<MapPin size={13} />} label={t("headquarters")}>
-              <span className="text-ink">{s.headquarters}</span>
+              {editing ? (
+                <input className="input" value={draft.headquarters} onChange={(e) => setDraft((d) => ({ ...d, headquarters: e.target.value }))} />
+              ) : (
+                <span className="text-ink">{draft.headquarters}</span>
+              )}
             </Field>
             <Field label={t("mainActivity")} className="sm:col-span-2">
-              <span className="text-ink text-pretty">{s.mainActivity}</span>
-              <span className="mono text-xs text-ink-4 tnum">CNAE {s.mainCnae}</span>
+              <span className="text-ink text-pretty">{base.mainActivity}</span>
+              <span className="mono text-xs text-ink-4 tnum">CNAE {base.mainCnae}</span>
             </Field>
             <Field label={t("revenue")}>
-              <span className="font-display text-xl text-brand tnum leading-none">
-                {fmt.money(s.annualRevenue)}
-              </span>
-              <span className="mono text-[0.66rem] text-ink-4">{tc("perYear")}</span>
+              {editing ? (
+                <input type="number" step={1_000_000} min={0} className="input" value={draft.annualRevenue} onChange={(e) => setDraft((d) => ({ ...d, annualRevenue: Number(e.target.value) }))} />
+              ) : (
+                <>
+                  <span className="font-display text-xl text-brand tnum leading-none">{fmt.money(draft.annualRevenue)}</span>
+                  <span className="mono text-[0.66rem] text-ink-4">{tc("perYear")}</span>
+                </>
+              )}
             </Field>
             <Field icon={<Users size={13} />} label={t("headcount")}>
-              <span className="font-display text-xl text-ink tnum leading-none">
-                {fmt.number(s.headcount)}
-              </span>
+              {editing ? (
+                <input type="number" min={0} className="input" value={draft.headcount} onChange={(e) => setDraft((d) => ({ ...d, headcount: Number(e.target.value) }))} />
+              ) : (
+                <span className="font-display text-xl text-ink tnum leading-none">{fmt.number(draft.headcount)}</span>
+              )}
             </Field>
           </dl>
         </div>
 
-        {/* direita: completude do perfil */}
         <div className="panel hairline p-6 flex flex-col items-center text-center">
           <ApertureRing
-            value={s.completeness}
+            value={base.completeness}
             size={132}
-            center={
-              <span className="block text-3xl font-bold text-ink tnum leading-none">
-                {fmt.percent(s.completeness)}
-              </span>
-            }
+            center={<span className="block text-3xl font-bold text-ink tnum leading-none">{fmt.percent(base.completeness)}</span>}
             label={t("completeness")}
           />
           <p className="mt-5 text-sm text-ink-3 text-pretty max-w-[16rem]">{t("completenessHint")}</p>
           <div className="mt-5 pt-5 w-full border-t border-line flex items-center justify-center gap-1.5 text-xs text-ink-4">
             <CalendarClock size={13} className="text-ink-4" />
             <span>{t("lastReview")}</span>
-            <span className="mono text-ink-3 tnum">{fmt.date(s.lastReview)}</span>
+            <span className="mono text-ink-3 tnum">{fmt.date(base.lastReview)}</span>
           </div>
         </div>
       </div>
 
-      {/* atividades (CNAE) */}
       <Section title={t("activities")}>
         <div className="panel hairline overflow-hidden">
           <ul>
-            {s.activities.map((a, i) => (
-              <li
-                key={a.code}
-                className={
-                  "flex items-center gap-4 px-5 py-3.5" +
-                  (i > 0 ? " border-t border-line" : "")
-                }
-              >
-                <span className="mono text-xs text-brand tnum shrink-0 rounded-[var(--radius-sm)] border border-line-gold bg-[var(--brand-soft)] px-2 py-1">
-                  {a.code}
-                </span>
+            {base.activities.map((a, i) => (
+              <li key={a.code} className={"flex items-center gap-4 px-5 py-3.5" + (i > 0 ? " border-t border-line" : "")}>
+                <span className="mono text-xs text-brand tnum shrink-0 rounded-[var(--radius-sm)] border border-line-gold bg-[var(--brand-soft)] px-2 py-1">{a.code}</span>
                 <span className="text-sm text-ink-2 text-pretty">{a.label}</span>
               </li>
             ))}
@@ -108,27 +173,32 @@ export function StructureView() {
         </div>
       </Section>
 
-      {/* jurisdições */}
       <Section
         title={t("jurisdictions")}
-        actions={
-          <Button variant="ghost" size="sm">+ {t("addJurisdiction")}</Button>
-        }
+        actions={!editing ? <Button variant="ghost" size="sm" onClick={() => setEditing(true)}><Plus size={14} /> {t("addJurisdiction")}</Button> : undefined}
       >
-        <div className="flex flex-wrap gap-2.5">
-          {s.jurisdictions.map((uf) => (
-            <span
-              key={uf}
-              className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full border border-line-gold bg-[var(--brand-soft)] text-brand"
-            >
+        <div className="flex flex-wrap items-center gap-2.5">
+          {draft.jurisdictions.map((uf) => (
+            <span key={uf} className="inline-flex items-center gap-2 h-9 pl-3.5 pr-2 rounded-full border border-line-gold bg-[var(--brand-soft)] text-brand">
               <MapPin size={13} />
               <span className="mono text-sm tracking-wide">{uf}</span>
+              {editing && (
+                <button onClick={() => setDraft((d) => ({ ...d, jurisdictions: d.jurisdictions.filter((x) => x !== uf) }))} className="grid place-items-center size-5 rounded-full hover:bg-[var(--brand-soft)] text-brand/70 hover:text-brand" aria-label={`remover ${uf}`}>
+                  <X size={12} />
+                </button>
+              )}
             </span>
           ))}
+          {editing && (
+            <span className="inline-flex items-center gap-1">
+              <input list="uf-list" value={newUf} onChange={(e) => setNewUf(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addUf(newUf); }} placeholder="UF" className="input !h-9 !w-24 !pl-3" maxLength={4} />
+              <datalist id="uf-list">{UFS.map((u) => <option key={u} value={u} />)}</datalist>
+              <button onClick={() => addUf(newUf)} className="grid place-items-center size-9 rounded-full border border-line-gold bg-[var(--brand-soft)] text-brand hover:brightness-110" aria-label="adicionar"><Plus size={15} /></button>
+            </span>
+          )}
         </div>
       </Section>
 
-      {/* entidades do grupo */}
       <Section title={t("entities")}>
         <div className="panel hairline overflow-hidden">
           <div className="overflow-x-auto">
@@ -142,22 +212,12 @@ export function StructureView() {
                 </tr>
               </thead>
               <tbody>
-                {s.entities.map((e, i) => (
-                  <tr
-                    key={e.cnpj}
-                    className={
-                      "transition-colors hover:bg-surface-2/60" +
-                      (i > 0 ? " border-t border-line" : "")
-                    }
-                  >
+                {base.entities.map((e, i) => (
+                  <tr key={e.cnpj} className={"transition-colors hover:bg-surface-2/60" + (i > 0 ? " border-t border-line" : "")}>
                     <td className="px-5 py-3.5 text-sm text-ink font-medium">{e.name}</td>
                     <td className="px-5 py-3.5 mono text-xs text-ink-3 tnum whitespace-nowrap">{e.cnpj}</td>
-                    <td className="px-5 py-3.5">
-                      <Chip tone={e.regime === "Lucro Real" ? "gold" : "neutral"}>{e.regime}</Chip>
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      <span className="mono text-sm text-ink-2 tracking-wide">{e.uf}</span>
-                    </td>
+                    <td className="px-5 py-3.5"><Chip tone={e.regime === "Lucro Real" ? "gold" : "neutral"}>{e.regime}</Chip></td>
+                    <td className="px-5 py-3.5 text-right"><span className="mono text-sm text-ink-2 tracking-wide">{e.uf}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -169,18 +229,7 @@ export function StructureView() {
   );
 }
 
-// Linha de definição: rótulo discreto em eyebrow, valor em destaque.
-function Field({
-  icon,
-  label,
-  children,
-  className,
-}: {
-  icon?: ReactNode;
-  label: string;
-  children: ReactNode;
-  className?: string;
-}) {
+function Field({ icon, label, children, className }: { icon?: ReactNode; label: string; children: ReactNode; className?: string }) {
   return (
     <div className={className}>
       <dt className="flex items-center gap-1.5 eyebrow mb-1.5 text-ink-4">

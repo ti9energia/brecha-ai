@@ -6,6 +6,7 @@ import { getStructure, getSectors } from "@/server/domain/store";
 import { useTranslations } from "@/i18n/provider";
 import { locales, localeMeta } from "@/i18n/config";
 import { Button, Chip } from "@/ui/primitives";
+import { useToast } from "@/ui/Toast";
 import { ViewScroll, ViewHeader, Section } from "./shared";
 import { cn } from "@/ui/cn";
 
@@ -34,6 +35,7 @@ const TEAM = [
 export function SettingsView() {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
+  const { toast } = useToast();
   const structure = getStructure();
   const sectors = getSectors();
 
@@ -181,7 +183,7 @@ export function SettingsView() {
             <Field label={t("whatsapp")} className="flex-1">
               <input className="input mono" defaultValue="+55 11 9 9999-0000" inputMode="tel" />
             </Field>
-            <Button variant="secondary" className="shrink-0">
+            <Button variant="secondary" className="shrink-0" onClick={() => toast({ title: t("whatsappConnect"), description: "+55 11 9 9999-0000 · " + t("whatsappHint"), tone: "success" })}>
               <MessageCircle size={16} className="text-positive" />
               {t("whatsappConnect")}
             </Button>

@@ -6,6 +6,7 @@ import { runScenario, listScenarios, getOpportunity } from "@/server/domain/stor
 import type { ScenarioParams, ScenarioResult, Level } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
+import { useToast } from "@/ui/Toast";
 import { Chip, buttonClass } from "@/ui/primitives";
 import { ViewScroll, ViewHeader, Section } from "./shared";
 import { cn } from "@/ui/cn";
@@ -21,6 +22,7 @@ export function SimulatorView({ params }: { params?: Record<string, string> }) {
   const tc = useTranslations("common");
   const fmt = useFormatter();
   const ws = useWorkspace();
+  const { toast } = useToast();
 
   const baseline = useMemo(() => listScenarios().find((s) => s.isBaseline)!, []);
   const fromOpp = params?.from ? getOpportunity(params.from) : null;
@@ -110,7 +112,12 @@ export function SimulatorView({ params }: { params?: Record<string, string> }) {
               </div>
 
               <div className="flex flex-wrap gap-2.5 animate-rise">
-                <button className={buttonClass("secondary", "md")}><Save size={15} />{t("saveScenario")}</button>
+                <button
+                  onClick={() => toast({ title: t("saveScenario"), description: `${form.regime} · ${form.jurisdiction} · ${fmt.moneyCompact(result.annualSaving)}/${tc("perYear").replace("/", "")}`, tone: "success" })}
+                  className={buttonClass("secondary", "md")}
+                >
+                  <Save size={15} />{t("saveScenario")}
+                </button>
                 <button onClick={() => ws.open("opportunities")} className={buttonClass("primary", "md", "group")}>
                   {t("turnIntoOpportunity")}
                   <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />

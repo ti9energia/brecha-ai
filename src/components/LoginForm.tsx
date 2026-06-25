@@ -23,6 +23,7 @@ export function LoginForm() {
   const locale = useLocale();
   const router = useRouter();
   const [loading, setLoading] = useState<null | "form" | "google" | "microsoft" | "magic">(null);
+  const [forgot, setForgot] = useState(false);
 
   function go(kind: NonNullable<typeof loading>) {
     setLoading(kind);
@@ -51,7 +52,7 @@ export function LoginForm() {
           icon={<Lock size={15} />}
           label={t("password")}
           aside={
-            <button type="button" className="text-xs text-ink-4 hover:text-brand transition-colors">
+            <button type="button" onClick={() => setForgot(true)} className="text-xs text-ink-4 hover:text-brand transition-colors">
               {t("forgot")}
             </button>
           }
@@ -65,6 +66,12 @@ export function LoginForm() {
             autoComplete="current-password"
           />
         </Field>
+
+        {forgot && (
+          <p className="flex items-start gap-2 rounded-[var(--radius-md)] border border-line bg-surface-2 px-3 py-2.5 text-xs text-ink-3 animate-rise">
+            <Mail size={13} className="text-brand shrink-0 mt-0.5" /> {t("forgotSent")}
+          </p>
+        )}
 
         <button type="submit" disabled={!!loading} className={buttonClass("primary", "lg", "w-full group mt-2")}>
           {loading === "form" ? (

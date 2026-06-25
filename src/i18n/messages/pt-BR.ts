@@ -285,6 +285,7 @@ const messages = {
     addJurisdiction: "Adicionar jurisdição",
     entities: "Entidades do grupo",
     lastReview: "Última revisão",
+    saved: "Estrutura salva",
   },
 
   simulator: {
@@ -451,6 +452,7 @@ const messages = {
     password: "Senha",
     passwordPlaceholder: "••••••••••",
     forgot: "Esqueci a senha",
+    forgotSent: "Se houver conta com este e-mail, enviamos um link de recuperação.",
     signIn: "Entrar",
     signingIn: "Abrindo o radar…",
     or: "ou",

@@ -10,6 +10,7 @@ import {
 } from "@/server/domain/store";
 import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
+import { useToast } from "@/ui/Toast";
 import { ViewScroll, ViewHeader, StatTiles, StatTile } from "./shared";
 import { SectorIcon } from "@/ui/SectorIcon";
 import { Button, Chip, Meter } from "@/ui/primitives";
@@ -217,6 +218,7 @@ const TENANT_STATUS_LABEL: Record<Tenant["status"], string> = {
 };
 
 function Tenants({ rows, t, fmt }: { rows: Tenant[]; t: Tr; fmt: Fmt }) {
+  const { toast } = useToast();
   return (
     <div className="panel hairline overflow-hidden">
       <div className="overflow-x-auto no-scrollbar">
@@ -259,7 +261,9 @@ function Tenants({ rows, t, fmt }: { rows: Tenant[]; t: Tr; fmt: Fmt }) {
                   <td className="px-4 py-3.5 text-right tnum text-ink-3">{fmt.number(tn.users)}</td>
                   <td className="px-4 py-3.5 text-right tnum text-positive">{fmt.moneyCompact(tn.capturedNet)}</td>
                   <td className="px-4 pr-5 py-3.5 text-right">
-                    <Button variant="ghost" size="sm">{t("impersonate")}</Button>
+                    <Button variant="ghost" size="sm" onClick={() => toast({ title: t("impersonateBanner", { tenant: tn.name }), description: `${tn.plan} · ${fmt.number(tn.users)} ${t("users").toLowerCase()}`, tone: "info" })}>
+                      {t("impersonate")}
+                    </Button>
                   </td>
                 </tr>
               );
