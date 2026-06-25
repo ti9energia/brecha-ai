@@ -13,9 +13,11 @@ const nextConfig: NextConfig = {
   async headers() {
     // CSP sem nonce (mantém render estático/CDN). React escapa toda saída e não
     // há sink de HTML cru; 'unsafe-inline' cobre o ThemeScript + scripts do Next.
+    const dev = process.env.NODE_ENV !== "production";
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      // dev precisa de 'unsafe-eval' (React Refresh); produção fica estrita.
+      `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",

@@ -7,30 +7,32 @@ export function SiteFooter({ locale }: { locale: Locale }) {
   const t = getT(locale, "landing");
   const tc = getT(locale, "common");
   const year = 2026;
+  const L = (k: string) => t(`flink.${k}`);
 
   const cols = [
     {
       title: t("footerProduct"),
       links: [
-        { label: t("nav.how"), href: "#how" },
-        { label: t("nav.pricing"), href: "#pricing" },
-        { label: t("nav.sectors"), href: "#sectors" },
+        { label: L("how"), href: `/${locale}#how` },
+        { label: L("pricing"), href: `/${locale}#pricing` },
+        { label: L("sectors"), href: `/${locale}#sectors` },
+        { label: L("login"), href: `/${locale}/login` },
       ],
     },
     {
       title: t("footerCompany"),
       links: [
-        { label: "Manifesto", href: "#" },
-        { label: "Blog", href: "#" },
-        { label: "Carreiras", href: "#" },
+        { label: L("manifesto"), href: `/${locale}/legal#manifesto` },
+        { label: L("repo"), href: "https://github.com/ti9energia/brecha-ai", external: true },
+        { label: L("status"), href: "/api/health", external: true },
       ],
     },
     {
       title: t("footerLegal"),
       links: [
-        { label: "LGPD", href: "#" },
-        { label: "Privacidade", href: "#" },
-        { label: "Termos", href: "#" },
+        { label: L("terms"), href: `/${locale}/legal#termos` },
+        { label: L("privacy"), href: `/${locale}/legal#privacidade` },
+        { label: L("lgpd"), href: `/${locale}/legal#lgpd` },
       ],
     },
   ];
@@ -52,7 +54,11 @@ export function SiteFooter({ locale }: { locale: Locale }) {
               <ul className="space-y-3">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="text-sm text-ink-2 hover:text-brand transition-colors">
+                    <Link
+                      href={l.href}
+                      {...("external" in l && l.external ? { target: "_blank", rel: "noreferrer" } : {})}
+                      className="text-sm text-ink-2 hover:text-brand transition-colors"
+                    >
                       {l.label}
                     </Link>
                   </li>
