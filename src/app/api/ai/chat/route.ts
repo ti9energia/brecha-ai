@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
-import { domainBrain } from "@/server/ai/brain";
-import { askClaude } from "@/server/ai/claude";
+import { aiChat } from "@/server/ai-core";
 import { resolveLocale } from "@/i18n/config";
 import { ok, fail } from "@/server/http";
 import { rateLimit, rateLimitBy } from "@/server/security/rateLimit";
@@ -49,15 +48,8 @@ export async function POST(req: Request) {
   if (!last || !last.content.trim()) return fail("NO_MESSAGE", "errors.no_message");
   const locale = resolveLocale(body.locale);
 
-  // 1) cérebro de domínio: sempre calcula ações + fontes a partir dos dados reais
-  const local = domainBrain(last.content, locale);
-
-  // 2) se houver chave, o Claude refina o texto (mantendo ações/fontes do domínio)
-  const claude = await askClaude(messages, locale);
-
-  const reply = claude
-    ? { ...claude, sources: local.sources, actions: local.actions }
-    : local;
-
+  // O produto fala só com o AI Core: ele combina as ações/fontes do domínio com o
+  // texto do modelo (provider trocável) e devolve a resposta pronta.
+  const reply = await aiChat(messages, locale);
   return ok(reply);
 }
