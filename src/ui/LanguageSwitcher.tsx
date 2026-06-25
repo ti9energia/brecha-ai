@@ -4,11 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Check, Globe } from "lucide-react";
 import { locales, localeMeta, isLocale } from "@/i18n/config";
-import { useLocale } from "@/i18n/provider";
+import { useLocale, useTranslations } from "@/i18n/provider";
 import { cn } from "./cn";
 
 export function LanguageSwitcher({ align = "right" }: { align?: "left" | "right" }) {
   const locale = useLocale();
+  const t = useTranslations("common");
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -38,7 +39,7 @@ export function LanguageSwitcher({ align = "right" }: { align?: "left" | "right"
       <button
         onClick={() => setOpen((o) => !o)}
         className="inline-flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] border border-line bg-surface-2 text-ink-2 hover:text-ink hover:border-line-strong transition-colors text-sm"
-        aria-label="Idioma"
+        aria-label={t("language")}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -49,7 +50,7 @@ export function LanguageSwitcher({ align = "right" }: { align?: "left" | "right"
       {open && (
         <div
           role="listbox"
-          aria-label="Idioma"
+          aria-label={t("language")}
           className={cn(
             "absolute z-50 mt-2 w-52 glass rounded-[var(--radius-md)] p-1.5 shadow-[var(--shadow-lg)]",
             align === "right" ? "right-0" : "left-0",

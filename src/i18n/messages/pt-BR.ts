@@ -11,6 +11,8 @@ const messages = {
   },
 
   common: {
+    toggleTheme: "Alternar tema",
+    language: "Idioma",
     save: "Salvar",
     cancel: "Cancelar",
     approve: "Aprovar",
@@ -69,7 +71,23 @@ const messages = {
     errorHint: "Não foi possível carregar agora. A trilha de auditoria registrou o evento.",
   },
 
+  status: {
+    radarActive: "Radar ativo",
+    sourcesLabel: "fontes",
+    windowsLabel: "janelas abertas",
+    recsLabel: "recomendações",
+    auditActive: "auditoria ativa",
+    online: "Online",
+  },
+
   nav: {
+    toggleCopilot: "Vega — abrir/fechar copiloto",
+    showShortcuts: "Mostrar estes atalhos",
+    drag: "arrastar",
+    reorderTabs: "Reordenar abas",
+    middleClick: "botão do meio",
+    shortcuts: "Atalhos",
+    tabs: "Abas",
     opportunities: "Oportunidades",
     radar: "Radar normativo",
     structure: "Minha estrutura",
@@ -239,6 +257,8 @@ const messages = {
   },
 
   detail: {
+    assumptions: "premissas",
+    approvedTitle: "Execução aprovada",
     backToList: "Oportunidades",
     triggerNorm: "Norma-gatilho",
     triggerNormSub: "A mudança normativa que abriu esta janela.",
@@ -282,6 +302,7 @@ const messages = {
   },
 
   structure: {
+    removeJurisdiction: "remover {uf}",
     title: "Minha estrutura",
     subtitle: "O perfil fiscal e jurídico da Acme — base de toda simulação.",
     legalName: "Razão social",
@@ -351,6 +372,7 @@ const messages = {
   },
 
   savings: {
+    feeNote: "só sobre ganho realizado e conciliado",
     title: "Economia capturada",
     subtitle: "O ganho realizado e a base do success fee da Acme.",
     realizedYtd: "Realizado no ano",
@@ -422,6 +444,23 @@ const messages = {
   },
 
   owner: {
+    restricted: "Acesso restrito ao dono da plataforma (platform_owner).",
+    last12m: "12 meses",
+    plan: "Plano",
+    popular: "Popular",
+    perMonth: "/mês",
+    successFee: "success fee",
+    jurisdictions: "Jurisdições",
+    aiCredits: "Créditos de IA",
+    state: "Estado",
+    immutableTrail: "trilha imutável · append-only",
+    auditNote: "Registros assinados e encadeados por hash. A trilha é imutável e não pode ser editada ou removida.",
+    tenantStatus: {
+      active: "Ativo",
+      trial: "Trial",
+      past_due: "Inadimplente",
+      suspended: "Suspenso",
+    },
     title: "Painel do dono",
     subtitle: "Governança do SaaS — tenants, planos, landing, IA e auditoria.",
     overview: "Visão geral",
@@ -482,6 +521,7 @@ const messages = {
     secure: "Conexão segura · isolamento multi-tenant",
     demoHint: "Demo: marina.alves@acme.com.br · senha demo1234",
     invalidCreds: "E-mail ou senha inválidos.",
+    rateLimited: "Muitas tentativas. Aguarde um instante.",
     unauthenticated: "Sessão expirada. Entre novamente.",
     forbidden: "Você não tem permissão para esta ação.",
     signingOut: "Saindo…",

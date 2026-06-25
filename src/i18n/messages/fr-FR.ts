@@ -8,6 +8,8 @@ const messages: Deep<Messages> = {
   },
 
   common: {
+    toggleTheme: "Changer de thème",
+    language: "Langue",
     save: "Enregistrer",
     cancel: "Annuler",
     approve: "Approuver",
@@ -66,7 +68,23 @@ const messages: Deep<Messages> = {
     errorHint: "Chargement impossible pour le moment. La piste d'audit a enregistré l'événement.",
   },
 
+  status: {
+    radarActive: "Radar actif",
+    sourcesLabel: "sources",
+    windowsLabel: "fenêtres ouvertes",
+    recsLabel: "recommandations",
+    auditActive: "audit actif",
+    online: "En ligne",
+  },
+
   nav: {
+    toggleCopilot: "Vega — ouvrir/fermer le copilote",
+    showShortcuts: "Afficher ces raccourcis",
+    drag: "glisser",
+    reorderTabs: "Réorganiser les onglets",
+    middleClick: "bouton du milieu",
+    shortcuts: "Raccourcis",
+    tabs: "Onglets",
     opportunities: "Opportunités",
     radar: "Radar réglementaire",
     structure: "Ma structure",
@@ -236,6 +254,8 @@ const messages: Deep<Messages> = {
   },
 
   detail: {
+    assumptions: "hypothèses",
+    approvedTitle: "Exécution approuvée",
     backToList: "Opportunités",
     triggerNorm: "Norme déclencheuse",
     triggerNormSub: "L'évolution réglementaire qui a ouvert cette fenêtre.",
@@ -279,6 +299,7 @@ const messages: Deep<Messages> = {
   },
 
   structure: {
+    removeJurisdiction: "retirer {uf}",
     title: "Ma structure",
     saved: "Structure enregistrée",
     subtitle: "Le profil fiscal et juridique d'Acme — socle de chaque simulation.",
@@ -348,6 +369,7 @@ const messages: Deep<Messages> = {
   },
 
   savings: {
+    feeNote: "uniquement sur les gains réalisés et rapprochés",
     title: "Économies captées",
     subtitle: "Le gain réalisé et la base du success fee d'Acme.",
     realizedYtd: "Réalisé sur l'année",
@@ -419,6 +441,23 @@ const messages: Deep<Messages> = {
   },
 
   owner: {
+    restricted: "Accès réservé au propriétaire de la plateforme (platform_owner).",
+    last12m: "12 mois",
+    plan: "Plan",
+    popular: "Populaire",
+    perMonth: "/mois",
+    successFee: "commission de succès",
+    jurisdictions: "Juridictions",
+    aiCredits: "Crédits d'IA",
+    state: "État",
+    immutableTrail: "piste immuable · append-only",
+    auditNote: "Enregistrements signés et chaînés par hash. La piste est immuable et ne peut être ni modifiée ni supprimée.",
+    tenantStatus: {
+      active: "Actif",
+      trial: "Essai",
+      past_due: "Impayé",
+      suspended: "Suspendu",
+    },
     title: "Tableau de bord propriétaire",
     subtitle: "Gouvernance du SaaS — tenants, plans, landing, IA et audit.",
     overview: "Vue d'ensemble",
@@ -479,6 +518,7 @@ const messages: Deep<Messages> = {
     demoHint: "Démonstration — n'importe quel identifiant fonctionne.",
     forgotSent: "Si un compte existe pour cet e-mail, nous avons envoyé un lien de récupération.",
     invalidCreds: "E-mail ou mot de passe invalide.",
+    rateLimited: "Trop de tentatives. Veuillez patienter un instant.",
     unauthenticated: "Session expirée. Veuillez vous reconnecter.",
     forbidden: "Vous n'avez pas la permission pour cette action.",
     signingOut: "Déconnexion…",

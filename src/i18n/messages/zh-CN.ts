@@ -13,6 +13,8 @@ const messages: Deep<Messages> = {
   },
 
   common: {
+    toggleTheme: "切换主题",
+    language: "语言",
     save: "保存",
     cancel: "取消",
     approve: "批准",
@@ -71,7 +73,23 @@ const messages: Deep<Messages> = {
     errorHint: "暂时无法加载。审计日志已记录此事件。",
   },
 
+  status: {
+    radarActive: "雷达运行中",
+    sourcesLabel: "数据源",
+    windowsLabel: "个开放窗口",
+    recsLabel: "条建议",
+    auditActive: "审计运行中",
+    online: "在线",
+  },
+
   nav: {
+    toggleCopilot: "Vega — 开关副驾",
+    showShortcuts: "显示这些快捷键",
+    drag: "拖动",
+    reorderTabs: "重新排序标签页",
+    middleClick: "中键",
+    shortcuts: "快捷键",
+    tabs: "标签页",
     opportunities: "机会",
     radar: "监管雷达",
     structure: "我的架构",
@@ -241,6 +259,8 @@ const messages: Deep<Messages> = {
   },
 
   detail: {
+    assumptions: "假设",
+    approvedTitle: "执行已批准",
     backToList: "机会",
     triggerNorm: "触发法规",
     triggerNormSub: "开启这扇窗口的监管变化。",
@@ -284,6 +304,7 @@ const messages: Deep<Messages> = {
   },
 
   structure: {
+    removeJurisdiction: "移除 {uf}",
     title: "我的架构",
     saved: "架构已保存",
     subtitle: "Acme 的财税与法律画像——一切模拟的基础。",
@@ -353,6 +374,7 @@ const messages: Deep<Messages> = {
   },
 
   savings: {
+    feeNote: "仅对已实现并对账的收益计收",
     title: "已捕获节省",
     subtitle: "Acme 已实现的收益及成功佣金基数。",
     realizedYtd: "年内已实现",
@@ -424,6 +446,23 @@ const messages: Deep<Messages> = {
   },
 
   owner: {
+    restricted: "仅平台所有者（platform_owner）可访问。",
+    last12m: "12 个月",
+    plan: "套餐",
+    popular: "热门",
+    perMonth: "/月",
+    successFee: "成功费",
+    jurisdictions: "辖区",
+    aiCredits: "AI 额度",
+    state: "状态",
+    immutableTrail: "不可变轨迹 · 仅追加",
+    auditNote: "记录经签名并以哈希链接。该轨迹不可变，无法编辑或删除。",
+    tenantStatus: {
+      active: "正常",
+      trial: "试用",
+      past_due: "逾期",
+      suspended: "已暂停",
+    },
     title: "所有者面板",
     subtitle: "SaaS 治理——租户、方案、落地页、AI 与审计。",
     overview: "总览",
@@ -484,6 +523,7 @@ const messages: Deep<Messages> = {
     demoHint: "演示版——任意凭据均可登录。",
     forgotSent: "如果该邮箱存在对应账户，我们已发送找回链接。",
     invalidCreds: "邮箱或密码无效。",
+    rateLimited: "尝试次数过多，请稍候。",
     unauthenticated: "会话已过期，请重新登录。",
     forbidden: "你没有执行此操作的权限。",
     signingOut: "正在退出……",

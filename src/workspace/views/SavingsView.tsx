@@ -76,7 +76,7 @@ export function SavingsView() {
 
             <div className="mt-auto pt-6 flex items-start gap-2 text-xs text-ink-3 text-pretty">
               <BadgeCheck size={14} className="text-positive shrink-0 mt-px" />
-              <span>só sobre ganho realizado e conciliado</span>
+              <span>{t("feeNote")}</span>
             </div>
           </div>
         </Section>

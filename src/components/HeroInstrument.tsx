@@ -17,6 +17,7 @@ export interface HeroOpp {
 export function HeroInstrument({ opps, sources }: { opps: HeroOpp[]; sources: number }) {
   const fmt = useFormatter();
   const tc = useTranslations("common");
+  const ts = useTranslations("status");
   const top = opps[0];
   const [active, setActive] = useState(0);
   const focused = opps[active] ?? top;
@@ -116,13 +117,13 @@ export function HeroInstrument({ opps, sources }: { opps: HeroOpp[]; sources: nu
             <span className="absolute inset-0 rounded-full border border-[color:var(--positive)]/40 animate-[pulse-ring_2.6s_ease-out_infinite]" />
           </span>
           <div className="min-w-0">
-            <p className="mono text-[0.66rem] text-ink-3 uppercase tracking-wider">RADAR ATIVO · {fmt.number(sources)} fontes</p>
+            <p className="mono text-[0.66rem] text-ink-3 uppercase tracking-wider">{ts("radarActive")} · {fmt.number(sources)} {ts("sourcesLabel")}</p>
             <p className="text-sm text-ink truncate">{focused.title}</p>
           </div>
         </div>
         <div className="text-right shrink-0">
           <p className="font-display font-semibold text-brand tnum leading-none">{fmt.moneyCompact(focused.estimatedGain)}</p>
-          <p className="mono text-[0.62rem] text-ink-4">/ano</p>
+          <p className="mono text-[0.62rem] text-ink-4">{tc("perYear")}</p>
         </div>
       </div>
     </div>

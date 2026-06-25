@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
+import { useTranslations } from "@/i18n/provider";
 import { cn } from "./cn";
 
 export function ThemeToggle({ className }: { className?: string }) {
+  const t = useTranslations("common");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   return (
     <button
       onClick={toggle}
-      aria-label="Alternar tema"
+      aria-label={t("toggleTheme")}
       aria-pressed={theme === "light"}
       className={cn(
         "grid place-items-center size-9 rounded-[var(--radius-md)] border border-line bg-surface-2 text-ink-2 hover:text-ink hover:border-line-strong transition-colors",

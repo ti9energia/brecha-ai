@@ -13,6 +13,8 @@ const messages: Deep<Messages> = {
   },
 
   common: {
+    toggleTheme: "Toggle theme",
+    language: "Language",
     save: "Save",
     cancel: "Cancel",
     approve: "Approve",
@@ -71,7 +73,23 @@ const messages: Deep<Messages> = {
     errorHint: "We couldn't load this right now. The audit trail logged the event.",
   },
 
+  status: {
+    radarActive: "Radar active",
+    sourcesLabel: "sources",
+    windowsLabel: "open windows",
+    recsLabel: "recommendations",
+    auditActive: "audit active",
+    online: "Online",
+  },
+
   nav: {
+    toggleCopilot: "Vega — toggle copilot",
+    showShortcuts: "Show these shortcuts",
+    drag: "drag",
+    reorderTabs: "Reorder tabs",
+    middleClick: "middle button",
+    shortcuts: "Shortcuts",
+    tabs: "Tabs",
     opportunities: "Opportunities",
     radar: "Regulatory radar",
     structure: "My structure",
@@ -241,6 +259,8 @@ const messages: Deep<Messages> = {
   },
 
   detail: {
+    assumptions: "assumptions",
+    approvedTitle: "Execution approved",
     backToList: "Opportunities",
     triggerNorm: "Trigger rule",
     triggerNormSub: "The regulatory change that opened this window.",
@@ -284,6 +304,7 @@ const messages: Deep<Messages> = {
   },
 
   structure: {
+    removeJurisdiction: "remove {uf}",
     title: "My structure",
     saved: "Structure saved",
     subtitle: "Acme's tax and legal profile — the foundation of every simulation.",
@@ -353,6 +374,7 @@ const messages: Deep<Messages> = {
   },
 
   savings: {
+    feeNote: "only on realized and reconciled gains",
     title: "Savings captured",
     subtitle: "Acme's realized gains and the basis for the success fee.",
     realizedYtd: "Realized YTD",
@@ -424,6 +446,23 @@ const messages: Deep<Messages> = {
   },
 
   owner: {
+    restricted: "Access restricted to the platform owner (platform_owner).",
+    last12m: "12 months",
+    plan: "Plan",
+    popular: "Popular",
+    perMonth: "/mo",
+    successFee: "success fee",
+    jurisdictions: "Jurisdictions",
+    aiCredits: "AI credits",
+    state: "State",
+    immutableTrail: "immutable trail · append-only",
+    auditNote: "Records signed and hash-chained. The trail is immutable and cannot be edited or removed.",
+    tenantStatus: {
+      active: "Active",
+      trial: "Trial",
+      past_due: "Past due",
+      suspended: "Suspended",
+    },
     title: "Owner console",
     subtitle: "SaaS governance — tenants, plans, landing, AI, and audit.",
     overview: "Overview",
@@ -484,6 +523,7 @@ const messages: Deep<Messages> = {
     demoHint: "Demo — any credentials will sign you in.",
     forgotSent: "If an account exists for this email, we've sent a recovery link.",
     invalidCreds: "Invalid email or password.",
+    rateLimited: "Too many attempts. Please wait a moment.",
     unauthenticated: "Session expired. Please sign in again.",
     forbidden: "You don't have permission for this action.",
     signingOut: "Signing out…",

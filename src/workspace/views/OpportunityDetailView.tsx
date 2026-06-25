@@ -8,6 +8,7 @@ import {
 import { getOpportunity, approveExecution } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
+import { useSession } from "@/workspace/session";
 import { useToast } from "@/ui/Toast";
 import { ApertureRing } from "@/ui/ApertureRing";
 import { Chip, Meter, buttonClass } from "@/ui/primitives";
@@ -15,15 +16,15 @@ import { SectorIcon } from "@/ui/SectorIcon";
 import { ViewScroll } from "./shared";
 import { cn } from "@/ui/cn";
 
-const LEVEL_LABEL: Record<string, string> = { federal: "Federal", state: "Estadual", municipal: "Municipal" };
-
 export function OpportunityDetailView({ params }: { params?: Record<string, string> }) {
   const t = useTranslations("detail");
   const tc = useTranslations("common");
   const tt = useTranslations("oppTypes");
   const ts = useTranslations("oppStatus");
+  const tr = useTranslations("radar");
   const fmt = useFormatter();
   const ws = useWorkspace();
+  const user = useSession();
   const { toast } = useToast();
   const opp = params?.id ? getOpportunity(params.id) : null;
   const [approved, setApproved] = useState(opp?.status === "approved" || opp?.status === "executing");
@@ -43,11 +44,11 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
   const ringValue = Math.min(1, Math.max(0.05, opp.daysRemaining / 120));
 
   function approve() {
-    approveExecution(opp!.id, "Helena Vasconcelos");
+    approveExecution(opp!.id, user.name);
     setApproved(true);
     toast({
-      title: "Execução aprovada",
-      description: `${opp!.title} · ${fmt.moneyCompact(opp!.estimatedGain)}/ano`,
+      title: t("approvedTitle"),
+      description: `${opp!.title} · ${fmt.moneyCompact(opp!.estimatedGain)}${tc("perYear")}`,
       tone: "success",
     });
     ws.open("execution", { focus: opp!.id });
@@ -69,7 +70,7 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <Chip tone="neutral"><SectorIcon name={opp.sector} size={13} />{tt(opp.type)}</Chip>
             <Chip tone={opp.status === "open" ? "gold" : opp.status === "pending_approval" ? "warning" : "info"}>{ts(opp.status)}</Chip>
-            <Chip tone="neutral">{LEVEL_LABEL[opp.norm.level]} · {opp.norm.jurisdiction}</Chip>
+            <Chip tone="neutral">{tr(opp.norm.level)} · {opp.norm.jurisdiction}</Chip>
           </div>
           <h1 className="font-display font-bold text-2xl sm:text-[1.9rem] leading-tight text-ink text-balance max-w-2xl">{opp.title}</h1>
           <p className="mt-3 text-ink-2 text-pretty max-w-2xl">{opp.summary}</p>
@@ -129,7 +130,7 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
             </div>
 
             <div className="mt-4 rounded-[var(--radius-md)] border border-line bg-surface-2 p-4">
-              <p className="eyebrow mb-2">{tc("estimated")} · premissas</p>
+              <p className="eyebrow mb-2">{tc("estimated")} · {t("assumptions")}</p>
               <ul className="space-y-1.5">
                 {sim.assumptions.map((a) => (
                   <li key={a} className="flex items-start gap-2 text-sm text-ink-3">

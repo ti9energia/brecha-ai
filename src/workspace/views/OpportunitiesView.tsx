@@ -12,6 +12,7 @@ export function OpportunitiesView() {
   const t = useTranslations("opportunities");
   const tc = useTranslations("common");
   const tStates = useTranslations("states");
+  const ts = useTranslations("status");
   const fmt = useFormatter();
   const [sort, setSort] = useState<OppSort>("gain");
   const [sector, setSector] = useState<string>("all");
@@ -36,7 +37,7 @@ export function OpportunitiesView() {
       />
 
       <StatTiles>
-        <StatTile label={t("openWindows")} value={fmt.number(summary.openWindows)} accent="gold" hint={<span className="inline-flex items-center gap-1"><TrendingUp size={11} className="text-positive" />radar ativo</span>} />
+        <StatTile label={t("openWindows")} value={fmt.number(summary.openWindows)} accent="gold" hint={<span className="inline-flex items-center gap-1"><TrendingUp size={11} className="text-positive" />{ts("radarActive")}</span>} />
         <StatTile label={t("potentialGain")} value={fmt.moneyCompact(summary.openGain)} accent="gold" hint={tc("estimated") + " · " + tc("perYear")} />
         <StatTile label={t("closingSoon")} value={fmt.number(summary.closingSoon)} accent="danger" hint={<span className="inline-flex items-center gap-1"><Timer size={11} />≤ 21 {tc("days")}</span>} />
         <StatTile label={t("captured")} value={fmt.moneyCompact(summary.capturedYtd)} accent="positive" hint={<span className="inline-flex items-center gap-1"><Coins size={11} />{tc("realized")}</span>} />

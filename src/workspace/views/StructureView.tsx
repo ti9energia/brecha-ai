@@ -183,7 +183,7 @@ export function StructureView() {
               <MapPin size={13} />
               <span className="mono text-sm tracking-wide">{uf}</span>
               {editing && (
-                <button onClick={() => setDraft((d) => ({ ...d, jurisdictions: d.jurisdictions.filter((x) => x !== uf) }))} className="grid place-items-center size-5 rounded-full hover:bg-[var(--brand-soft)] text-brand/70 hover:text-brand" aria-label={`remover ${uf}`}>
+                <button onClick={() => setDraft((d) => ({ ...d, jurisdictions: d.jurisdictions.filter((x) => x !== uf) }))} className="grid place-items-center size-5 rounded-full hover:bg-[var(--brand-soft)] text-brand/70 hover:text-brand" aria-label={t("removeJurisdiction", { uf })}>
                   <X size={12} />
                 </button>
               )}
@@ -191,9 +191,9 @@ export function StructureView() {
           ))}
           {editing && (
             <span className="inline-flex items-center gap-1">
-              <input list="uf-list" value={newUf} onChange={(e) => setNewUf(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addUf(newUf); }} placeholder="UF" className="input !h-9 !w-24 !pl-3" maxLength={4} />
+              <input list="uf-list" value={newUf} onChange={(e) => setNewUf(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addUf(newUf); }} placeholder="UF" aria-label={t("addJurisdiction")} className="input !h-9 !w-24 !pl-3" maxLength={4} />
               <datalist id="uf-list">{UFS.map((u) => <option key={u} value={u} />)}</datalist>
-              <button onClick={() => addUf(newUf)} className="grid place-items-center size-9 rounded-full border border-line-gold bg-[var(--brand-soft)] text-brand hover:brightness-110" aria-label="adicionar"><Plus size={15} /></button>
+              <button onClick={() => addUf(newUf)} className="grid place-items-center size-9 rounded-full border border-line-gold bg-[var(--brand-soft)] text-brand hover:brightness-110" aria-label={t("addJurisdiction")}><Plus size={15} /></button>
             </span>
           )}
         </div>
