@@ -50,7 +50,7 @@ Sem a chave, o Copiloto continua funcionando (cérebro local). Com a chave, o Cl
 | **Workspace (estilo Chrome)** | **Abas** abríveis/fecháveis por painel + **split view** (vertical/horizontal). Nav rail, command palette (`⌘/Ctrl+K`), status bar ao vivo, atalhos (`⌘K`, `⌘J`, `⌘\`). |
 | **8 telas do produto** | Oportunidades · Detalhe (norma-gatilho + simulação antes/depois + jogada + Abertura) · Radar normativo · Minha estrutura · Simulador · Execução (aprovação + trilha) · Economia capturada · Configurações. |
 | **Inteligência** | Copiloto **Vega** em toda tela (`⌘J`) + Agente autônomo (fila de recomendações) + feedback 👍/👎 que alimenta o dataset de treino do AI Core. |
-| **Painel do Dono (0C)** | Visão geral (MRR, tenants, IA), tenants, planos & entitlements, feature flags, auditoria. |
+| **Painel do Dono (0C)** | Visão geral (MRR, tenants, satisfação da IA), tenants, planos & entitlements, **feature flags que ligam/desligam módulos ao vivo**, auditoria. |
 | **Backend** | Camada de domínio modular + route handlers (`/api/...`) no envelope `{ data, meta, error }`. |
 | **i18n (4 idiomas)** | pt-BR (fonte) · en · zh-CN · fr-FR, com troca de idioma, formatação por locale e fallback. |
 | **PWA** | `manifest.webmanifest`, service worker (shell offline), ícones da marca, instalável, responsivo. |
@@ -101,7 +101,7 @@ src/
 - **`0A`** — AI Core: Copiloto (`/api/ai/chat`), Agente (fila de recomendações), feedback para treino (`/api/ai/feedback`), tools como ações que abrem abas, provider trocável (Claude → modelo próprio).
 - **`0B`** — WhatsApp: o mesmo cérebro/tools; o gateway é plugável (documentado, não provisionado no demo).
 - **`0C`** — Painel do Dono: tenants, planos→entitlements, flags, auditoria, papéis.
-- **`0D`** — Modularidade: registry de módulos, cada aba ligável/desligável, contrato tipado FE↔BE.
+- **`0D`** — Modularidade: registry de módulos; os feature flags do Painel do Dono **ligam/desligam abas em runtime** (somem do rail e do command palette na hora); contrato tipado FE↔BE.
 
 ---
 

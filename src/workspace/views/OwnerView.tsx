@@ -12,6 +12,7 @@ import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
 import { useSession } from "@/workspace/session";
+import { useFlags } from "@/workspace/flags";
 import { ViewScroll, ViewHeader, StatTiles, StatTile } from "./shared";
 import { SectorIcon } from "@/ui/SectorIcon";
 import { Button, Chip, Meter } from "@/ui/primitives";
@@ -352,9 +353,9 @@ function QuotaRow({ label, value }: { label: string; value: number | string }) {
 
 // ── FLAGS ────────────────────────────────────────────────────────────────────
 function Flags({ rows, t }: { rows: FeatureFlag[]; t: Tr }) {
-  const [enabled, setEnabled] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(rows.map((f) => [f.module, f.enabled])),
-  );
+  // Estado compartilhado: alternar aqui some/aparece o módulo no rail e no
+  // command palette na hora (0D §9c — módulos condicionados por flag).
+  const { enabled, toggle } = useFlags();
 
   const scopeLabel = (scope: FeatureFlag["scope"]) =>
     scope === "global" ? t("global") : scope === "plan" ? t("perPlan") : t("perTenant");
@@ -375,7 +376,7 @@ function Flags({ rows, t }: { rows: FeatureFlag[]; t: Tr }) {
           </thead>
           <tbody>
             {rows.map((f) => {
-              const on = enabled[f.module];
+              const on = enabled[f.module] ?? f.enabled;
               return (
                 <tr key={f.module} className="border-b border-line last:border-0 hover:bg-surface-2/60 transition-colors">
                   <td className="px-4 pl-5 py-3.5">
@@ -387,7 +388,7 @@ function Flags({ rows, t }: { rows: FeatureFlag[]; t: Tr }) {
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex justify-center">
-                      <Switch on={on} onClick={() => setEnabled((s) => ({ ...s, [f.module]: !s[f.module] }))} />
+                      <Switch on={on} onClick={() => toggle(f.module)} />
                     </div>
                   </td>
                   <td className="px-4 pr-5 py-3.5">

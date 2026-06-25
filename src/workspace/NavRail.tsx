@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { useWorkspace } from "./store";
 import { useSession, initials } from "./session";
+import { useFlags } from "./flags";
 import { MODULES } from "./registry";
 import { useCopilot } from "@/components/Copilot";
 import { useTranslations, useLocale } from "@/i18n/provider";
@@ -16,6 +17,7 @@ export function NavRail() {
   const tNav = useTranslations("nav");
   const locale = useLocale();
   const copilot = useCopilot();
+  const { isModuleEnabled } = useFlags();
   // RBAC: só platform_owner vê o módulo do dono.
   const canOwner = user.role === "platform_owner";
 
@@ -34,7 +36,7 @@ export function NavRail() {
         {groups.map((g, gi) => (
           <div key={g} className="contents">
             {gi > 0 && <span className="my-1.5 h-px w-7 bg-[color:var(--border)]" />}
-            {MODULES.filter((m) => m.group === g && !m.railHidden && (m.id !== "owner" || canOwner)).map((m) => {
+            {MODULES.filter((m) => m.group === g && !m.railHidden && (m.id !== "owner" || canOwner) && isModuleEnabled(m.id)).map((m) => {
               const Icon = m.icon;
               const active = activeModule === m.id;
               return (

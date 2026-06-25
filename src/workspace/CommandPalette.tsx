@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Sparkles, CornerDownLeft, SplitSquareHorizontal, Maximize2, ArrowRight } from "lucide-react";
 import { useWorkspace, type ModuleId } from "./store";
 import { useSession } from "./session";
+import { useFlags } from "./flags";
 import { MODULES } from "./registry";
 import { useCopilot } from "@/components/Copilot";
 import { useTranslations } from "@/i18n/provider";
@@ -32,6 +33,7 @@ export function CommandPalette({
   const user = useSession();
   const copilot = useCopilot();
   const tNav = useTranslations("nav");
+  const { isModuleEnabled } = useFlags();
   const canOwner = user.role === "platform_owner";
   const [query, setQuery] = useState("");
   const [sel, setSel] = useState(0);
@@ -48,7 +50,7 @@ export function CommandPalette({
   }, [open]);
 
   const base: Cmd[] = useMemo(() => {
-    const mods: Cmd[] = MODULES.filter((m) => !m.railHidden && (m.id !== "owner" || canOwner)).map((m) => {
+    const mods: Cmd[] = MODULES.filter((m) => !m.railHidden && (m.id !== "owner" || canOwner) && isModuleEnabled(m.id)).map((m) => {
       const Icon = m.icon;
       return {
         id: `open-${m.id}`,
@@ -64,7 +66,7 @@ export function CommandPalette({
       { id: "single", label: tNav("single"), icon: <Maximize2 size={15} />, kind: "action", run: () => { ws.unsplit(); onClose(); } },
     ];
     return [...mods, ...actions];
-  }, [tNav, ws, targetPaneId, onClose, canOwner]);
+  }, [tNav, ws, targetPaneId, onClose, canOwner, isModuleEnabled]);
 
   const items: Cmd[] = useMemo(() => {
     const q = query.trim().toLowerCase();
