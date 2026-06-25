@@ -470,6 +470,7 @@ const messages: Deep<Messages> = {
     successFee: "success fee",
     jurisdictions: "Jurisdictions",
     aiCredits: "AI credits",
+    aiSatisfaction: "AI satisfaction",
     state: "State",
     immutableTrail: "immutable trail · append-only",
     auditNote: "Records signed and hash-chained. The trail is immutable and cannot be edited or removed.",

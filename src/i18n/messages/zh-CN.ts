@@ -470,6 +470,7 @@ const messages: Deep<Messages> = {
     successFee: "成功费",
     jurisdictions: "辖区",
     aiCredits: "AI 额度",
+    aiSatisfaction: "AI 满意度",
     state: "状态",
     immutableTrail: "不可变轨迹 · 仅追加",
     auditNote: "记录经签名并以哈希链接。该轨迹不可变，无法编辑或删除。",

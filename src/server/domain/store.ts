@@ -312,6 +312,10 @@ export interface AiFeedback {
   at: string; // ISO
 }
 const AI_FEEDBACK: AiFeedback[] = [];
+// Histórico-semente para o Painel do Dono não começar zerado; votos reais somam.
+for (let i = 0; i < 48; i++) {
+  AI_FEEDBACK.push({ rating: i % 8 === 0 ? "down" : "up", message: "", locale: "pt-BR", userId: "seed", orgId: "org-acme", at: "2026-06-20T12:00:00Z" });
+}
 
 export function recordAiFeedback(f: Omit<AiFeedback, "at">) {
   AI_FEEDBACK.push({ ...f, at: new Date().toISOString() });

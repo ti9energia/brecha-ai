@@ -468,6 +468,7 @@ const messages = {
     successFee: "success fee",
     jurisdictions: "Jurisdições",
     aiCredits: "Créditos de IA",
+    aiSatisfaction: "Satisfação da IA",
     state: "Estado",
     immutableTrail: "trilha imutável · append-only",
     auditNote: "Registros assinados e encadeados por hash. A trilha é imutável e não pode ser editada ou removida.",

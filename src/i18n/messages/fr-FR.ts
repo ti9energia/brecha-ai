@@ -465,6 +465,7 @@ const messages: Deep<Messages> = {
     successFee: "commission de succès",
     jurisdictions: "Juridictions",
     aiCredits: "Crédits d'IA",
+    aiSatisfaction: "Satisfaction de l'IA",
     state: "État",
     immutableTrail: "piste immuable · append-only",
     auditNote: "Enregistrements signés et chaînés par hash. La piste est immuable et ne peut être ni modifiée ni supprimée.",

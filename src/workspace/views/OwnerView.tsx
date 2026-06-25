@@ -6,7 +6,7 @@ import {
   Sparkles, ArrowUpRight, ShieldCheck,
 } from "lucide-react";
 import {
-  ownerKpis, listTenants, getPlans, listFlags, ownerAudit,
+  ownerKpis, listTenants, getPlans, listFlags, ownerAudit, aiFeedbackStats,
 } from "@/server/domain/store";
 import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
@@ -103,6 +103,8 @@ type Fmt = ReturnType<typeof useFormatter>;
 
 // ── OVERVIEW ─────────────────────────────────────────────────────────────────
 function Overview({ k, t, tc, fmt }: { k: ReturnType<typeof ownerKpis>; t: Tr; tc: Tr; fmt: Fmt }) {
+  const fb = aiFeedbackStats();
+  const aiSat = fb.total ? Math.round((fb.up / fb.total) * 100) : 0;
   return (
     <div>
       <StatTiles>
@@ -157,6 +159,7 @@ function Overview({ k, t, tc, fmt }: { k: ReturnType<typeof ownerKpis>; t: Tr; t
             <HealthRow label={t("health")} value="99,98%" tone="positive" />
             <HealthRow label={t("aiSpend")} value={fmt.money(k.aiSpend)} tone="info" />
             <HealthRow label={t("activeTenants")} value={fmt.number(k.activeTenants)} tone="gold" />
+            <HealthRow label={t("aiSatisfaction")} value={`${aiSat}% · ${fmt.number(fb.total)}`} tone="positive" />
           </div>
         </div>
       </div>
