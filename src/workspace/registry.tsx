@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import {
   Crosshair, Radar, Building2, FlaskConical, ListChecks, Coins, Settings, Bot, Crown, FileText,
   type LucideIcon,
@@ -6,22 +7,35 @@ import type { ModuleId, Tab } from "./store";
 import type { Translator } from "@/i18n/translate";
 import { getOpportunity } from "@/server/domain/store";
 
-import { OpportunitiesView } from "./views/OpportunitiesView";
-import { OpportunityDetailView } from "./views/OpportunityDetailView";
-import { RadarView } from "./views/RadarView";
-import { StructureView } from "./views/StructureView";
-import { SimulatorView } from "./views/SimulatorView";
-import { ExecutionView } from "./views/ExecutionView";
-import { SavingsView } from "./views/SavingsView";
-import { SettingsView } from "./views/SettingsView";
-import { AgentView } from "./views/AgentView";
-import { OwnerView } from "./views/OwnerView";
-
 export interface ViewProps {
   params?: Record<string, string>;
   paneId: string;
   tabId: string;
 }
+
+// Fallback enquanto o chunk da view carrega (code splitting por aba).
+function ViewLoading() {
+  return (
+    <div className="h-full grid place-items-center">
+      <span className="size-7 rounded-full border-2 border-line border-t-brand animate-spin" />
+    </div>
+  );
+}
+
+const lazy = (loader: () => Promise<{ default: React.ComponentType<ViewProps> }>) =>
+  dynamic(loader, { loading: () => <ViewLoading /> });
+
+// Cada view num chunk próprio: o bundle inicial do workspace carrega só a aba aberta.
+const OpportunitiesView = lazy(() => import("./views/OpportunitiesView").then((m) => ({ default: m.OpportunitiesView })));
+const OpportunityDetailView = lazy(() => import("./views/OpportunityDetailView").then((m) => ({ default: m.OpportunityDetailView })));
+const RadarView = lazy(() => import("./views/RadarView").then((m) => ({ default: m.RadarView })));
+const StructureView = lazy(() => import("./views/StructureView").then((m) => ({ default: m.StructureView })));
+const SimulatorView = lazy(() => import("./views/SimulatorView").then((m) => ({ default: m.SimulatorView })));
+const ExecutionView = lazy(() => import("./views/ExecutionView").then((m) => ({ default: m.ExecutionView })));
+const SavingsView = lazy(() => import("./views/SavingsView").then((m) => ({ default: m.SavingsView })));
+const SettingsView = lazy(() => import("./views/SettingsView").then((m) => ({ default: m.SettingsView })));
+const AgentView = lazy(() => import("./views/AgentView").then((m) => ({ default: m.AgentView })));
+const OwnerView = lazy(() => import("./views/OwnerView").then((m) => ({ default: m.OwnerView })));
 
 export interface ModuleDef {
   id: ModuleId;
