@@ -546,6 +546,10 @@ const messages: Deep<Messages> = {
     signingOut: "正在退出……",
   },
 
+  whatsapp: {
+    unbound: "此号码未关联 Brecha.ai 账户。请在应用中完成关联，即可通过 WhatsApp 使用副驾。",
+  },
+
   units: {
     currencyShort: "R$",
   },

@@ -541,6 +541,10 @@ const messages: Deep<Messages> = {
     signingOut: "Déconnexion…",
   },
 
+  whatsapp: {
+    unbound: "Ce numéro n'est pas lié à un compte Brecha.ai. Activez l'option dans l'app pour utiliser le copilote via WhatsApp.",
+  },
+
   units: {
     currencyShort: "R$",
   },

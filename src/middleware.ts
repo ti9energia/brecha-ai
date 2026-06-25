@@ -45,7 +45,9 @@ export async function middleware(req: NextRequest) {
 
   // ── API: auth + health públicos; o resto exige sessão ──
   if (pathname.startsWith("/api")) {
-    if (pathname.startsWith("/api/auth") || pathname === "/api/health") {
+    // Webhook do WhatsApp é público: autentica por assinatura (Meta) + vínculo
+    // número↔usuário no gateway, não por cookie de sessão.
+    if (pathname.startsWith("/api/auth") || pathname === "/api/health" || pathname === "/api/whatsapp/webhook") {
       return NextResponse.next();
     }
     const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);

@@ -546,6 +546,10 @@ const messages: Deep<Messages> = {
     signingOut: "Signing out…",
   },
 
+  whatsapp: {
+    unbound: "This number isn't linked to a Brecha.ai account. Opt in from the app to use the copilot over WhatsApp.",
+  },
+
   units: {
     currencyShort: "R$",
   },

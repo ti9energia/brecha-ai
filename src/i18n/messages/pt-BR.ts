@@ -544,6 +544,10 @@ const messages = {
     signingOut: "Saindo…",
   },
 
+  whatsapp: {
+    unbound: "Este número não está vinculado a uma conta Brecha.ai. Faça o opt-in no app para usar o copiloto por WhatsApp.",
+  },
+
   units: {
     currencyShort: "R$",
   },
