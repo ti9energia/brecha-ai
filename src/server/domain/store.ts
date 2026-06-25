@@ -7,7 +7,7 @@ import {
   AGENT_RECS, SECTORS, OWNER_KPIS, TENANTS, PLANS, FEATURE_FLAGS, AUDIT_LOG,
 } from "./seed";
 import type {
-  Norm, Opportunity, ScenarioParams, ScenarioResult, Level, OpportunityType,
+  Norm, Opportunity, ScenarioParams, ScenarioResult, Level, OpportunityType, ClientStructure,
 } from "./types";
 
 const DAY = 1000 * 60 * 60 * 24;
@@ -113,6 +113,30 @@ export function opportunityForNorm(normId: string): Opportunity | undefined {
 }
 
 export function getStructure() {
+  return STRUCTURE;
+}
+
+// Persiste de fato a edição do perfil (muta o objeto in-memory) com coerção e
+// limites por campo — sem mass-assignment. Antes, o PUT só devolvia mesclado e
+// nada persistia. `jurisdictions` é normalizado (UF maiúscula, sem duplicatas).
+export function updateStructure(patch: Record<string, unknown>): ClientStructure {
+  if (typeof patch.legalName === "string") STRUCTURE.legalName = patch.legalName.slice(0, 200);
+  if (typeof patch.regime === "string") STRUCTURE.regime = patch.regime.slice(0, 120);
+  if (typeof patch.mainActivity === "string") STRUCTURE.mainActivity = patch.mainActivity.slice(0, 200);
+  if (typeof patch.headquarters === "string") STRUCTURE.headquarters = patch.headquarters.slice(0, 120);
+
+  const rev = Number(patch.annualRevenue);
+  if (Number.isFinite(rev) && rev >= 0) STRUCTURE.annualRevenue = Math.min(rev, 1e15);
+  const hc = Number(patch.headcount);
+  if (Number.isFinite(hc) && hc >= 0) STRUCTURE.headcount = Math.min(Math.round(hc), 1e9);
+
+  if (Array.isArray(patch.jurisdictions)) {
+    const ufs = patch.jurisdictions
+      .filter((j): j is string => typeof j === "string")
+      .map((j) => j.trim().toUpperCase().slice(0, 4))
+      .filter(Boolean);
+    STRUCTURE.jurisdictions = [...new Set(ufs)].slice(0, 27); // 26 UFs + DF
+  }
   return STRUCTURE;
 }
 

@@ -9,6 +9,8 @@ import {
   getOpportunity,
   recordAiFeedback,
   aiFeedbackStats,
+  updateStructure,
+  getStructure,
 } from "./store";
 
 const DAY = 1000 * 60 * 60 * 24;
@@ -146,6 +148,37 @@ describe("approveExecution", () => {
     expect(plan!.approved).toBe(true);
     expect(plan!.approvedBy).toBe("Tester");
     expect(plan!.opportunityId).toBe(id);
+  });
+});
+
+describe("updateStructure", () => {
+  it("persiste campos válidos, coage números e normaliza jurisdições (allowlist)", () => {
+    const o = getStructure();
+    const restore = { legalName: o.legalName, regime: o.regime, mainActivity: o.mainActivity, headquarters: o.headquarters, annualRevenue: o.annualRevenue, headcount: o.headcount, jurisdictions: [...o.jurisdictions] };
+    try {
+      const r = updateStructure({
+        legalName: "Nova Razão S.A.",
+        annualRevenue: "500000000", // string → coage
+        headcount: 1234.7, // arredonda
+        jurisdictions: ["sp", "SP", " rj ", ""], // dedup + upper + trim + remove vazio
+        evil: "ignorado", // fora da allowlist
+      });
+      expect(r.legalName).toBe("Nova Razão S.A.");
+      expect(r.annualRevenue).toBe(500_000_000);
+      expect(r.headcount).toBe(1235);
+      expect(r.jurisdictions).toEqual(["SP", "RJ"]);
+      expect((r as unknown as Record<string, unknown>).evil).toBeUndefined();
+      expect(getStructure().legalName).toBe("Nova Razão S.A."); // persistiu
+    } finally {
+      updateStructure(restore);
+    }
+  });
+
+  it("ignora números inválidos/negativos", () => {
+    const before = getStructure().annualRevenue;
+    updateStructure({ annualRevenue: -5 });
+    updateStructure({ annualRevenue: "abc" });
+    expect(getStructure().annualRevenue).toBe(before);
   });
 });
 

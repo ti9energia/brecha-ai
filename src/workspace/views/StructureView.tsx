@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import {
   Building2, Pencil, MapPin, Users, Receipt, Landmark, CalendarClock, Check, X, Plus,
 } from "lucide-react";
-import { getStructure } from "@/server/domain/store";
+import { getStructure, updateStructure } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
 import { ApertureRing } from "@/ui/ApertureRing";
@@ -43,17 +43,20 @@ export function StructureView() {
 
   async function save() {
     setSaving(true);
+    const payload = {
+      legalName: draft.legalName, regime: draft.regime, headquarters: draft.headquarters,
+      annualRevenue: draft.annualRevenue, headcount: draft.headcount, jurisdictions: draft.jurisdictions,
+    };
+    // Persiste no store isomórfico (a UI do cliente reflete na hora) e no servidor.
+    updateStructure(payload);
     try {
       await fetch("/api/structure", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          legalName: draft.legalName, regime: draft.regime,
-          headquarters: draft.headquarters, annualRevenue: draft.annualRevenue, headcount: draft.headcount,
-        }),
+        body: JSON.stringify(payload),
       });
     } catch {
-      /* demo: persiste local */
+      /* o store local já persistiu */
     }
     setSaving(false);
     setEditing(false);
