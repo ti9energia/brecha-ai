@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/ti9energia/brecha-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ti9energia/brecha-ai/actions/workflows/ci.yml)
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fti9energia%2Fbrecha-ai&project-name=brecha-ai&repository-name=brecha-ai)
-&nbsp;`Next.js 15` · `TypeScript` · `Tailwind v4` · `36 testes` · `4 idiomas` · `PWA`
+&nbsp;`Next.js 15` · `TypeScript` · `Tailwind v4` · `42 testes` · `4 idiomas` · `PWA`
 
 > **Detecta a janela. Simula a jogada. Executa antes de fechar.**
 > Plataforma SaaS premium construída de ponta a ponta a partir das specs (`08-Brecha-ai.md` + arquitetura transversal `0A`/`0B`/`0C`/`0D`).
@@ -49,7 +49,7 @@ Sem a chave, o Copiloto continua funcionando (cérebro local). Com a chave, o Cl
 | **Login** | Split-screen premium (painel de marca + formulário): e-mail/senha, Google, link mágico. Demo — qualquer credencial entra. |
 | **Workspace (estilo Chrome)** | **Abas** abríveis/fecháveis por painel + **split view** (vertical/horizontal). Nav rail, command palette (`⌘/Ctrl+K`), status bar ao vivo, atalhos (`⌘K`, `⌘J`, `⌘\`). |
 | **8 telas do produto** | Oportunidades · Detalhe (norma-gatilho + simulação antes/depois + jogada + Abertura) · Radar normativo · Minha estrutura · Simulador · Execução (aprovação + trilha) · Economia capturada · Configurações. |
-| **Inteligência** | Copiloto **Vega** em toda tela (`⌘J`) + Agente autônomo (fila de recomendações). |
+| **Inteligência** | Copiloto **Vega** em toda tela (`⌘J`) + Agente autônomo (fila de recomendações) + feedback 👍/👎 que alimenta o dataset de treino do AI Core. |
 | **Painel do Dono (0C)** | Visão geral (MRR, tenants, IA), tenants, planos & entitlements, feature flags, auditoria. |
 | **Backend** | Camada de domínio modular + route handlers (`/api/...`) no envelope `{ data, meta, error }`. |
 | **i18n (4 idiomas)** | pt-BR (fonte) · en · zh-CN · fr-FR, com troca de idioma, formatação por locale e fallback. |
@@ -98,7 +98,7 @@ src/
 ### Mapeamento com as specs
 
 - **`08`** — produto Brecha.ai: as 8 telas, modelo de dados, endpoints, fluxos.
-- **`0A`** — AI Core: Copiloto (`/api/ai/chat`), Agente (fila de recomendações), tools como ações que abrem abas, provider trocável (Claude → modelo próprio).
+- **`0A`** — AI Core: Copiloto (`/api/ai/chat`), Agente (fila de recomendações), feedback para treino (`/api/ai/feedback`), tools como ações que abrem abas, provider trocável (Claude → modelo próprio).
 - **`0B`** — WhatsApp: o mesmo cérebro/tools; o gateway é plugável (documentado, não provisionado no demo).
 - **`0C`** — Painel do Dono: tenants, planos→entitlements, flags, auditoria, papéis.
 - **`0D`** — Modularidade: registry de módulos, cada aba ligável/desligável, contrato tipado FE↔BE.

@@ -4,7 +4,7 @@ import {
   createContext, useContext, useState, useRef, useEffect, useCallback,
   type ReactNode, type KeyboardEvent,
 } from "react";
-import { Send, X, Sparkles, ArrowUpRight, ExternalLink, Cpu } from "lucide-react";
+import { Send, X, Sparkles, ArrowUpRight, ExternalLink, Cpu, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useTranslations, useLocale } from "@/i18n/provider";
 import { useWorkspace, type ModuleId } from "@/workspace/store";
 import { useFocusTrap } from "@/ui/useFocusTrap";
@@ -88,12 +88,29 @@ function CopilotPanel({
   open: boolean; setOpen: (v: boolean) => void; messages: Msg[]; sending: boolean; onSend: (t: string) => void;
 }) {
   const t = useTranslations("copilot");
+  const locale = useLocale();
   const ws = useWorkspace();
   const [draft, setDraft] = useState("");
+  const [voted, setVoted] = useState<Record<number, "up" | "down">>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   useFocusTrap(panelRef, open);
   const lastModel = [...messages].reverse().find((m) => m.model)?.model;
+
+  // Captura de feedback (0A §2.9) — alimenta o dataset de treino do AI Core.
+  async function vote(i: number, rating: "up" | "down", content: string) {
+    if (voted[i]) return;
+    setVoted((v) => ({ ...v, [i]: rating }));
+    try {
+      await fetch("/api/ai/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ rating, message: content, locale }),
+      });
+    } catch {
+      /* best-effort */
+    }
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -207,6 +224,22 @@ function CopilotPanel({
                           {a.label} <ArrowUpRight size={12} />
                         </button>
                       ))}
+                    </div>
+                  )}
+                  {m.content !== "—" && (
+                    <div className="flex items-center gap-1 pt-0.5">
+                      {voted[i] ? (
+                        <span className="mono text-[0.62rem] text-ink-4">{t("feedbackThanks")}</span>
+                      ) : (
+                        <>
+                          <button onClick={() => vote(i, "up", m.content)} aria-label={t("feedbackUp")} title={t("feedbackUp")} className="grid place-items-center size-6 rounded-[var(--radius-sm)] text-ink-4 hover:text-positive hover:bg-surface-3 transition-colors">
+                            <ThumbsUp size={13} />
+                          </button>
+                          <button onClick={() => vote(i, "down", m.content)} aria-label={t("feedbackDown")} title={t("feedbackDown")} className="grid place-items-center size-6 rounded-[var(--radius-sm)] text-ink-4 hover:text-danger hover:bg-surface-3 transition-colors">
+                            <ThumbsDown size={13} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

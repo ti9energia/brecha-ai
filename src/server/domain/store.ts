@@ -236,6 +236,27 @@ export function ownerAudit() {
   return AUDIT_LOG;
 }
 
+// ── Feedback da IA (0A §2.7/§2.9) — alimenta o dataset de treino do AI Core ─────
+// Isolado por tenant (orgId). Em produção, persistir + curar para finetune.
+export interface AiFeedback {
+  rating: "up" | "down";
+  message: string;
+  locale: string;
+  userId: string;
+  orgId: string;
+  at: string; // ISO
+}
+const AI_FEEDBACK: AiFeedback[] = [];
+
+export function recordAiFeedback(f: Omit<AiFeedback, "at">) {
+  AI_FEEDBACK.push({ ...f, at: new Date().toISOString() });
+  return aiFeedbackStats();
+}
+export function aiFeedbackStats() {
+  const up = AI_FEEDBACK.filter((f) => f.rating === "up").length;
+  return { total: AI_FEEDBACK.length, up, down: AI_FEEDBACK.length - up };
+}
+
 // agrega tudo o que o copiloto / WhatsApp precisa "entender" o sistema
 export function copilotContext() {
   return {
