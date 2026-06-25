@@ -1,8 +1,10 @@
+import { cookies } from "next/headers";
 import { domainBrain } from "@/server/ai/brain";
 import { askClaude } from "@/server/ai/claude";
 import { resolveLocale } from "@/i18n/config";
 import { ok, fail } from "@/server/http";
-import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimit, rateLimitBy } from "@/server/security/rateLimit";
+import { verifySession, SESSION_COOKIE } from "@/server/auth/session";
 
 // Limites de entrada — corta abuso de custo/DoS antes de chamar a Anthropic.
 const MAX_MESSAGES = 20;
@@ -13,9 +15,15 @@ type ChatMsg = { role: "user" | "assistant"; content: string };
 // POST /api/ai/chat — turno do Copiloto (0A §2.9). Tenta o Claude (se houver
 // chave) e cai no cérebro de domínio determinístico caso contrário.
 export async function POST(req: Request) {
-  // rate-limit por IP: 30 turnos/min (protege custo da Anthropic).
+  // Limite por IP (coarse) + por usuário (o custo da Anthropic é por conta, então
+  // o teto que importa é o do usuário — resiste à rotação de IP).
   const limited = rateLimit(req, "ai-chat", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
+  const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
+  if (session) {
+    const byUser = rateLimitBy(session.sub, "ai-chat-user", { max: 30, windowMs: 60_000 });
+    if (byUser) return byUser;
+  }
 
   let body: { messages?: unknown; locale?: string };
   try {

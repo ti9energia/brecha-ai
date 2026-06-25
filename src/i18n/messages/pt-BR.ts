@@ -482,6 +482,7 @@ const messages = {
     demoHint: "Demo: marina.alves@acme.com.br · senha demo1234",
     invalidCreds: "E-mail ou senha inválidos.",
     unauthenticated: "Sessão expirada. Entre novamente.",
+    forbidden: "Você não tem permissão para esta ação.",
     signingOut: "Saindo…",
   },
 

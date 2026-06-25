@@ -28,6 +28,13 @@ function unauthorized() {
   );
 }
 
+function forbidden() {
+  return NextResponse.json(
+    { data: null, meta: null, error: { code: "FORBIDDEN", messageKey: "auth.forbidden" } },
+    { status: 403 },
+  );
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -43,6 +50,9 @@ export async function middleware(req: NextRequest) {
     }
     const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
     if (!session) return unauthorized();
+    // Painel do Dono: dados cross-tenant só para platform_owner (o handler também
+    // checa — defesa em profundidade).
+    if (pathname.startsWith("/api/owner") && session.role !== "platform_owner") return forbidden();
     return NextResponse.next();
   }
 
