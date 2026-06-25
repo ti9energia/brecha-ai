@@ -242,6 +242,47 @@ export function listAgentRecs() {
 export function getSectors() {
   return SECTORS;
 }
+
+// ── Configurações da org (in-memory, persistente no processo) ─────────────────
+export interface AppSettings {
+  orgName: string;
+  defaultLocale: string;
+  timezone: string;
+  aiPersona: string;
+  aiTone: string;
+  whatsapp: string;
+  sectors: string[]; // ids de setor monitorados
+  jurisdictions: string[]; // UFs vigiadas pelo radar
+}
+const SETTINGS: AppSettings = {
+  orgName: STRUCTURE.legalName,
+  defaultLocale: "pt-BR",
+  timezone: "America/Sao_Paulo (BRT)",
+  aiPersona: "Vega",
+  aiTone: "Consultivo e direto",
+  whatsapp: "+55 11 9 9999-0000",
+  sectors: ["industry", "tech", "energy"],
+  jurisdictions: ["SP", "SC", "MG"],
+};
+export function getSettings(): AppSettings {
+  return SETTINGS;
+}
+export function updateSettings(patch: Record<string, unknown>): AppSettings {
+  if (typeof patch.orgName === "string") SETTINGS.orgName = patch.orgName.slice(0, 200);
+  if (typeof patch.defaultLocale === "string") SETTINGS.defaultLocale = patch.defaultLocale.slice(0, 10);
+  if (typeof patch.timezone === "string") SETTINGS.timezone = patch.timezone.slice(0, 60);
+  if (typeof patch.aiPersona === "string") SETTINGS.aiPersona = patch.aiPersona.slice(0, 60);
+  if (typeof patch.aiTone === "string") SETTINGS.aiTone = patch.aiTone.slice(0, 60);
+  if (typeof patch.whatsapp === "string") SETTINGS.whatsapp = patch.whatsapp.slice(0, 40);
+  if (Array.isArray(patch.sectors)) {
+    SETTINGS.sectors = patch.sectors.filter((s): s is string => typeof s === "string").slice(0, 50);
+  }
+  if (Array.isArray(patch.jurisdictions)) {
+    const ufs = patch.jurisdictions.filter((j): j is string => typeof j === "string").map((j) => j.toUpperCase());
+    SETTINGS.jurisdictions = [...new Set(ufs)].slice(0, 27);
+  }
+  return SETTINGS;
+}
 export function getPlans() {
   return PLANS;
 }

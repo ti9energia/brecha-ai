@@ -11,6 +11,8 @@ import {
   aiFeedbackStats,
   updateStructure,
   getStructure,
+  updateSettings,
+  getSettings,
 } from "./store";
 
 const DAY = 1000 * 60 * 60 * 24;
@@ -179,6 +181,23 @@ describe("updateStructure", () => {
     updateStructure({ annualRevenue: -5 });
     updateStructure({ annualRevenue: "abc" });
     expect(getStructure().annualRevenue).toBe(before);
+  });
+});
+
+describe("updateSettings", () => {
+  it("persiste, coage e normaliza arrays (com allowlist)", () => {
+    const o = getSettings();
+    const restore = { orgName: o.orgName, defaultLocale: o.defaultLocale, timezone: o.timezone, aiPersona: o.aiPersona, aiTone: o.aiTone, whatsapp: o.whatsapp, sectors: [...o.sectors], jurisdictions: [...o.jurisdictions] };
+    try {
+      const r = updateSettings({ orgName: "Acme 2", aiPersona: "Vega II", jurisdictions: ["sp", "SP", "mg"], evil: 1 });
+      expect(r.orgName).toBe("Acme 2");
+      expect(r.aiPersona).toBe("Vega II");
+      expect(r.jurisdictions).toEqual(["SP", "MG"]);
+      expect((r as unknown as Record<string, unknown>).evil).toBeUndefined();
+      expect(getSettings().orgName).toBe("Acme 2"); // persistiu
+    } finally {
+      updateSettings(restore);
+    }
   });
 });
 
