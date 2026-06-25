@@ -4,6 +4,9 @@ import {
   handleWhatsappMessage,
   verifyWhatsappSignature,
   extractInbound,
+  sendWhatsapp,
+  sentWhatsappCount,
+  agentProactivePush,
 } from "./gateway";
 
 describe("WhatsApp gateway (0B)", () => {
@@ -46,5 +49,20 @@ describe("WhatsApp gateway (0B)", () => {
     expect(extractInbound(cloud)).toEqual({ from: "+5511999990000", text: "olá" });
     expect(extractInbound({ foo: "bar" })).toBeNull();
     expect(extractInbound(null)).toBeNull();
+  });
+
+  it("saída (0B §7): sendWhatsapp registra o envio normalizando o número", () => {
+    const before = sentWhatsappCount();
+    const r = sendWhatsapp("+55 11 99999-0000", "alerta");
+    expect(r.ok).toBe(true);
+    expect(r.to).toBe("+5511999990000");
+    expect(sentWhatsappCount()).toBe(before + 1);
+  });
+
+  it("push proativo (0B §4): envia os alertas urgentes do agente", () => {
+    const before = sentWhatsappCount();
+    const r = agentProactivePush("+5511999990000");
+    expect(r.pushed).toBeGreaterThanOrEqual(0);
+    expect(sentWhatsappCount()).toBe(before + r.pushed);
   });
 });

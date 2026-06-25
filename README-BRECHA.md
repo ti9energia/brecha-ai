@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/ti9energia/brecha-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ti9energia/brecha-ai/actions/workflows/ci.yml)
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fti9energia%2Fbrecha-ai&project-name=brecha-ai&repository-name=brecha-ai)
-&nbsp;`Next.js 15` · `TypeScript` · `Tailwind v4` · `73 testes` · `4 idiomas` · `PWA`
+&nbsp;`Next.js 15` · `TypeScript` · `Tailwind v4` · `77 testes` · `4 idiomas` · `PWA`
 
 > **Detecta a janela. Simula a jogada. Executa antes de fechar.**
 > Plataforma SaaS premium construída de ponta a ponta a partir das specs (`08-Brecha-ai.md` + arquitetura transversal `0A`/`0B`/`0C`/`0D`).
@@ -99,7 +99,7 @@ src/
 
 - **`08`** — produto Brecha.ai: as 8 telas, modelo de dados, endpoints, fluxos.
 - **`0A`** — **AI Core** (`src/server/ai-core/`): provider de modelo **trocável**, registry de **tools** governado (`/api/ai/tools` + `/invoke`), **RAG**, **connectors** e export de **treino** — pontos de troca prontos para extrair como serviço (ver seção abaixo). Copiloto (`/api/ai/chat`), Agente e feedback (`/api/ai/feedback`).
-- **`0B`** — WhatsApp: **webhook provisionado** (`/api/whatsapp/webhook` — verificação do Meta + assinatura HMAC + vínculo número↔usuário) roteando ao **mesmo cérebro** do copiloto; um número real (Meta/Twilio) só encaminha para cá.
+- **`0B`** — WhatsApp **bidirecional**: entrada (`/api/whatsapp/webhook` — verificação Meta + assinatura HMAC + vínculo número↔usuário) pelo AI Core, saída (`/api/whatsapp/send`) e **push proativo do agente**; tudo auditado. Um número real (Meta/Twilio) só encaminha para cá.
 - **`0C`** — Painel do Dono: tenants, planos→entitlements, flags, auditoria, papéis.
 - **`0D`** — Modularidade: registry de módulos; os feature flags do Painel do Dono **ligam/desligam abas em runtime** (somem do rail e do command palette na hora); contrato tipado FE↔BE.
 

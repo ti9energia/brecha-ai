@@ -21,6 +21,7 @@ export { listTools, invokeTool, TOOLS, type Tool, type ToolResult } from "./tool
 export { inMemoryKnowledge, type KnowledgeStore, type Retrieved } from "./knowledge";
 export { listConnectors, getConnector, type Connector } from "./connectors";
 export { trainingSnapshot, type TrainingSnapshot } from "./training";
+export { agentRun } from "./agent";
 
 function dedupeSources(sources: CopilotSource[]): CopilotSource[] {
   const seen = new Set<string>();

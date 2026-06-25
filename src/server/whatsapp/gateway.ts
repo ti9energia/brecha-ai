@@ -6,6 +6,7 @@
 // (Meta Cloud API / Twilio) apenas encaminha o webhook para cá.
 // ─────────────────────────────────────────────────────────────────────────────
 import { aiChat } from "@/server/ai-core";
+import { agentRun } from "@/server/ai-core/agent";
 import type { CopilotReply } from "@/server/ai/brain";
 import { userById } from "@/server/auth/users";
 import { recordAiAction } from "@/server/domain/store";
@@ -79,6 +80,28 @@ export async function handleWhatsappMessage(input: InboundMessage): Promise<What
     user: { name: user.name, role: user.role },
     reply: { text: reply.text, quickReplies: reply.actions.map((a) => a.label), sources: reply.sources },
   };
+}
+
+// ── Saída (0B §7) ────────────────────────────────────────────────────────────
+const SENT_LOG: { at: string; to: string; text: string }[] = [];
+
+export function sendWhatsapp(to: string, text: string): { ok: boolean; to: string } {
+  // SWAP (produção): POST na API do Meta/Twilio (/whatsapp/send), respeitando
+  // janelas/templates do WhatsApp Business. No demo, registra o envio.
+  const dest = normalizeNumber(to);
+  SENT_LOG.push({ at: new Date().toISOString(), to: dest, text: text.slice(0, 4000) });
+  return { ok: true, to: dest };
+}
+export function sentWhatsappCount(): number {
+  return SENT_LOG.length;
+}
+
+// Push proativo do Agente (0B §4): roda o agente e envia os alertas urgentes ao
+// número vinculado. Em produção, é um job agendado (0A §4 "agendado").
+export function agentProactivePush(to: string): { pushed: number } {
+  const urgent = agentRun().filter((r) => r.kind === "window_closing");
+  for (const r of urgent) sendWhatsapp(to, `⚠️ ${r.title}\n${r.body}`);
+  return { pushed: urgent.length };
 }
 
 // Valida a assinatura do Meta (X-Hub-Signature-256: "sha256=<hex>"), tempo-constante.
