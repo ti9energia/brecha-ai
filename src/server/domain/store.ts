@@ -12,8 +12,16 @@ import type {
 
 const DAY = 1000 * 60 * 60 * 24;
 
+// Diferença em dias-calendário (UTC), inclusiva: uma janela que termina HOJE
+// retorna 0 ("fecha hoje", ainda válida) e só vira negativa no dia seguinte.
+// Normaliza ambos os lados ao início do dia para não depender da hora atual —
+// `windowEnd` é uma data sem hora (ex.: "2026-07-08"), então Math.ceil dava
+// off-by-one ao longo do próprio dia de fechamento.
 export function daysUntil(iso: string, now = new Date()): number {
-  return Math.ceil((new Date(iso).getTime() - now.getTime()) / DAY);
+  const end = new Date(iso);
+  const endDay = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
+  const nowDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Math.round((endDay - nowDay) / DAY);
 }
 
 export type WindowState = "fresh" | "open" | "closing" | "urgent" | "expired";
@@ -32,9 +40,18 @@ export interface OpportunityView extends Opportunity {
   windowState: WindowState;
 }
 
-function join(opp: Opportunity): OpportunityView {
-  const norm = NORMS.find((n) => n.id === opp.normId)!;
+// Uma oportunidade sem a norma-gatilho correspondente (erro de integridade do
+// seed) é descartada em vez de derrubar a lista inteira com um TypeError.
+function join(opp: Opportunity): OpportunityView | null {
+  const norm = NORMS.find((n) => n.id === opp.normId);
+  if (!norm) return null;
   return { ...opp, norm, daysRemaining: daysUntil(opp.windowEnd), windowState: windowState(opp.windowEnd) };
+}
+
+// "Ativa" = ainda acionável (nem expirada nem já capturada). Predicado único
+// compartilhado pela lista e pelo sumário para não divergirem.
+function isActive(status: Opportunity["status"]): boolean {
+  return status !== "expired" && status !== "captured";
 }
 
 export type OppSort = "gain" | "deadline" | "confidence";
@@ -45,9 +62,9 @@ export function listOpportunities(opts?: {
   sort?: OppSort;
   status?: "active" | "all";
 }): OpportunityView[] {
-  let rows = OPPORTUNITIES.map(join);
+  let rows = OPPORTUNITIES.map(join).filter((o): o is OpportunityView => o !== null);
   if (opts?.status !== "all") {
-    rows = rows.filter((o) => o.status !== "expired");
+    rows = rows.filter((o) => isActive(o.status));
   }
   if (opts?.sector && opts.sector !== "all") rows = rows.filter((o) => o.sector === opts.sector);
   if (opts?.type) rows = rows.filter((o) => o.type === opts.type);
@@ -67,7 +84,7 @@ export function getOpportunity(id: string): OpportunityView | null {
 }
 
 export function opportunitiesSummary() {
-  const active = OPPORTUNITIES.filter((o) => !["expired", "captured"].includes(o.status));
+  const active = OPPORTUNITIES.filter((o) => isActive(o.status));
   const openGain = active.reduce((s, o) => s + o.estimatedGain, 0);
   const closingSoon = active.filter((o) => daysUntil(o.windowEnd) <= 21).length;
   return {
@@ -130,8 +147,10 @@ export function runScenario(params: ScenarioParams): ScenarioResult {
   const effectiveRate = Math.max(0.04, base + jd + cd);
   const annualBurden = Math.round(params.revenue * effectiveRate);
 
-  const baseline = SCENARIOS.find((s) => s.isBaseline)!;
-  const annualSaving = baseline.result.annualBurden - annualBurden;
+  // Fallback se o seed não tiver um cenário-baseline: economia 0 em vez de crash.
+  const baseline = SCENARIOS.find((s) => s.isBaseline);
+  const baselineBurden = baseline?.result.annualBurden ?? annualBurden;
+  const annualSaving = baselineBurden - annualBurden;
 
   let riskLevel: Level = "low";
   if (jd <= -0.025 || params.regime === "Simples Nacional") riskLevel = "medium";

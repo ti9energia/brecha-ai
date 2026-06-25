@@ -55,6 +55,12 @@ export function domainBrain(message: string, locale: Locale): CopilotReply {
   // ── janelas fechando / urgência ──
   if (has("fech", "urgent", "prazo", "closing", "expir")) {
     const u = urgent[0];
+    if (!u) {
+      const text = pt
+        ? `Nenhuma janela fechando nos próximos 21 dias. Você tem **${summary.openWindows}** janela(s) aberta(s) com mais folga — quer ver as de maior ganho?`
+        : `No windows closing within the next 21 days. You have **${summary.openWindows}** open window(s) with more runway — want to see the highest-gain ones?`;
+      return { text, sources: [], actions: [{ label: pt ? "Ver oportunidades" : "View opportunities", module: "opportunities" }], model: "Cérebro local" };
+    }
     const text = pt
       ? `Há **${urgent.length}** janela(s) fechando em até 21 dias. A mais urgente é **${u.title}** — fecha em **${u.daysRemaining} dias**, com ganho estimado de **${money(u.estimatedGain, locale)}/ano**. Disparada por ${u.norm.source.ref}.`
       : `There are **${urgent.length}** window(s) closing within 21 days. The most urgent is **${u.title}** — closes in **${u.daysRemaining} days**, estimated gain **${money(u.estimatedGain, locale)}/yr**. Triggered by ${u.norm.source.ref}.`;
@@ -64,6 +70,12 @@ export function domainBrain(message: string, locale: Locale): CopilotReply {
   // ── maior ganho / melhor jogada ──
   if (has("maior", "melhor", "biggest", "best", "ganho", "jogada", "play")) {
     const o = top[0];
+    if (!o) {
+      const text = pt
+        ? `No momento não há nenhuma janela aberta. O radar segue varrendo os diários oficiais — você é avisado assim que uma brecha abrir.`
+        : `There are no open windows right now. The radar keeps sweeping the official gazettes — you'll be alerted the moment one opens.`;
+      return { text, sources: [], actions: [{ label: pt ? "Ver radar normativo" : "View regulatory radar", module: "radar" }], model: "Cérebro local" };
+    }
     const text = pt
       ? `A jogada de maior ganho aberta é **${o.title}**, com **${money(o.estimatedGain, locale)}/ano**. Recomendação: ${o.recommendedMove.headline}. Confiança de ${(o.confidence * 100).toFixed(0)}% sobre ${o.correlatedNorms} normas correlatas.`
       : `The highest-gain open play is **${o.title}**, at **${money(o.estimatedGain, locale)}/yr**. Recommendation: ${o.recommendedMove.headline}. Confidence ${(o.confidence * 100).toFixed(0)}% across ${o.correlatedNorms} correlated norms.`;
