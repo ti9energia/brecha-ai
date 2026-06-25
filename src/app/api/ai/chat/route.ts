@@ -48,8 +48,9 @@ export async function POST(req: Request) {
   if (!last || !last.content.trim()) return fail("NO_MESSAGE", "errors.no_message");
   const locale = resolveLocale(body.locale);
 
-  // O produto fala só com o AI Core: ele combina as ações/fontes do domínio com o
-  // texto do modelo (provider trocável) e devolve a resposta pronta.
-  const reply = await aiChat(messages, locale);
+  // O produto fala só com o AI Core: ele combina ações/fontes do domínio, RAG e o
+  // texto do modelo (provider trocável) e devolve a resposta pronta. Isolado por
+  // tenant via orgId da sessão (se houver).
+  const reply = await aiChat(messages, locale, undefined, session?.orgId);
   return ok(reply);
 }
