@@ -27,6 +27,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <button
       onClick={toggle}
       aria-label="Alternar tema"
+      aria-pressed={theme === "light"}
       className={cn(
         "grid place-items-center size-9 rounded-[var(--radius-md)] border border-line bg-surface-2 text-ink-2 hover:text-ink hover:border-line-strong transition-colors",
         className,

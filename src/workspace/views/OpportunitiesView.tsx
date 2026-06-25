@@ -50,6 +50,7 @@ export function OpportunitiesView() {
             <button
               key={s.id}
               onClick={() => setSort(s.id)}
+              aria-pressed={sort === s.id}
               className={cn(
                 "px-3 h-8 rounded-[var(--radius-sm)] text-sm transition-colors",
                 sort === s.id ? "bg-surface-4 text-ink" : "text-ink-3 hover:text-ink",
@@ -97,6 +98,7 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
         "shrink-0 h-8 px-3 rounded-full border text-sm transition-colors whitespace-nowrap",
         active ? "border-line-gold bg-[var(--brand-soft)] text-brand" : "border-line bg-surface-2 text-ink-3 hover:text-ink hover:border-line-strong",

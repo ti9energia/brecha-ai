@@ -94,6 +94,7 @@ const messages = {
     closePane: "Fechar painel",
     closeTab: "Fechar aba",
     backToSite: "Sair",
+    logout: "Encerrar sessão",
   },
 
   landing: {

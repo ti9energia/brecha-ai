@@ -49,7 +49,7 @@ function TabStrip({ pane, split, onNewTab }: { pane: Pane; split: boolean; onNew
 
   return (
     <div className="flex items-stretch h-11 border-b border-line bg-surface shrink-0 select-none">
-      <div className="flex-1 flex items-stretch gap-1 px-1.5 overflow-x-auto no-scrollbar">
+      <div role="tablist" className="flex-1 flex items-stretch gap-1 px-1.5 overflow-x-auto no-scrollbar">
         {pane.tabIds.map((id, index) => {
           const tab = ws.state.tabs[id];
           if (!tab) return null;
@@ -59,12 +59,19 @@ function TabStrip({ pane, split, onNewTab }: { pane: Pane; split: boolean; onNew
           return (
             <div
               key={id}
+              role="tab"
+              aria-selected={active}
+              tabIndex={0}
               draggable
               onDragStart={(e) => { setDragIdx(index); e.dataTransfer.effectAllowed = "move"; }}
               onDragOver={(e) => { e.preventDefault(); if (overIdx !== index) setOverIdx(index); }}
               onDrop={(e) => { e.preventDefault(); if (dragIdx !== null && dragIdx !== index) ws.reorder(pane.id, dragIdx, index); setDragIdx(null); setOverIdx(null); }}
               onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
               onMouseDown={(e) => { e.stopPropagation(); ws.focusTab(pane.id, id); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ws.focusTab(pane.id, id); }
+                else if (e.key === "Delete") { e.preventDefault(); ws.closeTab(id, pane.id); }
+              }}
               onAuxClick={(e) => { if (e.button === 1) ws.closeTab(id, pane.id); }}
               className={cn(
                 "group relative flex items-center gap-2 max-w-[200px] min-w-0 my-1.5 pl-2.5 pr-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-all",

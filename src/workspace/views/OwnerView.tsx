@@ -70,10 +70,12 @@ export function OwnerView() {
 
       {/* sub-tabs (segmented control) */}
       <div className="mb-7 overflow-x-auto no-scrollbar">
-        <div className="inline-flex items-center gap-1 p-1 rounded-[var(--radius-md)] border border-line bg-surface-2">
+        <div role="tablist" className="inline-flex items-center gap-1 p-1 rounded-[var(--radius-md)] border border-line bg-surface-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={section === tab.id}
               onClick={() => setSection(tab.id)}
               className={cn(
                 "inline-flex items-center gap-1.5 px-3 h-8 rounded-[var(--radius-sm)] text-sm whitespace-nowrap transition-colors",
@@ -198,7 +200,7 @@ function Sparkline({ series }: { series: number[] }) {
   const gridY = [0.25, 0.5, 0.75].map((f) => PAD + innerH * f);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[132px] block" preserveAspectRatio="none" role="img" aria-hidden>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[132px] block" preserveAspectRatio="none" aria-hidden>
       <defs>
         <linearGradient id="brc-spark-fill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.28" />

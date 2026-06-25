@@ -96,6 +96,7 @@ const messages: Deep<Messages> = {
     closePane: "Close pane",
     closeTab: "Close tab",
     backToSite: "Exit",
+    logout: "Sign out",
   },
 
   landing: {

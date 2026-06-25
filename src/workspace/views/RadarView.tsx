@@ -71,6 +71,7 @@ export function RadarView() {
             <button
               key={f.id}
               onClick={() => setLevel(f.id)}
+              aria-pressed={level === f.id}
               className={cn(
                 "px-3 h-8 rounded-[var(--radius-sm)] text-sm transition-colors whitespace-nowrap",
                 level === f.id ? "bg-surface-4 text-ink" : "text-ink-3 hover:text-ink",

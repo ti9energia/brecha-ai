@@ -91,6 +91,7 @@ const messages: Deep<Messages> = {
     closePane: "Fermer le panneau",
     closeTab: "Fermer l'onglet",
     backToSite: "Quitter",
+    logout: "Se déconnecter",
   },
 
   landing: {

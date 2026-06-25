@@ -96,6 +96,7 @@ const messages: Deep<Messages> = {
     closePane: "关闭面板",
     closeTab: "关闭标签页",
     backToSite: "退出",
+    logout: "退出登录",
   },
 
   landing: {

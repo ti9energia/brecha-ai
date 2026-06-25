@@ -39,6 +39,8 @@ export function LanguageSwitcher({ align = "right" }: { align?: "left" | "right"
         onClick={() => setOpen((o) => !o)}
         className="inline-flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] border border-line bg-surface-2 text-ink-2 hover:text-ink hover:border-line-strong transition-colors text-sm"
         aria-label="Idioma"
+        aria-haspopup="listbox"
+        aria-expanded={open}
       >
         <Globe size={15} />
         <span className="hidden sm:inline">{localeMeta[locale].flag}</span>
@@ -46,6 +48,8 @@ export function LanguageSwitcher({ align = "right" }: { align?: "left" | "right"
       </button>
       {open && (
         <div
+          role="listbox"
+          aria-label="Idioma"
           className={cn(
             "absolute z-50 mt-2 w-52 glass rounded-[var(--radius-md)] p-1.5 shadow-[var(--shadow-lg)]",
             align === "right" ? "right-0" : "left-0",
@@ -54,6 +58,8 @@ export function LanguageSwitcher({ align = "right" }: { align?: "left" | "right"
           {locales.map((l) => (
             <button
               key={l}
+              role="option"
+              aria-selected={l === locale}
               onClick={() => switchTo(l)}
               className={cn(
                 "w-full flex items-center gap-3 px-2.5 py-2 rounded-[var(--radius-sm)] text-sm text-ink-2 hover:bg-surface-3 hover:text-ink transition-colors",

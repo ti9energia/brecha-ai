@@ -26,7 +26,7 @@ export function NavRail() {
 
   return (
     <nav className="w-[3.75rem] shrink-0 flex flex-col items-center border-r border-line bg-[var(--canvas-deep)] py-3">
-      <Link href={`/${locale}`} className="grid place-items-center size-10 rounded-[var(--radius-md)] hover:bg-surface-2 transition-colors mb-3" title={tNav("backToSite")}>
+      <Link href={`/${locale}`} className="grid place-items-center size-10 rounded-[var(--radius-md)] hover:bg-surface-2 transition-colors mb-3" title={tNav("backToSite")} aria-label={tNav("backToSite")}>
         <Mark size={26} />
       </Link>
 
@@ -42,6 +42,8 @@ export function NavRail() {
                   key={m.id}
                   onClick={() => ws.open(m.id)}
                   title={tNav(m.navKey)}
+                  aria-label={tNav(m.navKey)}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
                     "relative grid place-items-center size-10 rounded-[var(--radius-md)] transition-colors group",
                     active ? "bg-[var(--brand-soft)] text-brand" : "text-ink-3 hover:text-ink hover:bg-surface-2",
@@ -59,6 +61,8 @@ export function NavRail() {
       <button
         onClick={copilot.toggle}
         title={tNav("askCopilot")}
+        aria-label={tNav("askCopilot")}
+        aria-pressed={copilot.open}
         className={cn(
           "relative grid place-items-center size-10 rounded-[var(--radius-md)] mt-2 transition-all",
           copilot.open ? "bg-brand text-on-brand" : "border border-line-gold bg-[var(--brand-soft)] text-brand hover:brightness-110",
