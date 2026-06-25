@@ -166,6 +166,34 @@ const messages: Deep<Messages> = {
     footerCompany: "Company",
     footerLegal: "Legal",
     footerTagline: "Detects the window. Simulates the move. Executes before it closes.",
+    flink: {
+      how: "How it works",
+      pricing: "Pricing",
+      sectors: "Sectors",
+      login: "Access the radar",
+      manifesto: "Manifesto",
+      repo: "Repository",
+      status: "System status",
+      terms: "Terms of use",
+      privacy: "Privacy",
+      lgpd: "LGPD",
+    },
+  },
+
+  legal: {
+    eyebrow: "Legal & Manifesto",
+    title: "Transparency is part of the play.",
+    intro: "How we operate, what we promise and how we handle your data — no hidden fine print.",
+    back: "Back to home",
+    updated: "Updated June 24, 2026",
+    manifestoTitle: "Manifesto",
+    manifestoBody: "Regulatory opportunity doesn't warn you — it expires. We believe capturing the right gap, at the right time, with human approval and an auditable trail, should be as natural as reading a bank statement. We don't sell reports: we deliver the executed play. Our gain only exists once yours lands in the account. That's the alignment.",
+    termsTitle: "Terms of use",
+    termsBody: "Brecha.ai provides detection, simulation and execution support for regulatory opportunities. Every irreversible play depends on approval by the responsible tax attorney. Simulations are deterministic projections based on the assumptions shown and do not replace a formal legal-tax opinion. The success fee applies only to realized and reconciled savings.",
+    privacyTitle: "Privacy",
+    privacyBody: "We collect only what's needed to map your structure and cross-reference relevant norms. Data is isolated per organization (multi-tenant), encrypted in transit and at rest, and never shared with third parties without a legal basis. You can export or delete your data at any time.",
+    lgpdTitle: "LGPD",
+    lgpdBody: "We operate in compliance with Brazil's Law 13.709/2018 (LGPD). We process data under explicit legal bases, log processing operations, and respect data-subject rights: access, correction, portability and erasure. Data Protection Officer (DPO): dpo@brecha.ai.",
   },
 
   opportunities: {
@@ -256,6 +284,7 @@ const messages: Deep<Messages> = {
 
   structure: {
     title: "My structure",
+    saved: "Structure saved",
     subtitle: "Acme's tax and legal profile — the foundation of every simulation.",
     legalName: "Legal name",
     taxId: "CNPJ",
@@ -452,6 +481,11 @@ const messages: Deep<Messages> = {
     brandSub: "1,247 official sources under watch. The next window may already be open.",
     secure: "Secure connection · multi-tenant isolation",
     demoHint: "Demo — any credentials will sign you in.",
+    forgotSent: "If an account exists for this email, we've sent a recovery link.",
+    invalidCreds: "Invalid email or password.",
+    unauthenticated: "Session expired. Please sign in again.",
+    forbidden: "You don't have permission for this action.",
+    signingOut: "Signing out…",
   },
 
   units: {

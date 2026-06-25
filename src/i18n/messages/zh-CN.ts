@@ -166,6 +166,34 @@ const messages: Deep<Messages> = {
     footerCompany: "公司",
     footerLegal: "法律",
     footerTagline: "侦测窗口。模拟方案。在窗口关闭前执行。",
+    flink: {
+      how: "工作原理",
+      pricing: "价格方案",
+      sectors: "行业",
+      login: "进入雷达",
+      manifesto: "宣言",
+      repo: "代码仓库",
+      status: "系统状态",
+      terms: "使用条款",
+      privacy: "隐私政策",
+      lgpd: "LGPD",
+    },
+  },
+
+  legal: {
+    eyebrow: "法律与宣言",
+    title: "透明也是这盘棋的一部分。",
+    intro: "我们如何运作、承诺什么，以及如何处理你的数据——没有隐藏的细则。",
+    back: "返回首页",
+    updated: "更新于 2026 年 6 月 24 日",
+    manifestoTitle: "宣言",
+    manifestoBody: "监管机会不会预告——它只会过期。我们相信，在正确的时机、经人工审批并留下可审计的轨迹，抓住正确的机会窗口，应当像查看账单一样自然。我们不卖报告：我们交付已执行的方案。只有当你的收益到账，我们才有收益。这就是利益的一致。",
+    termsTitle: "使用条款",
+    termsBody: "Brecha.ai 提供监管机会的侦测、模拟与执行支持。任何不可逆的操作都须经负责税务师审批。模拟是基于所示假设的确定性预测，不能替代正式的法律税务意见。成功费仅对已实现并对账的节省计收。",
+    privacyTitle: "隐私政策",
+    privacyBody: "我们只收集绘制你的架构和匹配相关法规所必需的数据。数据按组织隔离（多租户），传输与存储均加密，未经合法依据绝不与第三方共享。你可以随时导出或删除你的数据。",
+    lgpdTitle: "LGPD",
+    lgpdBody: "我们遵守巴西第 13.709/2018 号法律（LGPD）运营。我们在明确的合法依据下处理数据，记录处理操作，并尊重数据主体的权利：访问、更正、可携与删除。数据保护官（DPO）：dpo@brecha.ai。",
   },
 
   opportunities: {
@@ -256,6 +284,7 @@ const messages: Deep<Messages> = {
 
   structure: {
     title: "我的架构",
+    saved: "架构已保存",
     subtitle: "Acme 的财税与法律画像——一切模拟的基础。",
     legalName: "公司名称",
     taxId: "CNPJ",
@@ -452,6 +481,11 @@ const messages: Deep<Messages> = {
     brandSub: "1,247 个官方数据源处于监控之下。下一扇窗口或许已经开启。",
     secure: "安全连接 · 多租户隔离",
     demoHint: "演示版——任意凭据均可登录。",
+    forgotSent: "如果该邮箱存在对应账户，我们已发送找回链接。",
+    invalidCreds: "邮箱或密码无效。",
+    unauthenticated: "会话已过期，请重新登录。",
+    forbidden: "你没有执行此操作的权限。",
+    signingOut: "正在退出……",
   },
 
   units: {

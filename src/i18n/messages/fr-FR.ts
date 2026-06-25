@@ -161,6 +161,34 @@ const messages: Deep<Messages> = {
     footerCompany: "Entreprise",
     footerLegal: "Mentions légales",
     footerTagline: "Détecte la fenêtre. Simule la manœuvre. Exécute avant la fermeture.",
+    flink: {
+      how: "Comment ça marche",
+      pricing: "Tarifs",
+      sectors: "Secteurs",
+      login: "Accéder au radar",
+      manifesto: "Manifeste",
+      repo: "Dépôt",
+      status: "État du système",
+      terms: "Conditions d'utilisation",
+      privacy: "Confidentialité",
+      lgpd: "LGPD",
+    },
+  },
+
+  legal: {
+    eyebrow: "Mentions légales & Manifeste",
+    title: "La transparence fait partie de la manœuvre.",
+    intro: "Comment nous opérons, ce que nous promettons et comment nous traitons vos données — sans petits caractères cachés.",
+    back: "Retour à l'accueil",
+    updated: "Mis à jour le 24 juin 2026",
+    manifestoTitle: "Manifeste",
+    manifestoBody: "L'opportunité réglementaire ne prévient pas — elle expire. Nous croyons que saisir la bonne brèche, au bon moment, avec une approbation humaine et une piste auditable, devrait être aussi naturel que lire un relevé. Nous ne vendons pas de rapports : nous livrons la manœuvre exécutée. Notre gain n'existe que lorsque le vôtre arrive sur le compte. C'est l'alignement.",
+    termsTitle: "Conditions d'utilisation",
+    termsBody: "Brecha.ai fournit la détection, la simulation et le soutien à l'exécution d'opportunités réglementaires. Toute manœuvre irréversible dépend de l'approbation du fiscaliste responsable. Les simulations sont des projections déterministes fondées sur les hypothèses affichées et ne remplacent pas un avis juridico-fiscal formel. Le success fee ne s'applique qu'aux économies réalisées et rapprochées.",
+    privacyTitle: "Confidentialité",
+    privacyBody: "Nous ne collectons que le nécessaire pour cartographier votre structure et croiser les normes pertinentes. Les données sont isolées par organisation (multi-tenant), chiffrées en transit et au repos, et jamais partagées avec des tiers sans base légale. Vous pouvez exporter ou supprimer vos données à tout moment.",
+    lgpdTitle: "LGPD",
+    lgpdBody: "Nous opérons en conformité avec la loi brésilienne 13.709/2018 (LGPD). Nous traitons les données sur des bases légales explicites, journalisons les opérations de traitement et respectons les droits de la personne concernée : accès, rectification, portabilité et effacement. Délégué à la protection des données (DPO) : dpo@brecha.ai.",
   },
 
   opportunities: {
@@ -251,6 +279,7 @@ const messages: Deep<Messages> = {
 
   structure: {
     title: "Ma structure",
+    saved: "Structure enregistrée",
     subtitle: "Le profil fiscal et juridique d'Acme — socle de chaque simulation.",
     legalName: "Raison sociale",
     taxId: "CNPJ",
@@ -447,6 +476,11 @@ const messages: Deep<Messages> = {
     brandSub: "1 247 sources officielles sous surveillance. La prochaine brèche est peut-être déjà ouverte.",
     secure: "Connexion sécurisée · isolation multi-tenant",
     demoHint: "Démonstration — n'importe quel identifiant fonctionne.",
+    forgotSent: "Si un compte existe pour cet e-mail, nous avons envoyé un lien de récupération.",
+    invalidCreds: "E-mail ou mot de passe invalide.",
+    unauthenticated: "Session expirée. Veuillez vous reconnecter.",
+    forbidden: "Vous n'avez pas la permission pour cette action.",
+    signingOut: "Déconnexion…",
   },
 
   units: {
