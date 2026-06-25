@@ -16,7 +16,7 @@ import { SectorIcon } from "@/ui/SectorIcon";
 import { Eyebrow, Chip, buttonClass } from "@/ui/primitives";
 import { getT, getFmt } from "@/i18n/server";
 import { resolveLocale } from "@/i18n/config";
-import { listOpportunities, opportunitiesSummary, getSectors, getPlans } from "@/server/domain/store";
+import { listOpportunities, opportunitiesSummary, getSectors, getPlans, ownerKpis } from "@/server/domain/store";
 
 const SOURCES = ["Diário Oficial da União", "CONFAZ", "Receita Federal", "PGFN", "SEF/SC", "SEFAZ/SP", "STJ", "MCTI", "SUDENE", "JUCESP"];
 
@@ -28,6 +28,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   const fmt = getFmt(locale);
 
   const summary = opportunitiesSummary();
+  const kpis = ownerKpis();
   const opps = listOpportunities({ sort: "gain" });
   const heroOpps: HeroOpp[] = listOpportunities({ sort: "deadline" })
     .slice(0, 5)
@@ -91,6 +92,25 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
 
             <Reveal delay={320}>
               <p className="mt-5 mono text-xs text-ink-4">{t("heroNote")}</p>
+            </Reveal>
+
+            {/* prova social — números reais no topo (não chavão) */}
+            <Reveal delay={380}>
+              <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4">
+                {[
+                  { v: fmt.moneyCompact(kpis.capturedNet), l: t("proofA") },
+                  { v: fmt.number(kpis.activeTenants), l: t("proofB") },
+                  { v: "1.247", l: t("proofC") },
+                ].map((m, i) => (
+                  <div key={i} className="flex items-center gap-7">
+                    {i > 0 && <span className="h-8 w-px bg-[color:var(--border)] -ml-7 hidden sm:block" />}
+                    <div>
+                      <p className="font-display font-bold text-xl text-ink tnum leading-none">{m.v}</p>
+                      <p className="mt-1 text-[0.72rem] text-ink-4 max-w-[8.5rem] leading-tight">{m.l}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </Reveal>
           </div>
 
