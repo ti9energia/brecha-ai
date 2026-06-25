@@ -48,6 +48,16 @@ const messages: Deep<Messages> = {
     copyright: "Tous droits réservés.",
   },
 
+  errorPages: {
+    notFoundCode: "404",
+    notFoundTitle: "Fenêtre introuvable",
+    notFoundBody: "Cette route n'existe pas ou la fenêtre s'est déjà refermée. Retour au radar.",
+    backHome: "Retour à l'accueil",
+    errorTitle: "Quelque chose s'est glissé par la brèche",
+    errorBody: "Une erreur inattendue s'est produite. La piste d'audit a enregistré l'événement.",
+    tryAgain: "Réessayer",
+  },
+
   states: {
     loadingTitle: "Analyse du radar réglementaire",
     emptyOpportunities: "Aucune fenêtre ouverte pour le moment",

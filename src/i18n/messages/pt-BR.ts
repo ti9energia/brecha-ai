@@ -51,6 +51,16 @@ const messages = {
     copyright: "Todos os direitos reservados.",
   },
 
+  errorPages: {
+    notFoundCode: "404",
+    notFoundTitle: "Janela não encontrada",
+    notFoundBody: "Esta rota não existe ou a janela já fechou. Volte ao radar.",
+    backHome: "Voltar ao início",
+    errorTitle: "Algo escapou pela brecha",
+    errorBody: "Um erro inesperado aconteceu. A trilha de auditoria registrou o evento.",
+    tryAgain: "Tentar de novo",
+  },
+
   states: {
     loadingTitle: "Sondando o radar normativo",
     emptyOpportunities: "Nenhuma janela aberta agora",

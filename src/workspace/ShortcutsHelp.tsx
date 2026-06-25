@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Keyboard, X } from "lucide-react";
 import { useTranslations } from "@/i18n/provider";
+import { useFocusTrap } from "@/ui/useFocusTrap";
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
@@ -15,6 +16,8 @@ function Kbd({ children }: { children: React.ReactNode }) {
 export function ShortcutsHelp({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations("nav");
   const [mod, setMod] = useState("Ctrl");
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, open);
 
   useEffect(() => {
     if (typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent)) setMod("⌘");
@@ -47,6 +50,10 @@ export function ShortcutsHelp({ open, onClose }: { open: boolean; onClose: () =>
     <div className="fixed inset-0 z-[92] flex items-center justify-center p-4" onMouseDown={onClose}>
       <div className="absolute inset-0 bg-black/55 backdrop-blur-sm animate-rise" style={{ animationDuration: "0.2s" }} />
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Atalhos de teclado"
         className="relative w-full max-w-md glass rounded-[var(--radius-lg)] border border-line-strong shadow-[var(--shadow-lg)] overflow-hidden animate-rise"
         style={{ animationDuration: "0.25s" }}
         onMouseDown={(e) => e.stopPropagation()}

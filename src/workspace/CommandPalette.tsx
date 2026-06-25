@@ -7,6 +7,7 @@ import { useSession } from "./session";
 import { MODULES } from "./registry";
 import { useCopilot } from "@/components/Copilot";
 import { useTranslations } from "@/i18n/provider";
+import { useFocusTrap } from "@/ui/useFocusTrap";
 import { cn } from "@/ui/cn";
 
 interface Cmd {
@@ -35,6 +36,8 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, open);
 
   useEffect(() => {
     if (open) {
@@ -93,6 +96,10 @@ export function CommandPalette({
     <div className="fixed inset-0 z-[90] flex items-start justify-center pt-[12vh] px-4" onMouseDown={onClose}>
       <div className="absolute inset-0 bg-black/55 backdrop-blur-sm animate-rise" style={{ animationDuration: "0.2s" }} />
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={tNav("askCopilot")}
         className="relative w-full max-w-xl glass rounded-[var(--radius-lg)] border border-line-strong shadow-[var(--shadow-lg)] overflow-hidden animate-rise"
         style={{ animationDuration: "0.25s" }}
         onMouseDown={(e) => e.stopPropagation()}

@@ -53,6 +53,16 @@ const messages: Deep<Messages> = {
     copyright: "All rights reserved.",
   },
 
+  errorPages: {
+    notFoundCode: "404",
+    notFoundTitle: "Window not found",
+    notFoundBody: "This route doesn't exist or the window has already closed. Back to the radar.",
+    backHome: "Back to home",
+    errorTitle: "Something slipped through the breach",
+    errorBody: "An unexpected error occurred. The audit trail logged the event.",
+    tryAgain: "Try again",
+  },
+
   states: {
     loadingTitle: "Scanning the regulatory radar",
     emptyOpportunities: "No windows open right now",

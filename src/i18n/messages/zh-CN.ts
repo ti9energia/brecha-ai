@@ -53,6 +53,16 @@ const messages: Deep<Messages> = {
     copyright: "保留所有权利。",
   },
 
+  errorPages: {
+    notFoundCode: "404",
+    notFoundTitle: "未找到窗口",
+    notFoundBody: "此页面不存在，或机会窗口已关闭。返回雷达。",
+    backHome: "返回首页",
+    errorTitle: "有什么从缝隙中溜走了",
+    errorBody: "发生了意外错误。审计日志已记录此事件。",
+    tryAgain: "重试",
+  },
+
   states: {
     loadingTitle: "正在扫描监管雷达",
     emptyOpportunities: "当前没有开放的窗口",

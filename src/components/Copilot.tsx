@@ -7,6 +7,7 @@ import {
 import { Send, X, Sparkles, ArrowUpRight, ExternalLink, Cpu } from "lucide-react";
 import { useTranslations, useLocale } from "@/i18n/provider";
 import { useWorkspace, type ModuleId } from "@/workspace/store";
+import { useFocusTrap } from "@/ui/useFocusTrap";
 import { Mark } from "@/ui/Logo";
 import { cn } from "@/ui/cn";
 
@@ -90,6 +91,8 @@ function CopilotPanel({
   const ws = useWorkspace();
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  useFocusTrap(panelRef, open);
   const lastModel = [...messages].reverse().find((m) => m.model)?.model;
 
   useEffect(() => {
@@ -118,6 +121,11 @@ function CopilotPanel({
         onClick={() => setOpen(false)}
       />
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("title")}
+        inert={!open}
         className={cn(
           "fixed right-0 top-0 bottom-0 z-[81] w-full sm:w-[400px] flex flex-col glass border-l border-line shadow-[var(--shadow-lg)] transition-transform duration-400 ease-[var(--ease-out-expo)]",
           open ? "translate-x-0" : "translate-x-full",
