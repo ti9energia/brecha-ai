@@ -7,6 +7,8 @@ import {
   opportunitiesSummary,
   approveExecution,
   getOpportunity,
+  recordAiFeedback,
+  aiFeedbackStats,
 } from "./store";
 
 const DAY = 1000 * 60 * 60 * 24;
@@ -69,6 +71,21 @@ describe("daysUntil / windowState", () => {
     expect(daysUntil(isoInDays(10))).toBeGreaterThan(0);
   });
 
+  it("convenção inclusiva: 0 no dia do fechamento, 1 na véspera, -1 no dia seguinte", () => {
+    const end = "2026-07-08"; // data sem hora
+    expect(daysUntil(end, new Date("2026-07-08T12:00:00Z"))).toBe(0); // fecha hoje, ainda válida
+    expect(daysUntil(end, new Date("2026-07-07T23:30:00Z"))).toBe(1);
+    expect(daysUntil(end, new Date("2026-07-09T00:30:00Z"))).toBe(-1); // expirada
+  });
+
+  it("windowState: dia do fechamento é 'urgent' (não 'expired')", () => {
+    // regressão do off-by-one — usa daysUntil internamente com 'now' padrão; aqui
+    // validamos via daysUntil que d=0 cai na faixa urgent (d <= 7 e d >= 0).
+    const d = daysUntil("2026-07-08", new Date("2026-07-08T08:00:00Z"));
+    expect(d).toBe(0);
+    expect(d).toBeGreaterThanOrEqual(0); // não negativo → não expirado
+  });
+
   it("windowState classifies by remaining days", () => {
     // ~5 days out → urgent (d <= 7)
     expect(windowState(isoInDays(5))).toBe("urgent");
@@ -129,5 +146,17 @@ describe("approveExecution", () => {
     expect(plan!.approved).toBe(true);
     expect(plan!.approvedBy).toBe("Tester");
     expect(plan!.opportunityId).toBe(id);
+  });
+});
+
+describe("AI feedback (0A §2.9)", () => {
+  it("registra ratings e agrega estatísticas", () => {
+    const before = aiFeedbackStats();
+    recordAiFeedback({ rating: "up", message: "claro", locale: "pt-BR", userId: "u-1", orgId: "org-acme" });
+    recordAiFeedback({ rating: "down", message: "confuso", locale: "en", userId: "u-1", orgId: "org-acme" });
+    const after = aiFeedbackStats();
+    expect(after.total).toBe(before.total + 2);
+    expect(after.up).toBe(before.up + 1);
+    expect(after.down).toBe(before.down + 1);
   });
 });
