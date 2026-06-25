@@ -2,9 +2,9 @@ import { domainBrain } from "@/server/ai/brain";
 import { askClaude } from "@/server/ai/claude";
 import { resolveLocale } from "@/i18n/config";
 import { ok, fail } from "@/server/http";
+import { rateLimit } from "@/server/security/rateLimit";
 
 // Limites de entrada — corta abuso de custo/DoS antes de chamar a Anthropic.
-// (Em produção, somar rate-limit por IP via Upstash/Vercel KV.)
 const MAX_MESSAGES = 20;
 const MAX_CONTENT = 4000;
 
@@ -13,6 +13,10 @@ type ChatMsg = { role: "user" | "assistant"; content: string };
 // POST /api/ai/chat — turno do Copiloto (0A §2.9). Tenta o Claude (se houver
 // chave) e cai no cérebro de domínio determinístico caso contrário.
 export async function POST(req: Request) {
+  // rate-limit por IP: 30 turnos/min (protege custo da Anthropic).
+  const limited = rateLimit(req, "ai-chat", { max: 30, windowMs: 60_000 });
+  if (limited) return limited;
+
   let body: { messages?: unknown; locale?: string };
   try {
     body = await req.json();

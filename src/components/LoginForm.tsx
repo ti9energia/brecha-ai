@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowRight, Loader2, Mail, Lock, KeyRound, ShieldCheck } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowRight, Loader2, Mail, Lock, KeyRound, ShieldCheck, AlertCircle } from "lucide-react";
 import { useTranslations, useLocale } from "@/i18n/provider";
 import { buttonClass } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
+
+const DEMO = { email: "marina.alves@acme.com.br", password: "demo1234" };
 
 function GoogleGlyph() {
   return (
@@ -22,17 +24,40 @@ export function LoginForm() {
   const t = useTranslations("auth");
   const locale = useLocale();
   const router = useRouter();
-  const [loading, setLoading] = useState<null | "form" | "google" | "microsoft" | "magic">(null);
-  const [forgot, setForgot] = useState(false);
+  const params = useSearchParams();
+  const next = params.get("next") || `/${locale}/app`;
 
-  function go(kind: NonNullable<typeof loading>) {
+  const [email, setEmail] = useState(DEMO.email);
+  const [password, setPassword] = useState(DEMO.password);
+  const [loading, setLoading] = useState<null | "form" | "google" | "magic">(null);
+  const [forgot, setForgot] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function login(em: string, pw: string, kind: NonNullable<typeof loading>) {
+    setError(null);
     setLoading(kind);
-    setTimeout(() => router.push(`/${locale}/app`), 820);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: em, password: pw }),
+      });
+      if (res.ok) {
+        router.push(next);
+        router.refresh();
+        return;
+      }
+      const json = await res.json().catch(() => null);
+      setError(json?.error?.code === "RATE_LIMITED" ? "Muitas tentativas. Aguarde um instante." : t("invalidCreds"));
+    } catch {
+      setError(t("invalidCreds"));
+    }
+    setLoading(null);
   }
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    go("form");
+    login(email, password, "form");
   }
 
   return (
@@ -42,7 +67,8 @@ export function LoginForm() {
           <input
             type="email"
             required
-            defaultValue="marina.alves@acme.com.br"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder={t("emailPlaceholder")}
             className="login-input"
             autoComplete="email"
@@ -60,7 +86,8 @@ export function LoginForm() {
           <input
             type="password"
             required
-            defaultValue="demo1234"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder={t("passwordPlaceholder")}
             className="login-input"
             autoComplete="current-password"
@@ -70,6 +97,12 @@ export function LoginForm() {
         {forgot && (
           <p className="flex items-start gap-2 rounded-[var(--radius-md)] border border-line bg-surface-2 px-3 py-2.5 text-xs text-ink-3 animate-rise">
             <Mail size={13} className="text-brand shrink-0 mt-0.5" /> {t("forgotSent")}
+          </p>
+        )}
+
+        {error && (
+          <p role="alert" className="flex items-start gap-2 rounded-[var(--radius-md)] border border-[color:var(--danger)]/30 bg-[var(--danger-soft)] px-3 py-2.5 text-xs text-danger animate-rise">
+            <AlertCircle size={13} className="shrink-0 mt-0.5" /> {error}
           </p>
         )}
 
@@ -89,11 +122,11 @@ export function LoginForm() {
       </div>
 
       <div className="space-y-2.5">
-        <button onClick={() => go("google")} disabled={!!loading} className={buttonClass("secondary", "md", "w-full")}>
+        <button onClick={() => login(DEMO.email, DEMO.password, "google")} disabled={!!loading} className={buttonClass("secondary", "md", "w-full")}>
           {loading === "google" ? <Loader2 size={16} className="animate-spin" /> : <GoogleGlyph />}
           {t("google")}
         </button>
-        <button onClick={() => go("magic")} disabled={!!loading} className={buttonClass("ghost", "md", "w-full")}>
+        <button onClick={() => login(DEMO.email, DEMO.password, "magic")} disabled={!!loading} className={buttonClass("ghost", "md", "w-full")}>
           {loading === "magic" ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} className="text-brand" />}
           {t("magic")}
         </button>

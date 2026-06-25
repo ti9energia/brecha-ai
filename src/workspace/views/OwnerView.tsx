@@ -11,6 +11,7 @@ import {
 import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
+import { useSession } from "@/workspace/session";
 import { ViewScroll, ViewHeader, StatTiles, StatTile } from "./shared";
 import { SectorIcon } from "@/ui/SectorIcon";
 import { Button, Chip, Meter } from "@/ui/primitives";
@@ -22,6 +23,7 @@ export function OwnerView() {
   const t = useTranslations("owner");
   const tc = useTranslations("common");
   const fmt = useFormatter();
+  const user = useSession();
   const [section, setSection] = useState<Section>("overview");
 
   const k = useMemo(() => ownerKpis(), []);
@@ -37,6 +39,19 @@ export function OwnerView() {
     { id: "flags", label: t("flags"), icon: <ToggleLeft size={14} /> },
     { id: "audit", label: t("audit"), icon: <ScrollText size={14} /> },
   ];
+
+  // RBAC defense-in-depth: só platform_owner vê o painel do dono.
+  if (user.role !== "platform_owner") {
+    return (
+      <ViewScroll>
+        <div className="panel hairline p-12 text-center">
+          <ShieldCheck size={28} className="mx-auto text-ink-4 mb-4" />
+          <h2 className="font-display font-semibold text-ink">{t("title")}</h2>
+          <p className="mt-2 text-sm text-ink-3">Acesso restrito ao dono da plataforma (platform_owner).</p>
+        </div>
+      </ViewScroll>
+    );
+  }
 
   return (
     <ViewScroll>

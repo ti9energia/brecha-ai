@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { useWorkspace } from "./store";
+import { useSession, initials } from "./session";
 import { MODULES } from "./registry";
 import { useCopilot } from "@/components/Copilot";
 import { useTranslations, useLocale } from "@/i18n/provider";
@@ -11,9 +12,12 @@ import { cn } from "@/ui/cn";
 
 export function NavRail() {
   const ws = useWorkspace();
+  const user = useSession();
   const tNav = useTranslations("nav");
   const locale = useLocale();
   const copilot = useCopilot();
+  // RBAC: só platform_owner vê o módulo do dono.
+  const canOwner = user.role === "platform_owner";
 
   const focusedPane = ws.state.panes.find((p) => p.id === ws.state.focusedPaneId);
   const activeModule = focusedPane ? ws.state.tabs[focusedPane.activeTabId]?.module : undefined;
@@ -30,7 +34,7 @@ export function NavRail() {
         {groups.map((g, gi) => (
           <div key={g} className="contents">
             {gi > 0 && <span className="my-1.5 h-px w-7 bg-[color:var(--border)]" />}
-            {MODULES.filter((m) => m.group === g && !m.railHidden).map((m) => {
+            {MODULES.filter((m) => m.group === g && !m.railHidden && (m.id !== "owner" || canOwner)).map((m) => {
               const Icon = m.icon;
               const active = activeModule === m.id;
               return (
@@ -64,8 +68,8 @@ export function NavRail() {
         {!copilot.open && <span className="absolute inset-0 rounded-[var(--radius-md)] border border-line-gold animate-[pulse-ring_3s_ease-out_infinite]" />}
       </button>
 
-      <span className="mt-3 grid place-items-center size-9 rounded-full bg-surface-3 border border-line text-ink-2 font-display font-semibold text-sm" title="Marina Alves">
-        MA
+      <span className="mt-3 grid place-items-center size-9 rounded-full bg-surface-3 border border-line text-ink-2 font-display font-semibold text-sm" title={`${user.name} · ${user.role}`}>
+        {initials(user.name)}
       </span>
     </nav>
   );

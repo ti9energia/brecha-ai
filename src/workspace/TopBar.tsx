@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, ChevronDown, Command, LogOut } from "lucide-react";
 import { useWorkspace } from "./store";
 import { useCopilot } from "@/components/Copilot";
@@ -14,6 +14,17 @@ export function TopBar({ onCommand }: { onCommand: () => void }) {
   const tNav = useTranslations("nav");
   const locale = useLocale();
   const copilot = useCopilot();
+  const router = useRouter();
+
+  async function logout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      /* ignore */
+    }
+    router.push(`/${locale}`);
+    router.refresh();
+  }
 
   return (
     <header className="flex items-center gap-3 h-12 px-3 border-b border-line bg-surface shrink-0">
@@ -52,9 +63,9 @@ export function TopBar({ onCommand }: { onCommand: () => void }) {
         </button>
         <LanguageSwitcher />
         <ThemeToggle />
-        <Link href={`/${locale}`} className="grid place-items-center size-9 rounded-[var(--radius-md)] border border-line bg-surface-2 text-ink-3 hover:text-ink transition-colors" title={tNav("backToSite")}>
+        <button onClick={logout} className="grid place-items-center size-9 rounded-[var(--radius-md)] border border-line bg-surface-2 text-ink-3 hover:text-ink hover:border-line-strong transition-colors" title={tNav("backToSite")}>
           <LogOut size={15} />
-        </Link>
+        </button>
       </div>
     </header>
   );

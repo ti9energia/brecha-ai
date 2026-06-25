@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft, Radar } from "lucide-react";
 import { LoginForm } from "@/components/LoginForm";
@@ -74,7 +75,9 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
             <h1 className="font-display font-bold text-3xl text-ink">{t("title")}</h1>
             <p className="mt-2 text-ink-3">{t("subtitle")}</p>
             <div className="mt-8">
-              <LoginForm />
+              <Suspense fallback={<div className="h-[22rem]" />}>
+                <LoginForm />
+              </Suspense>
             </div>
             <p className="mt-8 text-center text-xs text-ink-4 text-pretty max-w-xs mx-auto">{t("terms")}</p>
           </div>

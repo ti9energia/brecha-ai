@@ -469,7 +469,10 @@ const messages = {
     brandHeadline: "A oportunidade não avisa. Ela expira.",
     brandSub: "1.247 fontes oficiais sob vigilância. A próxima brecha já pode estar aberta.",
     secure: "Conexão segura · isolamento multi-tenant",
-    demoHint: "Demonstração — qualquer credencial entra.",
+    demoHint: "Demo: marina.alves@acme.com.br · senha demo1234",
+    invalidCreds: "E-mail ou senha inválidos.",
+    unauthenticated: "Sessão expirada. Entre novamente.",
+    signingOut: "Saindo…",
   },
 
   units: {

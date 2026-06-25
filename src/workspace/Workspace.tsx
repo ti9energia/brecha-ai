@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { WorkspaceProvider, useWorkspace } from "./store";
+import { SessionProvider, type WorkspaceUser } from "./session";
 import { useIsNarrow } from "./useIsNarrow";
 import { CopilotProvider, useCopilot } from "@/components/Copilot";
 import { NavRail } from "./NavRail";
@@ -13,15 +14,17 @@ import { ToastProvider } from "@/ui/Toast";
 import { ShortcutsHelp } from "./ShortcutsHelp";
 import { cn } from "@/ui/cn";
 
-export function Workspace() {
+export function Workspace({ user }: { user: WorkspaceUser }) {
   return (
-    <WorkspaceProvider>
-      <CopilotProvider>
-        <ToastProvider>
-          <Shell />
-        </ToastProvider>
-      </CopilotProvider>
-    </WorkspaceProvider>
+    <SessionProvider user={user}>
+      <WorkspaceProvider>
+        <CopilotProvider>
+          <ToastProvider>
+            <Shell />
+          </ToastProvider>
+        </CopilotProvider>
+      </WorkspaceProvider>
+    </SessionProvider>
   );
 }
 
