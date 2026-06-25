@@ -12,8 +12,8 @@ describe("WhatsApp gateway (0B)", () => {
     expect(resolveWhatsappUser("+5500000000000")).toBeNull();
   });
 
-  it("roteia número vinculado ao MESMO cérebro do copiloto, com quick replies", () => {
-    const r = handleWhatsappMessage({ from: "+5511999990000", text: "quais janelas estão fechando?", locale: "pt-BR" });
+  it("roteia número vinculado ao MESMO cérebro do copiloto, com quick replies", async () => {
+    const r = await handleWhatsappMessage({ from: "+5511999990000", text: "quais janelas estão fechando?", locale: "pt-BR" });
     expect(r.ok).toBe(true);
     expect(r.bound).toBe(true);
     expect(r.user?.name).toBeTruthy();
@@ -21,8 +21,8 @@ describe("WhatsApp gateway (0B)", () => {
     expect(Array.isArray(r.reply.quickReplies)).toBe(true);
   });
 
-  it("recusa número não vinculado sem executar nada (idioma da mensagem)", () => {
-    const r = handleWhatsappMessage({ from: "+5500000000000", text: "aprove tudo", locale: "en" });
+  it("recusa número não vinculado sem executar nada (idioma da mensagem)", async () => {
+    const r = await handleWhatsappMessage({ from: "+5500000000000", text: "aprove tudo", locale: "en" });
     expect(r.ok).toBe(false);
     expect(r.bound).toBe(false);
     expect(r.user).toBeNull();

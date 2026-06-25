@@ -5,7 +5,8 @@
 // usuário vinculado; toda mensagem é registrada (auditoria). Um provider real
 // (Meta Cloud API / Twilio) apenas encaminha o webhook para cá.
 // ─────────────────────────────────────────────────────────────────────────────
-import { domainBrain, type CopilotReply } from "@/server/ai/brain";
+import { aiChat } from "@/server/ai-core";
+import type { CopilotReply } from "@/server/ai/brain";
 import { userById } from "@/server/auth/users";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
@@ -50,7 +51,7 @@ export function whatsappLogCount(): number {
   return WA_LOG.length;
 }
 
-export function handleWhatsappMessage(input: InboundMessage): WhatsappResult {
+export async function handleWhatsappMessage(input: InboundMessage): Promise<WhatsappResult> {
   const locale: Locale = input.locale && isLocale(input.locale) ? input.locale : "pt-BR";
   const user = resolveWhatsappUser(input.from);
 
@@ -65,14 +66,16 @@ export function handleWhatsappMessage(input: InboundMessage): WhatsappResult {
   }
 
   const text = (input.text ?? "").slice(0, 4000);
-  const brain = domainBrain(text, locale); // MESMO cérebro do copiloto da UI
+  // WhatsApp é só mais um cliente do AI Core (0B §2): MESMO cérebro, tools e RAG,
+  // isolado pelo tenant do usuário vinculado. As ações viram quick replies.
+  const reply = await aiChat([{ role: "user", content: text }], locale, undefined, user.orgId);
   WA_LOG.push({ at: new Date().toISOString(), from: normalizeNumber(input.from), userId: user.sub, text });
 
   return {
     ok: true,
     bound: true,
     user: { name: user.name, role: user.role },
-    reply: { text: brain.text, quickReplies: brain.actions.map((a) => a.label), sources: brain.sources },
+    reply: { text: reply.text, quickReplies: reply.actions.map((a) => a.label), sources: reply.sources },
   };
 }
 

@@ -43,5 +43,5 @@ export async function POST(req: Request) {
   const msg = extractInbound(body);
   if (!msg || !msg.text.trim()) return fail("NO_MESSAGE", "errors.no_message");
 
-  return ok(handleWhatsappMessage(msg));
+  return ok(await handleWhatsappMessage(msg));
 }
