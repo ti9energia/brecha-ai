@@ -301,6 +301,20 @@ export function ownerAudit() {
   return AUDIT_LOG;
 }
 
+// Governança (0A §2.8 / 0B §3): toda ação da IA (tool invocada, comando de
+// WhatsApp) entra na trilha imutável — prepende (mais recente no topo).
+let aiAuditSeq = 0;
+export function recordAiAction(entry: { actor: string; action: string; detail: string }) {
+  AUDIT_LOG.unshift({
+    id: `ai-${++aiAuditSeq}`,
+    at: new Date().toISOString(),
+    actor: entry.actor,
+    tenant: STRUCTURE.legalName,
+    action: entry.action,
+    detail: entry.detail.slice(0, 160),
+  });
+}
+
 // ── Feedback da IA (0A §2.7/§2.9) — alimenta o dataset de treino do AI Core ─────
 // Isolado por tenant (orgId). Em produção, persistir + curar para finetune.
 export interface AiFeedback {

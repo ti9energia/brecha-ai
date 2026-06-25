@@ -8,6 +8,7 @@
 import { aiChat } from "@/server/ai-core";
 import type { CopilotReply } from "@/server/ai/brain";
 import { userById } from "@/server/auth/users";
+import { recordAiAction } from "@/server/domain/store";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 
@@ -70,6 +71,7 @@ export async function handleWhatsappMessage(input: InboundMessage): Promise<What
   // isolado pelo tenant do usuário vinculado. As ações viram quick replies.
   const reply = await aiChat([{ role: "user", content: text }], locale, undefined, user.orgId);
   WA_LOG.push({ at: new Date().toISOString(), from: normalizeNumber(input.from), userId: user.sub, text });
+  recordAiAction({ actor: `${user.name} (WhatsApp)`, action: "Comando WhatsApp", detail: text }); // 0B §3
 
   return {
     ok: true,

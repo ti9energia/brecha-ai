@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import {
   listOpportunities, listRadar, getStructure, updateStructure, runScenario, approveExecution, getSavings,
+  recordAiAction,
 } from "@/server/domain/store";
 import type { SessionUser } from "@/server/auth/session";
 
@@ -55,7 +56,15 @@ export type ToolResult =
 /** Execução governada (0A §2.9, POST /ai/tools/invoke): checa RBAC e roda. */
 export function invokeTool(id: string, input: Record<string, unknown>, ctx: ToolContext): ToolResult {
   const tool = TOOLS.find((t) => t.id === id);
-  if (!tool) return { ok: false, error: "NOT_FOUND" };
-  if (!tool.permission.includes(ctx.role)) return { ok: false, error: "FORBIDDEN" };
-  return { ok: true, toolId: id, data: tool.run(input, ctx) };
+  if (!tool) {
+    recordAiAction({ actor: ctx.userName, action: `tool:${id}`, detail: "não encontrada" });
+    return { ok: false, error: "NOT_FOUND" };
+  }
+  if (!tool.permission.includes(ctx.role)) {
+    recordAiAction({ actor: ctx.userName, action: `tool:${id}`, detail: `negada (papel ${ctx.role})` });
+    return { ok: false, error: "FORBIDDEN" };
+  }
+  const data = tool.run(input, ctx);
+  recordAiAction({ actor: ctx.userName, action: `tool:${id}`, detail: "executada" });
+  return { ok: true, toolId: id, data };
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { listTools, invokeTool } from "./tools";
+import { ownerAudit } from "@/server/domain/store";
 
 describe("AI Core — tools registry (0A §2.4 / RBAC 0C)", () => {
   it("lista tools por papel: viewer não vê writers; manager vê", () => {
@@ -29,5 +30,15 @@ describe("AI Core — tools registry (0A §2.4 / RBAC 0C)", () => {
     const r = invokeTool("nao:existe", {}, { role: "platform_owner", userName: "O" });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toBe("NOT_FOUND");
+  });
+
+  it("audita toda invocação — concedida e negada (0A §2.8)", () => {
+    const before = ownerAudit().length;
+    invokeTool("opportunities:read", {}, { role: "manager", userName: "Marina" });
+    invokeTool("execution:start", {}, { role: "viewer", userName: "Vitor" }); // negada
+    const log = ownerAudit();
+    expect(log.length).toBe(before + 2);
+    expect(log[0].actor).toBe("Vitor"); // mais recente no topo
+    expect(log[0].action).toContain("tool:");
   });
 });
