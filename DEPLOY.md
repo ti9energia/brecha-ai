@@ -60,9 +60,14 @@ Qualquer host que rode um container OCI: aponte para o `Dockerfile`, exponha a p
 
 | Variável | Obrigatória | Para quê |
 |---|---|---|
+| `AUTH_SECRET` | **Sim (produção)** | Assina a sessão JWT (HS256). **Fail-closed**: sem ela, o app recusa subir em produção (não usa segredo público). Gere com `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`. |
 | `ANTHROPIC_API_KEY` | Não | Liga o Claude (claude-opus-4-8). Sem ela, o Copiloto usa o cérebro local. |
 | `AI_CORE_MODEL` | Não | Troca o modelo do AI Core (padrão `claude-opus-4-8`). |
 | `NEXT_PUBLIC_SITE_URL` | Recomendada | Domínio final, usado em `robots.txt` e `sitemap.xml`. |
+| `WHATSAPP_VERIFY_TOKEN` | Não | Token do handshake do webhook do WhatsApp (`/api/whatsapp/webhook`, 0B). |
+| `WHATSAPP_APP_SECRET` | Não | Valida a assinatura (`X-Hub-Signature-256`) do webhook (Meta/Twilio). |
+
+> Em **dev** (`npm run dev`), `AUTH_SECRET` usa um fallback local — só produção exige.
 
 Nunca comite `.env.local`. Use os *secrets* do provedor.
 
@@ -76,6 +81,7 @@ Conecte o repo à Vercel para deploy automático a cada push (Preview em PRs, Pr
 ---
 
 ## Checklist pós-deploy
+- [ ] **`AUTH_SECRET` setado em produção** (senão o app falha por segurança, de propósito).
 - [ ] `GET /api/health` retorna `{ "status": "ok" }`.
 - [ ] `/` redireciona para o locale detectado (`/pt-BR`, `/en`, `/zh-CN`, `/fr-FR`).
 - [ ] Landing, `/[locale]/login` e `/[locale]/app` carregam.
