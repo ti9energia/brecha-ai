@@ -453,6 +453,8 @@ const messages: Deep<Messages> = {
     realizedGain: "Realized gain",
     reconciled: "Reconciled",
     pendingReconcile: "Reconciling",
+    reconcileAction: "Reconcile",
+    reconciledToast: "Savings reconciled",
   },
 
   settings: {

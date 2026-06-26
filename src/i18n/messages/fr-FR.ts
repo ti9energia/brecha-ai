@@ -448,6 +448,8 @@ const messages: Deep<Messages> = {
     realizedGain: "Gain réalisé",
     reconciled: "Rapproché",
     pendingReconcile: "Rapprochement en cours",
+    reconcileAction: "Rapprocher",
+    reconciledToast: "Économie rapprochée",
   },
 
   settings: {

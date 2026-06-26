@@ -453,6 +453,8 @@ const messages = {
     realizedGain: "Ganho realizado",
     reconciled: "Conciliado",
     pendingReconcile: "Conciliando",
+    reconcileAction: "Conciliar",
+    reconciledToast: "Economia conciliada",
   },
 
   settings: {
