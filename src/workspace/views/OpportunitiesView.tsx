@@ -5,7 +5,8 @@ import { Crosshair, SlidersHorizontal, TrendingUp, Timer, Coins, Sparkles } from
 import { listOpportunities, opportunitiesSummary, getSectors, type OppSort } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { OpportunityCard } from "@/components/OpportunityCard";
-import { ViewScroll, ViewHeader, StatTiles, StatTile } from "./shared";
+import { ViewScroll, ViewHeader, StatTiles, StatTile, UpdatedAt } from "./shared";
+import { EmptyState } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
 
 export function OpportunitiesView() {
@@ -31,7 +32,7 @@ export function OpportunitiesView() {
     <ViewScroll>
       <ViewHeader
         icon={<Crosshair size={20} />}
-        eyebrow={tc("updatedAt") + " · " + fmt.date(new Date(), { day: "2-digit", month: "long" })}
+        eyebrow={<UpdatedAt />}
         title={t("title")}
         subtitle={t("subtitle")}
       />
@@ -76,18 +77,16 @@ export function OpportunitiesView() {
 
       {rows.length === 0 ? (
         <div className="panel hairline">
-          <div className="flex flex-col items-center justify-center text-center py-16 px-6">
-            <div className="mb-5 grid place-items-center size-16 rounded-full border border-line bg-surface-2 text-brand">
-              <Sparkles size={22} />
-            </div>
-            <h3 className="text-lg font-semibold text-ink">{tStates("emptyOpportunities")}</h3>
-            <p className="mt-2 max-w-sm text-sm text-ink-3">{tStates("emptyOpportunitiesHint")}</p>
-          </div>
+          <EmptyState
+            icon={<Sparkles size={22} />}
+            title={tStates("emptyOpportunities")}
+            hint={tStates("emptyOpportunitiesHint")}
+          />
         </div>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {rows.map((opp, i) => (
-            <OpportunityCard key={opp.id} opp={opp} index={i} />
+          {rows.map((opp) => (
+            <OpportunityCard key={opp.id} opp={opp} />
           ))}
         </div>
       )}

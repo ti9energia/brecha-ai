@@ -29,7 +29,7 @@ export function SimulatorView({ params }: { params?: Record<string, string> }) {
 
   const [form, setForm] = useState<ScenarioParams>({
     regime: "Lucro Real",
-    jurisdiction: fromOpp?.type === "jurisdiction" ? "Área SUDENE" : "Área SUDENE",
+    jurisdiction: fromOpp?.type === "jurisdiction" ? "Área SUDENE" : "SP",
     classification: "Indústria metalúrgica",
     revenue: 480_000_000,
   });
@@ -108,12 +108,12 @@ export function SimulatorView({ params }: { params?: Record<string, string> }) {
                 <ResultTile icon={<TrendingDown size={14} />} label={t("annualSaving")} value={fmt.moneyCompact(result.annualSaving)} accent={result.annualSaving > 0 ? "positive" : "danger"} sub={t("vsBaseline")} />
                 <ResultTile icon={<Scale size={14} />} label={t("annualBurden")} value={fmt.percent(result.effectiveRate)} sub={fmt.moneyCompact(result.annualBurden)} />
                 <ResultTile icon={<ShieldAlert size={14} />} label={t("riskLevel")} value={<Chip tone={RISK_TONE[result.riskLevel]}>{tc(result.riskLevel)}</Chip>} />
-                <ResultTile icon={<Clock size={14} />} label={t("breakeven")} value={`${result.paybackMonths} ${tc("days").replace("dias", "meses")}`} />
+                <ResultTile icon={<Clock size={14} />} label={t("breakeven")} value={`${result.paybackMonths} ${tc("months")}`} />
               </div>
 
               <div className="flex flex-wrap gap-2.5 animate-rise">
                 <button
-                  onClick={() => toast({ title: t("saveScenario"), description: `${form.regime} · ${form.jurisdiction} · ${fmt.moneyCompact(result.annualSaving)}/${tc("perYear").replace("/", "")}`, tone: "success" })}
+                  onClick={() => toast({ title: t("saveScenario"), description: `${form.regime} · ${form.jurisdiction} · ${fmt.moneyCompact(result.annualSaving)}${tc("perYear")}`, tone: "success" })}
                   className={buttonClass("secondary", "md")}
                 >
                   <Save size={15} />{t("saveScenario")}

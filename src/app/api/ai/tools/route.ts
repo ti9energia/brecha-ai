@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { listTools } from "@/server/ai-core";
+import { orgEntitlements } from "@/server/domain/store";
 import { ok, fail } from "@/server/http";
 import { verifySession, SESSION_COOKIE } from "@/server/auth/session";
 
@@ -10,7 +11,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!session) return fail("UNAUTHENTICATED", "auth.unauthenticated", 401);
-  const tools = listTools(session.role).map((t) => ({
+  // acesso = papel E plano (0C §4.4)
+  const tools = listTools(session.role, orgEntitlements(session.orgId)).map((t) => ({
     id: t.id,
     module: t.module,
     description: t.description,

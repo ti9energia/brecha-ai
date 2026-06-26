@@ -34,4 +34,17 @@ describe("domainBrain", () => {
     expect(en.text).toContain("Vega");
     expect(en.text).toContain("I'm Vega");
   });
+
+  // 4 idiomas (00-PADRÃO §6.7e / 0A DoD b / 0B DoD f): responde em zh-CN e fr-FR.
+  it("responds in the user's language for zh-CN and fr-FR (not English/pt)", () => {
+    const zh = domainBrain("你好", "zh-CN");
+    expect(zh.text).toContain("Vega");
+    expect(zh.text).toContain("副驾驶"); // "copilot" em chinês
+    const fr = domainBrain("bonjour", "fr-FR");
+    expect(fr.text).toContain("copilote");
+    expect(fr.text).not.toContain("I'm Vega");
+    // intenção também é entendida em outro idioma (zh "节省" = economia)
+    const zhSavings = domainBrain("我们节省了多少？", "zh-CN");
+    expect(zhSavings.actions.some((a) => a.module === "savings")).toBe(true);
+  });
 });

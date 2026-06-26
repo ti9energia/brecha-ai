@@ -1,0 +1,42 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import { getRepository, __setRepository } from "./repository";
+import { InMemoryRepository } from "./inMemoryRepository";
+
+describe("repository seam (persistência trocável)", () => {
+  beforeEach(() => {
+    __setRepository(null);
+    delete process.env.DATABASE_URL;
+  });
+
+  it("getRepository() usa o InMemory sem DATABASE_URL (default zero-config)", () => {
+    expect(getRepository()).toBeInstanceOf(InMemoryRepository);
+  });
+
+  it("InMemory: listOpportunities devolve rows com a norma e os campos derivados, ordenados por ganho", async () => {
+    const repo = new InMemoryRepository();
+    const rows = await repo.listOpportunities({ sort: "gain" });
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].norm).toBeTruthy();
+    expect(typeof rows[0].daysRemaining).toBe("number");
+    expect(rows[0].estimatedGain).toBeGreaterThanOrEqual(rows[rows.length - 1].estimatedGain);
+  });
+
+  it("InMemory: getOpportunity retorna null para id inexistente", async () => {
+    expect(await new InMemoryRepository().getOpportunity("nao-existe")).toBeNull();
+  });
+
+  it("InMemory: listRadar inclui opportunityId (join norma→oportunidade) e daysSince", async () => {
+    const radar = await new InMemoryRepository().listRadar();
+    expect(radar.length).toBeGreaterThan(0);
+    expect(radar[0]).toHaveProperty("opportunityId");
+    expect(radar[0]).toHaveProperty("daysSince");
+  });
+
+  it("InMemory: opportunitiesSummary e getStructure respondem o contrato", async () => {
+    const repo = new InMemoryRepository();
+    const sum = await repo.opportunitiesSummary();
+    expect(sum.openWindows).toBeGreaterThan(0);
+    expect(sum.capturedYtd).toBeGreaterThanOrEqual(0);
+    expect((await repo.getStructure()).legalName).toBeTruthy();
+  });
+});

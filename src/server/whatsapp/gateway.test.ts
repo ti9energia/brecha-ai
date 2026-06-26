@@ -65,4 +65,21 @@ describe("WhatsApp gateway (0B)", () => {
     expect(r.pushed).toBeGreaterThanOrEqual(0);
     expect(sentWhatsappCount()).toBe(before + r.pushed);
   });
+
+  // 0B §8(c): ação sensível NUNCA executa direto — exige confirmação SIM/NÃO.
+  it("aprovar execução pede confirmação: NÃO cancela, SIM executa", async () => {
+    const from = "+5511999990000";
+    // 1) pede aprovar → prompt com botão SIM, nada é executado ainda
+    const ask1 = await handleWhatsappMessage({ from, text: "quero aprovar a execução", locale: "pt-BR" });
+    expect(ask1.reply.quickReplies).toContain("SIM");
+    expect(ask1.reply.text).toContain("SIM");
+    // 2) NÃO → cancela
+    const no = await handleWhatsappMessage({ from, text: "NÃO", locale: "pt-BR" });
+    expect(no.reply.text.toLowerCase()).toContain("cancel");
+    // 3) pede de novo e confirma com SIM → executa (✅ na resposta)
+    const ask2 = await handleWhatsappMessage({ from, text: "aprovar execução", locale: "pt-BR" });
+    expect(ask2.reply.quickReplies).toContain("SIM");
+    const yes = await handleWhatsappMessage({ from, text: "SIM", locale: "pt-BR" });
+    expect(yes.reply.text).toContain("✅");
+  });
 });

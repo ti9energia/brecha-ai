@@ -13,6 +13,7 @@ import { useToast } from "@/ui/Toast";
 import { ApertureRing } from "@/ui/ApertureRing";
 import { Chip, Meter, buttonClass } from "@/ui/primitives";
 import { SectorIcon } from "@/ui/SectorIcon";
+import { apertureFraction, EFFORT_VALUE } from "@/ui/opp";
 import { ViewScroll } from "./shared";
 import { cn } from "@/ui/cn";
 
@@ -41,7 +42,7 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
 
   const sim = opp.simulation;
   const maxBurden = Math.max(sim.annualBurdenBefore, sim.annualBurdenAfter, 1);
-  const ringValue = Math.min(1, Math.max(0.05, opp.daysRemaining / 120));
+  const ringValue = apertureFraction(opp.daysRemaining);
 
   function approve() {
     approveExecution(opp!.id, user.name);
@@ -185,7 +186,7 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
 
             <div className="mt-5 space-y-3">
               <LabeledMeter label={tc("confidence")} value={opp.confidence} tone="positive" hint={fmt.percent(opp.confidence)} />
-              <LabeledMeter label={tc("effort")} value={{ low: 0.33, medium: 0.66, high: 1 }[opp.effort]} tone={opp.effort === "high" ? "warning" : "gold"} hint={tc(opp.effort)} />
+              <LabeledMeter label={tc("effort")} value={EFFORT_VALUE[opp.effort]} tone={opp.effort === "high" ? "warning" : "gold"} hint={tc(opp.effort)} />
             </div>
 
             <p className="mt-5 text-xs text-ink-4 text-pretty">{t("confidenceExplain", { n: String(opp.correlatedNorms) })}</p>

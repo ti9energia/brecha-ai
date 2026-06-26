@@ -220,7 +220,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           <div className="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {opps.slice(0, 3).map((opp, i) => (
               <Reveal key={opp.id} delay={i * 90}>
-                <OpportunityCard opp={opp} index={i} />
+                <OpportunityCard opp={opp} />
               </Reveal>
             ))}
           </div>
@@ -274,7 +274,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               <div className="relative">
                 <Quote size={28} className="text-brand mb-4" />
                 <p className="font-display text-xl text-ink text-pretty leading-snug">
-                  "Capturamos R$ 14,8 mi em janelas que teriam fechado sem ninguém ver. O fee só apareceu depois que o dinheiro entrou."
+                  &ldquo;{t("testimonial")}&rdquo;
                 </p>
                 <div className="mt-6 flex items-center gap-3">
                   <span className="grid place-items-center size-10 rounded-full bg-surface-3 text-brand font-display font-semibold">MA</span>

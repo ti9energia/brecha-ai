@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react";
 import { CheckCircle2, Info, AlertTriangle, XCircle, X } from "lucide-react";
 import { useTranslations } from "@/i18n/provider";
 import { cn } from "./cn";
@@ -43,6 +43,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const t = useTranslations("common");
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const seq = useRef(0);
+  const timers = useRef<number[]>([]);
 
   const remove = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
 
@@ -50,10 +51,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     ({ title, description, tone = "success", duration = 4000 }) => {
       const id = ++seq.current;
       setToasts((t) => [...t.slice(-3), { id, title, description, tone }]);
-      window.setTimeout(() => remove(id), duration);
+      timers.current.push(window.setTimeout(() => remove(id), duration));
     },
     [remove],
   );
+
+  // Limpa timers pendentes ao desmontar (evita callback órfão após unmount).
+  useEffect(() => () => { timers.current.forEach((h) => clearTimeout(h)); }, []);
 
   return (
     <Ctx.Provider value={{ toast }}>

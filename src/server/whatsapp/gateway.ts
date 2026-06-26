@@ -5,11 +5,11 @@
 // usuário vinculado; toda mensagem é registrada (auditoria). Um provider real
 // (Meta Cloud API / Twilio) apenas encaminha o webhook para cá.
 // ─────────────────────────────────────────────────────────────────────────────
-import { aiChat } from "@/server/ai-core";
+import { aiChat, invokeTool } from "@/server/ai-core";
 import { agentRun } from "@/server/ai-core/agent";
 import type { CopilotReply } from "@/server/ai/brain";
 import { userById } from "@/server/auth/users";
-import { recordAiAction } from "@/server/domain/store";
+import { recordAiAction, listOpportunities, orgEntitlements } from "@/server/domain/store";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 
@@ -28,6 +28,35 @@ function normalizeNumber(n: string): string {
 export function resolveWhatsappUser(from: string) {
   const id = BINDINGS[normalizeNumber(from)];
   return id ? userById(id) : null;
+}
+
+// ── Confirmação de ação sensível (0B §8c: "responda SIM") ──────────────────────
+// Ações que mutam (aprovar execução) NUNCA rodam direto: o gateway guarda a intenção
+// por número e só executa após um SIM. Em produção, persistir com TTL.
+interface PendingAction {
+  tool: string;
+  input: Record<string, unknown>;
+  label: string;
+}
+const PENDING: Record<string, PendingAction> = {};
+export function pendingConfirmCount(): number {
+  return Object.keys(PENDING).length;
+}
+
+const CONFIRM = ["sim", "yes", "y", "oui", "ok", "是", "确认"];
+const CANCEL = ["não", "nao", "no", "non", "否", "取消"];
+const APPROVE_KW = ["aprov", "approve", "approuv", "批准"];
+
+function firstToken(text: string): string {
+  return text.trim().toLowerCase().split(/[\s,，。.!！?？]+/)[0] ?? "";
+}
+function isOneOf(text: string, words: string[]): boolean {
+  const t = text.trim().toLowerCase();
+  return words.includes(firstToken(text)) || words.includes(t);
+}
+function wantsApprove(text: string): boolean {
+  const t = text.toLowerCase();
+  return APPROVE_KW.some((k) => t.includes(k));
 }
 
 export interface InboundMessage {
@@ -56,30 +85,50 @@ export function whatsappLogCount(): number {
 export async function handleWhatsappMessage(input: InboundMessage): Promise<WhatsappResult> {
   const locale: Locale = input.locale && isLocale(input.locale) ? input.locale : "pt-BR";
   const user = resolveWhatsappUser(input.from);
+  const tw = getT(locale, "whatsapp");
 
   // 0B §3: nenhum comando é executado para número não vinculado.
   if (!user) {
-    return {
-      ok: false,
-      bound: false,
-      user: null,
-      reply: { text: getT(locale, "whatsapp")("unbound"), quickReplies: [], sources: [] },
-    };
+    return { ok: false, bound: false, user: null, reply: { text: tw("unbound"), quickReplies: [], sources: [] } };
   }
 
   const text = (input.text ?? "").slice(0, 4000);
-  // WhatsApp é só mais um cliente do AI Core (0B §2): MESMO cérebro, tools e RAG,
-  // isolado pelo tenant do usuário vinculado. As ações viram quick replies.
-  const reply = await aiChat([{ role: "user", content: text }], locale, undefined, user.orgId);
-  WA_LOG.push({ at: new Date().toISOString(), from: normalizeNumber(input.from), userId: user.sub, text });
-  recordAiAction({ actor: `${user.name} (WhatsApp)`, action: "Comando WhatsApp", detail: text }); // 0B §3
-
-  return {
-    ok: true,
-    bound: true,
-    user: { name: user.name, role: user.role },
-    reply: { text: reply.text, quickReplies: reply.actions.map((a) => a.label), sources: reply.sources },
+  const numKey = normalizeNumber(input.from);
+  const who = { name: user.name, role: user.role };
+  const done = (replyText: string, quickReplies: string[] = [], sources: CopilotReply["sources"] = []): WhatsappResult => {
+    WA_LOG.push({ at: new Date().toISOString(), from: numKey, userId: user.sub, text });
+    return { ok: true, bound: true, user: who, reply: { text: replyText, quickReplies, sources } };
   };
+
+  // ── 0B §8(c): há uma ação aguardando confirmação? SIM executa, NÃO cancela ──
+  const pending = PENDING[numKey];
+  if (pending && isOneOf(text, CONFIRM)) {
+    delete PENDING[numKey];
+    const res = invokeTool(pending.tool, pending.input, {
+      role: user.role, userName: `${user.name} (WhatsApp)`, entitlements: orgEntitlements(user.orgId),
+    });
+    recordAiAction({ actor: `${user.name} (WhatsApp)`, action: "Confirmação WhatsApp", detail: `SIM → ${pending.label}` });
+    return done(res.ok ? tw("confirmed", { title: pending.label }) : tw("nothingPending"));
+  }
+  if (pending && isOneOf(text, CANCEL)) {
+    delete PENDING[numKey];
+    recordAiAction({ actor: `${user.name} (WhatsApp)`, action: "Confirmação WhatsApp", detail: `cancelado → ${pending.label}` });
+    return done(tw("cancelled"));
+  }
+
+  // ── Intenção de aprovar execução → NÃO executa: registra pendência e pede SIM ──
+  if (wantsApprove(text)) {
+    const target = listOpportunities({ status: "all" }).find((o) => o.status === "pending_approval");
+    if (!target) return done(tw("nothingPending"));
+    PENDING[numKey] = { tool: "execution:start", input: { opportunityId: target.id }, label: target.title };
+    recordAiAction({ actor: `${user.name} (WhatsApp)`, action: "Confirmação solicitada", detail: target.title });
+    return done(tw("confirmPrompt", { title: target.title }), [tw("confirmYes"), tw("confirmNo")]);
+  }
+
+  // ── Fluxo normal: mesmo cérebro/tools/RAG do copiloto, isolado pelo tenant (0B §2) ──
+  const reply = await aiChat([{ role: "user", content: text }], locale, undefined, user.orgId);
+  recordAiAction({ actor: `${user.name} (WhatsApp)`, action: "Comando WhatsApp", detail: text }); // 0B §3
+  return done(reply.text, reply.actions.map((a) => a.label), reply.sources);
 }
 
 // ── Saída (0B §7) ────────────────────────────────────────────────────────────

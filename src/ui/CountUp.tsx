@@ -42,10 +42,12 @@ export function CountUp({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const io = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && !started.current) {
           started.current = true;
+          if (reduce) { setN(value); return; } // sem animação: vai direto ao valor final
           const start = performance.now();
           const tick = (t: number) => {
             const p = Math.min(1, (t - start) / duration);
@@ -86,10 +88,15 @@ export function LiveTicker({
   const format = useFormat(kind, currency);
   const [n, setN] = useState(base);
   useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setN(base); // respeita reduced-motion: valor estático, sem loop
+      return;
+    }
     const start = performance.now();
     let raf = 0;
+    let last = 0;
     const tick = (t: number) => {
-      setN(base + (perSecond * (t - start)) / 1000);
+      if (t - last >= 100) { setN(base + (perSecond * (t - start)) / 1000); last = t; } // ~10fps (era ~60)
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

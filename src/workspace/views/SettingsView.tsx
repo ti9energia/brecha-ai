@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Settings, Building2, Radar, Bot, MessageCircle, Users, Check, Save, Globe } from "lucide-react";
 import { getSettings, updateSettings, getSectors } from "@/server/domain/store";
 import { useTranslations } from "@/i18n/provider";
@@ -48,6 +48,7 @@ export function SettingsView() {
   const [sectorSel, setSectorSel] = useState<Set<string>>(() => new Set(settings.sectors));
   const [ufSel, setUfSel] = useState<Set<string>>(() => new Set(settings.jurisdictions));
   const [saved, setSaved] = useState(false);
+  const savedTimer = useRef<number | undefined>(undefined);
 
   function toggle(set: Set<string>, value: string, apply: (next: Set<string>) => void) {
     const next = new Set(set);
@@ -68,8 +69,19 @@ export function SettingsView() {
       body: JSON.stringify(payload),
     }).catch(() => {});
     setSaved(true);
-    window.setTimeout(() => setSaved(false), 2000);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = window.setTimeout(() => setSaved(false), 2000);
   }
+
+  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current); }, []);
+
+  // Rótulos localizados dos tons da IA — o VALOR persistido continua canônico (PT),
+  // pois é o que o motor/persona usa; só a exibição muda por locale.
+  const toneLabel: Record<string, string> = {
+    "Consultivo e direto": t("toneConsultive"),
+    Formal: t("toneFormal"),
+    "Próximo e didático": t("toneFriendly"),
+  };
 
   return (
     <ViewScroll>
@@ -181,7 +193,7 @@ export function SettingsView() {
                 <select className="input" value={aiTone} onChange={(e) => setAiTone(e.target.value)}>
                   {AI_TONES.map((tone) => (
                     <option key={tone} value={tone}>
-                      {tone}
+                      {toneLabel[tone] ?? tone}
                     </option>
                   ))}
                 </select>
@@ -213,9 +225,9 @@ export function SettingsView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left">
-                  <th className="px-5 py-3 eyebrow font-normal">{t("orgName").split(" ")[0]}</th>
+                  <th className="px-5 py-3 eyebrow font-normal">{t("memberName")}</th>
                   <th className="px-5 py-3 eyebrow font-normal">{t("role")}</th>
-                  <th className="px-5 py-3 eyebrow font-normal">E-mail</th>
+                  <th className="px-5 py-3 eyebrow font-normal">{t("memberEmail")}</th>
                 </tr>
               </thead>
               <tbody>

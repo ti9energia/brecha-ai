@@ -32,7 +32,13 @@ export function PaneView({
       )}
     >
       <TabStrip pane={pane} split={split} onNewTab={onNewTab} />
-      <div className="flex-1 min-h-0 bg-canvas relative">
+      <div
+        id={`panel-${pane.id}`}
+        role="tabpanel"
+        aria-labelledby={activeTab ? `tab-${activeTab.id}` : undefined}
+        tabIndex={0}
+        className="flex-1 min-h-0 bg-canvas relative outline-none"
+      >
         {Comp && activeTab ? (
           <Comp key={activeTab.id} params={activeTab.params} paneId={pane.id} tabId={activeTab.id} />
         ) : null}
@@ -49,56 +55,77 @@ function TabStrip({ pane, split, onNewTab }: { pane: Pane; split: boolean; onNew
 
   return (
     <div className="flex items-stretch h-11 border-b border-line bg-surface shrink-0 select-none">
-      <div role="tablist" className="flex-1 flex items-stretch gap-1 px-1.5 overflow-x-auto no-scrollbar">
-        {pane.tabIds.map((id, index) => {
-          const tab = ws.state.tabs[id];
-          if (!tab) return null;
-          const def = MODULE_MAP[tab.module];
-          const Icon = def.icon;
-          const active = pane.activeTabId === id;
-          return (
-            <div
-              key={id}
-              role="tab"
-              aria-selected={active}
-              tabIndex={0}
-              draggable
-              onDragStart={(e) => { setDragIdx(index); e.dataTransfer.effectAllowed = "move"; }}
-              onDragOver={(e) => { e.preventDefault(); if (overIdx !== index) setOverIdx(index); }}
-              onDrop={(e) => { e.preventDefault(); if (dragIdx !== null && dragIdx !== index) ws.reorder(pane.id, dragIdx, index); setDragIdx(null); setOverIdx(null); }}
-              onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
-              onMouseDown={(e) => { e.stopPropagation(); ws.focusTab(pane.id, id); }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ws.focusTab(pane.id, id); }
-                else if (e.key === "Delete") { e.preventDefault(); ws.closeTab(id, pane.id); }
-              }}
-              onAuxClick={(e) => { if (e.button === 1) ws.closeTab(id, pane.id); }}
-              className={cn(
-                "group relative flex items-center gap-2 max-w-[200px] min-w-0 my-1.5 pl-2.5 pr-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-all",
-                active ? "bg-surface-3 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink-2",
-                dragIdx === index && "opacity-40",
-                overIdx === index && dragIdx !== null && dragIdx !== index && "ring-1 ring-[color:var(--border-gold)]",
-              )}
-            >
-              {active && <span className="absolute -bottom-1.5 left-2 right-2 h-px bg-brand" />}
-              <Icon size={14} className={cn("shrink-0", active ? "text-brand" : "text-ink-4")} />
-              <span className="truncate text-[0.82rem]">{tabTitle(tab, tNav)}</span>
-              <button
-                onMouseDown={(e) => { e.stopPropagation(); ws.closeTab(id, pane.id); }}
+      <div className="flex-1 flex items-stretch px-1.5 overflow-x-auto no-scrollbar">
+        {/* tablist contém SÓ tabs (o "+" é irmão) — exigência da ARIA + permite
+            navegar por índice de filho com as setas. */}
+        <div role="tablist" aria-label={tNav("tabs")} aria-orientation="horizontal" className="flex items-stretch gap-1">
+          {pane.tabIds.map((id, index) => {
+            const tab = ws.state.tabs[id];
+            if (!tab) return null;
+            const def = MODULE_MAP[tab.module];
+            const Icon = def.icon;
+            const active = pane.activeTabId === id;
+            return (
+              <div
+                key={id}
+                id={`tab-${id}`}
+                role="tab"
+                aria-selected={active}
+                aria-controls={`panel-${pane.id}`}
+                tabIndex={active ? 0 : -1}
+                draggable
+                onDragStart={(e) => { setDragIdx(index); e.dataTransfer.effectAllowed = "move"; }}
+                onDragOver={(e) => { e.preventDefault(); if (overIdx !== index) setOverIdx(index); }}
+                onDrop={(e) => { e.preventDefault(); if (dragIdx !== null && dragIdx !== index) ws.reorder(pane.id, dragIdx, index); setDragIdx(null); setOverIdx(null); }}
+                onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
+                onMouseDown={(e) => { e.stopPropagation(); ws.focusTab(pane.id, id); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ws.focusTab(pane.id, id); }
+                  else if (e.key === "Delete") { e.preventDefault(); ws.closeTab(id, pane.id); }
+                  else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    const dir = e.key === "ArrowRight" ? 1 : -1;
+                    const count = pane.tabIds.length;
+                    if (e.ctrlKey && e.shiftKey) {
+                      // reordenar por teclado (equivalente ao drag); o nó mantém o foco (key estável).
+                      const to = index + dir;
+                      if (to >= 0 && to < count) ws.reorder(pane.id, index, to);
+                      return;
+                    }
+                    const next = (index + dir + count) % count;
+                    ws.focusTab(pane.id, pane.tabIds[next]);
+                    (e.currentTarget.parentElement?.children[next] as HTMLElement | undefined)?.focus();
+                  }
+                }}
+                onAuxClick={(e) => { if (e.button === 1) ws.closeTab(id, pane.id); }}
                 className={cn(
-                  "grid place-items-center size-5 rounded-[4px] shrink-0 transition-all hover:bg-surface-4 hover:text-ink",
-                  active ? "opacity-70" : "opacity-0 group-hover:opacity-70",
+                  "group relative flex items-center gap-2 max-w-[200px] min-w-0 my-1.5 pl-2.5 pr-1.5 rounded-[var(--radius-sm)] cursor-pointer transition-all",
+                  active ? "bg-surface-3 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink-2",
+                  dragIdx === index && "opacity-40",
+                  overIdx === index && dragIdx !== null && dragIdx !== index && "ring-1 ring-[color:var(--border-gold)]",
                 )}
-                aria-label={tNav("closeTab")}
               >
-                <X size={13} />
-              </button>
-            </div>
-          );
-        })}
+                {active && <span className="absolute -bottom-1.5 left-2 right-2 h-px bg-brand" />}
+                <Icon size={14} className={cn("shrink-0", active ? "text-brand" : "text-ink-4")} />
+                <span className="truncate text-[0.82rem]">{tabTitle(tab, tNav)}</span>
+                <button
+                  tabIndex={-1}
+                  onMouseDown={(e) => { e.stopPropagation(); ws.closeTab(id, pane.id); }}
+                  className={cn(
+                    "grid place-items-center size-5 rounded-[4px] shrink-0 transition-all hover:bg-surface-4 hover:text-ink",
+                    active ? "opacity-70" : "opacity-0 group-hover:opacity-70",
+                  )}
+                  aria-label={tNav("closeTab")}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
         <button
           onMouseDown={(e) => { e.stopPropagation(); onNewTab(pane.id); }}
-          className="my-1.5 ml-0.5 grid place-items-center size-7 rounded-[var(--radius-sm)] text-ink-4 hover:text-ink hover:bg-surface-2 transition-colors shrink-0"
+          className="my-1.5 ml-1 grid place-items-center size-7 rounded-[var(--radius-sm)] text-ink-4 hover:text-ink hover:bg-surface-2 transition-colors shrink-0"
           aria-label={tNav("newTab")}
           title={tNav("newTab")}
         >
