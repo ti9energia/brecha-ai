@@ -7,6 +7,7 @@ export interface WorkspaceUser {
   email: string;
   role: string;
   orgId: string;
+  imp?: string; // sub do dono quando esta sessão é uma impersonação (mostra o banner)
 }
 
 const Ctx = createContext<WorkspaceUser | null>(null);

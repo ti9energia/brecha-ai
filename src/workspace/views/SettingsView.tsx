@@ -210,7 +210,22 @@ export function SettingsView() {
             <Field label={t("whatsapp")} className="flex-1">
               <input className="input mono" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} inputMode="tel" />
             </Field>
-            <Button variant="secondary" className="shrink-0" onClick={() => toast({ title: t("whatsappConnect"), description: whatsapp + " · " + t("whatsappHint"), tone: "success" })}>
+            <Button
+              variant="secondary"
+              className="shrink-0"
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/whatsapp/optin", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ number: whatsapp }),
+                  });
+                  toast({ title: t("whatsappConnect"), description: res.ok ? t("whatsappCodeSent") : t("whatsappError"), tone: res.ok ? "success" : "error" });
+                } catch {
+                  toast({ title: t("whatsappConnect"), description: t("whatsappError"), tone: "error" });
+                }
+              }}
+            >
               <MessageCircle size={16} className="text-positive" />
               {t("whatsappConnect")}
             </Button>
