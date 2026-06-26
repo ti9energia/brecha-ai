@@ -6,6 +6,9 @@
 // SWAP (produção): cada integração real implementa Connector (estilo MCP) com
 // credenciais + sync de verdade; aqui há um connector de demonstração.
 // ─────────────────────────────────────────────────────────────────────────────
+import { ingestDocument } from "./knowledge";
+import { listRadar } from "@/server/domain/store";
+
 export type ConnectorCapability = "read" | "write";
 
 export interface Connector {
@@ -25,9 +28,13 @@ export const gazetteConnector: Connector = {
   label: "Diários Oficiais (BR)",
   capabilities: ["read"],
   status: () => "connected",
-  async sync(_orgId) {
-    // SWAP: buscar feeds reais, normalizar para `Norm` e ingerir no KnowledgeStore.
-    return { ingested: 0, source: "demo:seed" };
+  async sync(orgId) {
+    // SWAP: buscar feeds reais (DOU/CONFAZ/SEFAZ/DOM), normalizar para `Norm`. No
+    // demo, ingere as normas do radar no índice do tenant — o sync tem efeito real
+    // (o RAG do tenant cresce e passa a recuperar essas fontes).
+    const norms = listRadar().slice(0, 8);
+    for (const n of norms) ingestDocument(orgId, { title: n.title, text: n.summary, ref: n.source.ref });
+    return { ingested: norms.length, source: "DOU/CONFAZ/SEFAZ (demo: seed)" };
   },
 };
 

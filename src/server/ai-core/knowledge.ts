@@ -37,12 +37,34 @@ function corpus(): KnowledgeChunk[] {
   return chunks;
 }
 
+// Documentos ingeridos por tenant (via /ai/ingest e connectors/:id/sync) — 0A §2.2.
+// Isolados por orgId: cada tenant só recupera o que foi ingerido para ele (+ o
+// corpus de domínio do demo). Em produção, pgvector com namespace por tenant.
+const INGESTED: Record<string, KnowledgeChunk[]> = {};
+let ingestSeq = 0;
+
+export function ingestDocument(orgId: string, doc: { title: string; text: string; ref?: string }): KnowledgeChunk {
+  const chunk: KnowledgeChunk = {
+    id: `ingest:${orgId}:${++ingestSeq}`,
+    kind: "norm",
+    text: `${doc.title} ${doc.text}`.slice(0, 4000),
+    ref: doc.ref,
+  };
+  (INGESTED[orgId] ??= []).push(chunk);
+  return chunk;
+}
+export function ingestedCount(orgId: string): number {
+  return INGESTED[orgId]?.length ?? 0;
+}
+
 export const inMemoryKnowledge: KnowledgeStore = {
   id: "in-memory",
-  retrieve(query, _orgId, k = 4) {
+  retrieve(query, orgId, k = 4) {
     const terms = query.toLowerCase().split(/\W+/).filter((t) => t.length > 2);
     if (terms.length === 0) return [];
-    return corpus()
+    // corpus de domínio (demo) + o que ESTE tenant ingeriu (isolamento por orgId).
+    const all = [...corpus(), ...(INGESTED[orgId] ?? [])];
+    return all
       .map((c) => {
         const hay = c.text.toLowerCase();
         const score = terms.reduce((acc, t) => acc + (hay.includes(t) ? 1 : 0), 0);

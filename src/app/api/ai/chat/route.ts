@@ -51,6 +51,6 @@ export async function POST(req: Request) {
   // O produto fala só com o AI Core: ele combina ações/fontes do domínio, RAG e o
   // texto do modelo (provider trocável) e devolve a resposta pronta. Isolado por
   // tenant via orgId da sessão (se houver).
-  const reply = await aiChat(messages, locale, undefined, session?.orgId);
+  const reply = await aiChat(messages, locale, undefined, session?.orgId, session?.sub);
   return ok(reply);
 }
