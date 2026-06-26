@@ -25,12 +25,7 @@ const JURISDICTIONS = ["SP", "SC", "MG", "RJ", "BA", "PE", "AM"];
 // Tons disponíveis para a persona da IA.
 const AI_TONES = ["Consultivo e direto", "Formal", "Próximo e didático"];
 
-// Equipe simulada (somente visual — sem persistência real).
-const TEAM = [
-  { name: "Marina Alves", role: "CFO / controller", email: "marina.alves@acme.com.br" },
-  { name: "Helena Vasconcelos", role: "Tributarista", email: "helena.v@acme.com.br" },
-  { name: "Rafael Lima", role: "Analista", email: "rafael.lima@acme.com.br" },
-];
+type TeamMember = { id: string; name: string; email: string; role: string };
 
 export function SettingsView() {
   const t = useTranslations("settings");
@@ -49,7 +44,18 @@ export function SettingsView() {
   const [ufSel, setUfSel] = useState<Set<string>>(() => new Set(settings.jurisdictions));
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [team, setTeam] = useState<TeamMember[]>([]);
   const savedTimer = useRef<number | undefined>(undefined);
+
+  // Equipe real da org (substitui o antigo mock hardcoded) — via /api/team.
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/team")
+      .then((r) => r.json())
+      .then((j) => { if (alive) setTeam(Array.isArray(j?.data) ? j.data : []); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   function toggle(set: Set<string>, value: string, apply: (next: Set<string>) => void) {
     const next = new Set(set);
@@ -251,16 +257,16 @@ export function SettingsView() {
                 </tr>
               </thead>
               <tbody>
-                {TEAM.map((u, i) => (
+                {team.map((u, i) => (
                   <tr
-                    key={u.email}
-                    className={cn("border-line", i < TEAM.length - 1 && "border-b")}
+                    key={u.id}
+                    className={cn("border-line", i < team.length - 1 && "border-b")}
                   >
                     <td className="px-5 py-3.5">
                       <span className="font-medium text-ink">{u.name}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <Chip tone={u.role.includes("Tributarista") ? "gold" : "neutral"}>{u.role}</Chip>
+                      <Chip tone={u.role === "platform_owner" ? "gold" : u.role === "member" ? "neutral" : "info"}>{u.role}</Chip>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="mono text-xs text-ink-3">{u.email}</span>

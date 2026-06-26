@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Crown, Building2, CreditCard, ToggleLeft, ScrollText, TrendingUp,
   Sparkles, ArrowUpRight, ShieldCheck, Plus, FileText, Wallet, Settings, Check,
+  Users, Bot, Plug, RefreshCw, Play, Loader2,
 } from "lucide-react";
 import {
   ownerKpis, listTenants, getPlans, listFlags, ownerAudit, aiFeedbackStats,
@@ -24,7 +25,7 @@ import { SectorIcon } from "@/ui/SectorIcon";
 import { Button, Chip, Meter } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
 
-type Section = "overview" | "tenants" | "plans" | "billing" | "landing" | "config" | "flags" | "audit";
+type Section = "overview" | "tenants" | "users" | "plans" | "billing" | "landing" | "config" | "ai" | "flags" | "audit";
 
 export function OwnerView() {
   const t = useTranslations("owner");
@@ -45,10 +46,12 @@ export function OwnerView() {
   const tabs: { id: Section; label: string; icon: React.ReactNode }[] = [
     { id: "overview", label: t("overview"), icon: <TrendingUp size={14} /> },
     { id: "tenants", label: t("tenants"), icon: <Building2 size={14} /> },
+    { id: "users", label: t("users"), icon: <Users size={14} /> },
     { id: "plans", label: t("plans"), icon: <CreditCard size={14} /> },
     { id: "billing", label: t("billing"), icon: <Wallet size={14} /> },
     { id: "landing", label: t("landing"), icon: <FileText size={14} /> },
     { id: "config", label: t("config"), icon: <Settings size={14} /> },
+    { id: "ai", label: t("ai"), icon: <Bot size={14} /> },
     { id: "flags", label: t("flags"), icon: <ToggleLeft size={14} /> },
     { id: "audit", label: t("audit"), icon: <ScrollText size={14} /> },
   ];
@@ -104,10 +107,12 @@ export function OwnerView() {
 
       {section === "overview" && <Overview k={k} t={t} tc={tc} fmt={fmt} />}
       {section === "tenants" && <Tenants rows={tenants} t={t} fmt={fmt} refresh={refresh} />}
+      {section === "users" && <UsersTab t={t} />}
       {section === "plans" && <Plans rows={plans} t={t} fmt={fmt} refresh={refresh} />}
       {section === "billing" && <Billing t={t} fmt={fmt} refresh={refresh} tenants={tenants} />}
       {section === "landing" && <LandingCms t={t} />}
       {section === "config" && <Config t={t} tenants={tenants} />}
+      {section === "ai" && <AiPanel t={t} fmt={fmt} />}
       {section === "flags" && <Flags rows={flags} t={t} />}
       {section === "audit" && <Audit rows={audit} t={t} fmt={fmt} />}
     </ViewScroll>
@@ -737,6 +742,164 @@ function Switch({ on, onClick }: { on: boolean; onClick: () => void }) {
         )}
       />
     </button>
+  );
+}
+
+// ── USERS (0C §2.3) — lista global de usuários, via /api/owner/users ───────────
+type OwnerUser = { id: string; email: string; name: string; role: string; orgId: string };
+const ROLE_TONE: Record<string, "gold" | "info" | "neutral"> = {
+  platform_owner: "gold",
+  org_admin: "info",
+  manager: "info",
+  member: "neutral",
+  viewer: "neutral",
+};
+function UsersTab({ t }: { t: Tr }) {
+  const ts = useTranslations("settings");
+  const [rows, setRows] = useState<OwnerUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/owner/users")
+      .then((r) => r.json())
+      .then((j) => { if (alive) setRows(Array.isArray(j?.data) ? j.data : []); })
+      .catch(() => {})
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  return (
+    <div className="panel hairline overflow-hidden">
+      <div className="overflow-x-auto no-scrollbar">
+        <table className="w-full min-w-[640px] text-sm">
+          <thead>
+            <tr className="border-b border-line text-left">
+              <th className="eyebrow px-4 pl-5 py-3 font-normal">{ts("memberName")}</th>
+              <th className="eyebrow px-4 py-3 font-normal">{ts("memberEmail")}</th>
+              <th className="eyebrow px-4 py-3 font-normal">{ts("role")}</th>
+              <th className="eyebrow px-4 pr-5 py-3 font-normal text-right">{t("org")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((u) => (
+              <tr key={u.id} className="border-b border-line last:border-0 hover:bg-surface-2/60 transition-colors">
+                <td className="px-4 pl-5 py-3.5 text-ink font-medium">{u.name}</td>
+                <td className="px-4 py-3.5 mono text-xs text-ink-3">{u.email}</td>
+                <td className="px-4 py-3.5"><Chip tone={ROLE_TONE[u.role] ?? "neutral"}>{u.role}</Chip></td>
+                <td className="px-4 pr-5 py-3.5 text-right mono text-xs text-ink-4">{u.orgId}</td>
+              </tr>
+            ))}
+            {loading && (
+              <tr><td colSpan={4} className="px-5 py-10 text-center text-ink-4"><Loader2 size={16} className="inline animate-spin" /></td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── AI & AGENTE (0A) — connectors + jobs + pipeline de treino, agora com UI ─────
+type ConnectorRow = { id: string; label: string; capabilities: string[]; status: string };
+type TrainingRow = { snapshot: { total: number; approvalRate: number }; curated: number; evalScore: number; version: string; status: string };
+function AiPanel({ t, fmt }: { t: Tr; fmt: Fmt }) {
+  const { toast } = useToast();
+  const [connectors, setConnectors] = useState<ConnectorRow[]>([]);
+  const [training, setTraining] = useState<TrainingRow | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  function load() {
+    fetch("/api/ai/connectors").then((r) => r.json()).then((j) => setConnectors(Array.isArray(j?.data) ? j.data : [])).catch(() => {});
+    fetch("/api/ai/training").then((r) => r.json()).then((j) => setTraining(j?.data ?? null)).catch(() => {});
+  }
+  useEffect(() => { load(); }, []);
+
+  async function sync(id: string) {
+    setBusy(id);
+    const res = await writeJson(`/api/ai/connectors/${id}/sync`, {}, "POST");
+    setBusy(null);
+    if (res.ok && res.data) {
+      const d = res.data as { ingested: number; source: string };
+      toast({ title: t("aiPanel.sync"), description: t("aiPanel.syncedToast", { n: String(d.ingested), source: d.source }), tone: "success" });
+      load();
+    } else toast({ title: t("aiPanel.error"), tone: "error" });
+  }
+  async function runJobs() {
+    setBusy("jobs");
+    const res = await writeJson("/api/ai/jobs/run", {}, "POST");
+    setBusy(null);
+    if (res.ok && res.data) {
+      const d = res.data as { synced: number; ingested: number; recommendations: number };
+      toast({ title: t("aiPanel.runJobs"), description: t("aiPanel.jobsToast", { synced: String(d.synced), ingested: String(d.ingested), recs: String(d.recommendations) }), tone: "success" });
+      load();
+    } else toast({ title: t("aiPanel.error"), tone: "error" });
+  }
+
+  const trainStatusKey = training?.status === "evaluated" ? "statusEvaluated" : training?.status === "ready_to_train" ? "statusReady" : "statusCollecting";
+
+  return (
+    <div className="space-y-6">
+      {/* Connectors + jobs */}
+      <div className="panel hairline overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-line">
+          <span className="inline-flex items-center gap-2 eyebrow"><Plug size={13} className="text-brand" /> {t("aiPanel.connectors")}</span>
+          <Button variant="secondary" size="sm" onClick={runJobs} disabled={busy === "jobs"}>
+            {busy === "jobs" ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+            {t("aiPanel.runJobs")}
+          </Button>
+        </div>
+        <ul>
+          {connectors.map((c, i) => (
+            <li key={c.id} className={cn("flex flex-wrap items-center gap-3 px-5 py-3.5", i > 0 && "border-t border-line")}>
+              <span className="grid place-items-center size-9 rounded-[var(--radius-md)] border border-line bg-surface-2 text-brand shrink-0"><Plug size={15} /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-ink font-medium">{c.label}</p>
+                <div className="mt-1 flex items-center gap-1.5">
+                  {c.capabilities.map((cap) => <Chip key={cap} tone="neutral">{cap === "read" ? t("aiPanel.read") : t("aiPanel.write")}</Chip>)}
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1.5 mono text-xs text-positive"><span className="size-1.5 rounded-full bg-positive" /> {c.status}</span>
+              {c.capabilities.includes("read") && (
+                <Button variant="ghost" size="sm" onClick={() => sync(c.id)} disabled={busy === c.id}>
+                  {busy === c.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                  {t("aiPanel.sync")}
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Pipeline de treino */}
+      {training && (
+        <div className="panel hairline p-6">
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <span className="inline-flex items-center gap-2 eyebrow"><Bot size={13} className="text-brand" /> {t("aiPanel.training")}</span>
+            <Chip tone={training.status === "evaluated" ? "positive" : training.status === "ready_to_train" ? "gold" : "neutral"}>{t(`aiPanel.${trainStatusKey}`)}</Chip>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+            <Metric label={t("aiPanel.feedback")} value={fmt.number(training.snapshot.total)} />
+            <Metric label={t("aiPanel.approval")} value={fmt.percent(training.snapshot.approvalRate)} />
+            <Metric label={t("aiPanel.curated")} value={fmt.number(training.curated)} />
+            <Metric label={t("aiPanel.evalScore")} value={fmt.percent(training.evalScore)} />
+          </div>
+          <div className="mt-5 pt-4 border-t border-line flex items-center justify-between gap-3">
+            <span className="text-sm text-ink-3">{t("aiPanel.version")}</span>
+            <span className="mono text-sm text-brand">{training.version}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="eyebrow mb-1.5">{label}</p>
+      <p className="font-display font-semibold text-xl text-ink tnum leading-none">{value}</p>
+    </div>
   );
 }
 
