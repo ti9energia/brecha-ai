@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { HeroInstrument, type HeroOpp } from "@/components/HeroInstrument";
 import { Marquee } from "@/components/Marquee";
 import { Faq } from "@/components/Faq";
+import { StructuredData } from "@/components/StructuredData";
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { Reveal } from "@/ui/Reveal";
 import { CountUp, LiveTicker } from "@/ui/CountUp";
@@ -42,6 +43,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
 
   return (
     <div className="relative overflow-clip">
+      <StructuredData locale={locale} faq={faqItems} />
       <SiteHeader />
 
       {/* ───────────────────────── HERO ───────────────────────── */}
