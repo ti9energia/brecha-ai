@@ -431,6 +431,68 @@ export function updatePlan(id: string, patch: Record<string, unknown>): Plan | n
   return p;
 }
 
+// ── Billing (0C §2.7): assinaturas/faturas in-memory por tenant ────────────────
+export interface Invoice {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  period: string; // "2026-06"
+  amount: number; // R$
+  status: "open" | "paid" | "past_due";
+  issuedAt: string; // ISO
+}
+const INVOICES: Invoice[] = [];
+let invSeq = 0;
+// Seed: 3 meses por tenant a partir do MRR (datas fixas — sem Date.now p/ a UI client).
+for (const tn of TENANTS) {
+  const months = ["2026-04", "2026-05", "2026-06"];
+  months.forEach((p, i) => {
+    const last = i === months.length - 1;
+    INVOICES.push({
+      id: `inv-${tn.id}-${p}`,
+      tenantId: tn.id,
+      tenantName: tn.name,
+      period: p,
+      amount: tn.mrr,
+      status: last ? (tn.status === "past_due" ? "past_due" : "open") : "paid",
+      issuedAt: `${p}-01T00:00:00Z`,
+    });
+  });
+}
+export function listInvoices(tenantId?: string): Invoice[] {
+  const rows = tenantId ? INVOICES.filter((x) => x.tenantId === tenantId) : INVOICES;
+  return [...rows].sort((a, b) => b.period.localeCompare(a.period) || a.tenantName.localeCompare(b.tenantName));
+}
+export function billingSummary() {
+  const mrr = TENANTS.filter((t) => t.status === "active" || t.status === "trial").reduce((s, t) => s + t.mrr, 0);
+  const outstanding = INVOICES.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
+  const collected = INVOICES.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
+  return { mrr, outstanding, collected, invoices: INVOICES.length };
+}
+export function markInvoicePaid(id: string): Invoice | null {
+  const inv = INVOICES.find((x) => x.id === id);
+  if (!inv) return null;
+  inv.status = "paid";
+  recordAiAction({ actor: "platform_owner", action: "Fatura paga", detail: `${inv.tenantName} · ${inv.period}` });
+  return inv;
+}
+export function generateInvoice(tenantId: string): Invoice | null {
+  const tn = TENANTS.find((x) => x.id === tenantId);
+  if (!tn) return null;
+  const inv: Invoice = {
+    id: `inv-${tn.id}-gen-${++invSeq}`,
+    tenantId: tn.id,
+    tenantName: tn.name,
+    period: "2026-07",
+    amount: tn.mrr,
+    status: "open",
+    issuedAt: "2026-07-01T00:00:00Z",
+  };
+  INVOICES.unshift(inv);
+  recordAiAction({ actor: "platform_owner", action: "Fatura gerada", detail: `${tn.name} · ${inv.period}` });
+  return inv;
+}
+
 // ── CMS da landing (0C §2.5): overrides por locale do conteúdo do herói ─────────
 // Vazio = usa o catálogo i18n. O dono edita; a landing aplica o override quando há.
 export const LANDING_FIELDS = ["heroTitleA", "heroTitleB", "heroSub", "heroCta", "heroNote"] as const;
