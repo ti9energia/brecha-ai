@@ -16,7 +16,7 @@ import {
 } from "./seed";
 import type {
   Norm, Opportunity, ScenarioParams, ScenarioResult, Level, OpportunityType, ClientStructure,
-  Tenant, Plan, SectorId,
+  Tenant, Plan, SectorId, Scenario,
 } from "./types";
 import { emit } from "@/server/events/bus";
 
@@ -152,6 +152,62 @@ export function updateStructure(patch: Record<string, unknown>): ClientStructure
 
 export function listScenarios() {
   return SCENARIOS;
+}
+
+// Persiste um cenário simulado (botão "Salvar cenário"). Aparece em listScenarios().
+let scnSeq = 0;
+export function saveScenario(name: string, params: ScenarioParams, result: ScenarioResult): Scenario {
+  const scn: Scenario = { id: `scn-user-${++scnSeq}`, name: (name || "Cenário").slice(0, 80), params, result };
+  SCENARIOS.push(scn);
+  recordAiAction({ actor: "Simulador", action: "Cenário salvo", detail: scn.name });
+  return scn;
+}
+
+// Cria uma Oportunidade real a partir de um cenário do simulador (botão "Transformar
+// em oportunidade"). Vira uma janela aberta de verdade — abre no detalhe.
+let simOppSeq = 0;
+export function createOpportunityFromScenario(params: ScenarioParams, result: ScenarioResult): Opportunity {
+  const norm = NORMS[0]; // norma-gatilho de referência (demo)
+  const now = new Date();
+  const burdenBefore = result.annualBurden + Math.max(0, result.annualSaving);
+  const risk = result.riskLevel === "high" ? 60 : result.riskLevel === "medium" ? 40 : 20;
+  const opp: Opportunity = {
+    id: `opp-sim-${++simOppSeq}`,
+    normId: norm.id,
+    type: /SUDENE|SUFRAMA/i.test(params.jurisdiction) ? "jurisdiction" : "regime",
+    title: `Reorganização simulada — ${params.regime} · ${params.jurisdiction}`,
+    summary: `Oportunidade criada no simulador: ${params.regime}, ${params.jurisdiction}, ${params.classification}.`,
+    sector: "industry",
+    estimatedGain: Math.max(0, result.annualSaving),
+    windowStart: now.toISOString(),
+    windowEnd: new Date(now.getTime() + 60 * DAY).toISOString(),
+    effort: result.riskLevel,
+    confidence: 0.7,
+    status: "open",
+    correlatedNorms: 1,
+    recommendedMove: {
+      headline: `Migrar para ${params.regime} em ${params.jurisdiction}`,
+      fromState: "Estrutura atual",
+      toState: `${params.regime} · ${params.jurisdiction}`,
+      rationale: ["Gerado a partir do simulador fiscal", `Economia projetada de ${Math.round(result.annualSaving)} /ano`],
+      requirements: ["Validação do tributarista", "Atualização cadastral / protocolo"],
+    },
+    simulation: {
+      effectiveRateBefore: 0.18,
+      effectiveRateAfter: result.effectiveRate,
+      annualBurdenBefore: burdenBefore,
+      annualBurdenAfter: result.annualBurden,
+      riskBefore: 20,
+      riskAfter: risk,
+      annualGain: Math.max(0, result.annualSaving),
+      assumptions: ["Cenário do simulador (motor determinístico)"],
+    },
+    createdAt: now.toISOString(),
+  };
+  OPPORTUNITIES.unshift(opp);
+  recordAiAction({ actor: "Simulador", action: "Oportunidade criada", detail: opp.title });
+  emit("opportunity.simulated", { id: opp.id, gain: opp.estimatedGain });
+  return opp;
 }
 
 // ── Motor fiscal determinístico (mock plausível) ─────────────────────────────

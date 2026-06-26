@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Search, ChevronDown, Command, LogOut } from "lucide-react";
+import { Search, ChevronDown, Command, LogOut, Eye } from "lucide-react";
 import { useWorkspace } from "./store";
+import { useSession } from "./session";
 import { useCopilot } from "@/components/Copilot";
 import { useTranslations, useLocale } from "@/i18n/provider";
 import { ThemeToggle } from "@/ui/ThemeToggle";
@@ -12,9 +13,20 @@ import { cn } from "@/ui/cn";
 export function TopBar({ onCommand }: { onCommand: () => void }) {
   const ws = useWorkspace();
   const tNav = useTranslations("nav");
+  const tOwner = useTranslations("owner");
   const locale = useLocale();
   const copilot = useCopilot();
   const router = useRouter();
+  const user = useSession();
+
+  async function stopImpersonation() {
+    try {
+      await fetch("/api/auth/stop-impersonation", { method: "POST" });
+    } catch {
+      /* ignore */
+    }
+    router.refresh();
+  }
 
   async function logout() {
     try {
@@ -27,7 +39,14 @@ export function TopBar({ onCommand }: { onCommand: () => void }) {
   }
 
   return (
-    <header className="flex items-center gap-3 h-12 px-3 border-b border-line bg-surface shrink-0">
+    <>
+      {user.imp && (
+        <div className="flex items-center justify-center gap-3 h-9 px-3 bg-[var(--warning-soft)] border-b border-[color:var(--warning)]/30 text-warning text-xs">
+          <span className="inline-flex items-center gap-1.5"><Eye size={13} /> {tOwner("impersonateBanner", { tenant: user.name })}</span>
+          <button onClick={stopImpersonation} className="underline hover:no-underline font-medium">{tOwner("impersonateStop")}</button>
+        </div>
+      )}
+      <header className="flex items-center gap-3 h-12 px-3 border-b border-line bg-surface shrink-0">
       {/* workspace switcher → abre configurações da organização */}
       <button
         onClick={() => ws.open("settings")}
@@ -74,5 +93,6 @@ export function TopBar({ onCommand }: { onCommand: () => void }) {
         </button>
       </div>
     </header>
+    </>
   );
 }

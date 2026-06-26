@@ -12,6 +12,7 @@ export interface SessionUser {
   name: string;
   role: "platform_owner" | "org_admin" | "manager" | "member" | "viewer";
   orgId: string;
+  imp?: string; // sub do dono original quando esta sessão é uma IMPERSONAÇÃO (0C §2.2)
   exp: number;
 }
 

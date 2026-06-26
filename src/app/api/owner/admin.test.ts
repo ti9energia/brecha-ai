@@ -11,6 +11,8 @@ import { GET as getUsers } from "./users/route";
 import { POST as createTenant } from "./tenants/route";
 import { PATCH as patchTenant } from "./tenants/[id]/route";
 import { PUT as putPlan } from "./plans/[id]/route";
+import { POST as impersonate } from "./tenants/[id]/impersonate/route";
+import { listTenants } from "@/server/domain/store";
 
 const owner: Omit<SessionUser, "exp"> = {
   sub: "u-owner", email: "owner@brecha.ai", name: "Dono", role: "platform_owner", orgId: "org-acme",
@@ -71,5 +73,15 @@ describe("/api/owner/* — admin CRUD", () => {
     h.token = await signSession(owner);
     const res = await putPlan(req("plans/nope", "PUT", { price: 1 }), { params: Promise.resolve({ id: "nope" }) });
     expect(res.status).toBe(404);
+  });
+
+  it("impersonate (0C §2.2): 403 para member; owner re-emite a sessão do tenant", async () => {
+    const id = listTenants()[0].id;
+    h.token = await signSession({ ...owner, role: "member" });
+    expect((await impersonate(req(`tenants/${id}/impersonate`, "POST"), { params: Promise.resolve({ id }) })).status).toBe(403);
+    h.token = await signSession(owner);
+    const res = await impersonate(req(`tenants/${id}/impersonate`, "POST"), { params: Promise.resolve({ id }) });
+    expect(res.status).toBe(200);
+    expect((await res.json()).meta.impersonating).toBe(true);
   });
 });

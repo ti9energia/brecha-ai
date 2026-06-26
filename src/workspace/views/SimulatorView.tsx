@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { FlaskConical, Play, Loader2, ArrowRight, Save, Crosshair, TrendingDown, Scale, ShieldAlert, Clock } from "lucide-react";
-import { runScenario, listScenarios, getOpportunity } from "@/server/domain/store";
+import { runScenario, listScenarios, getOpportunity, saveScenario, createOpportunityFromScenario } from "@/server/domain/store";
 import type { ScenarioParams, ScenarioResult, Level } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
@@ -35,6 +35,8 @@ export function SimulatorView({ params }: { params?: Record<string, string> }) {
   });
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ScenarioResult | null>(null);
+  const [savedTick, setSavedTick] = useState(0);
+  const saved = useMemo(() => listScenarios().filter((s) => s.id.startsWith("scn-user")), [savedTick]);
 
   function run() {
     setRunning(true);
@@ -113,16 +115,38 @@ export function SimulatorView({ params }: { params?: Record<string, string> }) {
 
               <div className="flex flex-wrap gap-2.5 animate-rise">
                 <button
-                  onClick={() => toast({ title: t("saveScenario"), description: `${form.regime} · ${form.jurisdiction} · ${fmt.moneyCompact(result.annualSaving)}${tc("perYear")}`, tone: "success" })}
+                  onClick={() => {
+                    const scn = saveScenario(`${form.regime} · ${form.jurisdiction}`, form, result);
+                    setSavedTick((n) => n + 1);
+                    toast({ title: t("saveScenario"), description: `${scn.name} · ${fmt.moneyCompact(result.annualSaving)}${tc("perYear")}`, tone: "success" });
+                  }}
                   className={buttonClass("secondary", "md")}
                 >
                   <Save size={15} />{t("saveScenario")}
                 </button>
-                <button onClick={() => ws.open("opportunities")} className={buttonClass("primary", "md", "group")}>
+                <button
+                  onClick={() => {
+                    const opp = createOpportunityFromScenario(form, result);
+                    toast({ title: t("turnIntoOpportunity"), description: opp.title, tone: "success" });
+                    ws.open("opportunity", { id: opp.id }, opp.title);
+                  }}
+                  className={buttonClass("primary", "md", "group")}
+                >
                   {t("turnIntoOpportunity")}
                   <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
                 </button>
               </div>
+
+              {saved.length > 0 && (
+                <div className="animate-rise">
+                  <p className="eyebrow mb-2">{t("saveScenario")} · {saved.length}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {saved.map((s) => (
+                      <Chip key={s.id} tone="neutral">{s.name} · {fmt.moneyCompact(s.result.annualSaving)}</Chip>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

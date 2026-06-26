@@ -78,7 +78,22 @@ export function LoginForm() {
           icon={<Lock size={15} />}
           label={t("password")}
           aside={
-            <button type="button" onClick={() => setForgot(true)} className="text-xs text-ink-4 hover:text-brand transition-colors">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await fetch("/api/auth/forgot", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ email }),
+                  });
+                } catch {
+                  /* anti-enumeração: a UI não revela falha */
+                }
+                setForgot(true);
+              }}
+              className="text-xs text-ink-4 hover:text-brand transition-colors"
+            >
               {t("forgot")}
             </button>
           }

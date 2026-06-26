@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Crown, Building2, CreditCard, ToggleLeft, ScrollText, TrendingUp,
   Sparkles, ArrowUpRight, ShieldCheck, Plus,
@@ -237,6 +238,23 @@ const TENANT_STATUS: Record<Tenant["status"], { tone: "positive" | "info" | "war
 };
 function Tenants({ rows, t, fmt, refresh }: { rows: Tenant[]; t: Tr; fmt: Fmt; refresh: () => void }) {
   const { toast } = useToast();
+  const router = useRouter();
+
+  // Impersonação real (0C §2.2): re-emite o cookie de sessão como o tenant e recarrega
+  // o workspace (router.refresh re-lê a sessão no servidor). Banner + "encerrar" no TopBar.
+  async function impersonate(tn: Tenant) {
+    try {
+      const res = await fetch(`/api/owner/tenants/${tn.id}/impersonate`, { method: "POST" });
+      if (res.ok) {
+        toast({ title: t("impersonateBanner", { tenant: tn.name }), tone: "info" });
+        router.refresh();
+      } else {
+        toast({ title: t("impersonate"), description: tn.name, tone: "error" });
+      }
+    } catch {
+      toast({ title: t("impersonate"), description: tn.name, tone: "error" });
+    }
+  }
 
   // Padrão do demo: muta o store client-side (UI atualiza no refresh) e espelha no
   // endpoint admin (servidor, com RBAC). 0C §2.2.
@@ -304,7 +322,7 @@ function Tenants({ rows, t, fmt, refresh }: { rows: Tenant[]; t: Tr; fmt: Fmt; r
                       <Button variant="ghost" size="sm" onClick={() => setStatus(tn)}>
                         {tn.status === "suspended" ? t("reactivate") : t("suspend")}
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => toast({ title: t("impersonateBanner", { tenant: tn.name }), description: `${tn.plan} · ${fmt.number(tn.users)} ${t("users").toLowerCase()}`, tone: "info" })}>
+                      <Button variant="ghost" size="sm" onClick={() => impersonate(tn)}>
                         {t("impersonate")}
                       </Button>
                     </div>
