@@ -68,6 +68,20 @@ describe("WhatsApp gateway (0B)", () => {
     expect(sentWhatsappCount()).toBe(before + r.pushed);
   });
 
+  // 0B §4: mídia (áudio/imagem/documento) do WhatsApp Cloud API.
+  it("extractInbound reconhece mídia e usa a caption como texto", () => {
+    const audio = { entry: [{ changes: [{ value: { messages: [{ from: "5511999990000", type: "audio", audio: { id: "x" } }] } }] }] };
+    expect(extractInbound(audio)).toEqual({ from: "+5511999990000", text: "", media: { kind: "audio" } });
+    const img = { entry: [{ changes: [{ value: { messages: [{ from: "5511999990000", type: "image", image: { caption: "olha isto" } }] } }] }] };
+    expect(extractInbound(img)).toEqual({ from: "+5511999990000", text: "olha isto", media: { kind: "image" } });
+  });
+
+  it("mídia sem caption é reconhecida e orientada (transcrição = passo de produção)", async () => {
+    const r = await handleWhatsappMessage({ from: "+5511999990000", text: "", media: { kind: "audio" }, locale: "pt-BR" });
+    expect(r.bound).toBe(true);
+    expect(r.reply.text).toContain("transcrição");
+  });
+
   // 0B §3 DoD a: opt-in com verificação por código vincula um número novo.
   it("opt-in: código certo vincula o número; código errado não", () => {
     const num = "+5511970001234";

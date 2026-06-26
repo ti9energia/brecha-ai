@@ -598,6 +598,8 @@ const messages: Deep<Messages> = {
     cancelled: "好的，已取消——未执行任何操作。",
     nothingPending: "目前没有待批准的方案。",
     optinConfirmed: "✅ 号码已关联到你的 Brecha.ai 账户。现在你可以在这里使用副驾了。",
+    channelNotInPlan: "你的租户套餐不包含 WhatsApp 渠道。请联系管理员。",
+    mediaReceived: "已收到你的 {kind}。自动转写是生产环节——目前请以文字发送指令。",
   },
 
   units: {

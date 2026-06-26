@@ -598,6 +598,8 @@ const messages: Deep<Messages> = {
     cancelled: "Ok, cancelled — nothing was executed.",
     nothingPending: "There's no play pending approval right now.",
     optinConfirmed: "✅ Number linked to your Brecha.ai account. You can now operate the copilot from here.",
+    channelNotInPlan: "The WhatsApp channel isn't included in your tenant's plan. Contact your admin.",
+    mediaReceived: "I received your {kind}. Automatic transcription is a production step — for now, please send the command as text.",
   },
 
   units: {

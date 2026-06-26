@@ -57,7 +57,8 @@ export async function POST(req: Request) {
   }
 
   const msg = extractInbound(body);
-  if (!msg || !msg.text.trim()) return fail("NO_MESSAGE", "errors.no_message");
+  // aceita texto OU mídia (áudio/imagem/PDF — 0B §4)
+  if (!msg || (!msg.text.trim() && !msg.media)) return fail("NO_MESSAGE", "errors.no_message");
 
   return ok(await handleWhatsappMessage(msg));
 }

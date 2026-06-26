@@ -598,6 +598,8 @@ const messages = {
     cancelled: "Ok, cancelado — nada foi executado.",
     nothingPending: "Não há nenhuma jogada pendente de aprovação no momento.",
     optinConfirmed: "✅ Número vinculado à sua conta Brecha.ai. Agora você pode operar o copiloto por aqui.",
+    channelNotInPlan: "O canal WhatsApp não está incluído no plano do seu tenant. Fale com o administrador.",
+    mediaReceived: "Recebi seu {kind}. A transcrição automática é um passo de produção — por ora, envie o comando em texto.",
   },
 
   units: {
