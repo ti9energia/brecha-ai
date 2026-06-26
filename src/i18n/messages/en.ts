@@ -84,6 +84,10 @@ const messages: Deep<Messages> = {
     realized: "Realized",
     perYear: "/yr",
     copyright: "All rights reserved.",
+    saveErrorTitle: "Couldn't save",
+    saveErrorBody: "The server rejected the change. Please try again.",
+    saveForbidden: "You don't have permission for this action.",
+    rateLimited: "Too many actions in a row. Please wait a moment.",
   },
 
   errorPages: {
@@ -163,6 +167,9 @@ const messages: Deep<Messages> = {
     trustLine: "Connected to official sources — federal, state, and municipal",
     tickerLabel: "Money left on the table by Brazilians this year",
     tickerNote: "incentives, regimes, and classifications that expired with no one to capture them",
+
+    liveOpenA: "Open windows right now —",
+    liveOpenB: "in play.",
 
     statWindows: "regulatory windows mapped",
     statSpeed: "from rule to alert",
@@ -416,6 +423,8 @@ const messages: Deep<Messages> = {
     auditTrail: "Audit trail",
     emptyTitle: "No execution in progress",
     emptyHint: "Approve an opportunity to build the execution plan here.",
+    advanceStep: "Advance step status",
+    stepHint: "Tap a step to advance: to do → in progress → done.",
   },
 
   savings: {
@@ -485,6 +494,7 @@ const messages: Deep<Messages> = {
     feedbackThanks: "Thanks for the feedback",
     youAsked: "You",
     actionsTaken: "Actions",
+    errorReply: "I couldn't answer just now. Please try again shortly.",
   },
 
   agent: {
@@ -499,6 +509,13 @@ const messages: Deep<Messages> = {
     impact: "Estimated impact",
     confidence: "Confidence",
     why: "Rationale",
+    run: "Run agent",
+    running: "Analyzing…",
+    ranTitle: "Agent ran",
+    ranBody: "{n} recommendation(s) queued",
+    ranEmpty: "Nothing new — all under control.",
+    runError: "Couldn't run the agent right now.",
+    dismissed: "Recommendation dismissed",
   },
 
   owner: {

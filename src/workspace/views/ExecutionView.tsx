@@ -5,7 +5,7 @@ import {
   ListChecks, CheckCircle2, Circle, Loader2, AlertCircle, FileText,
   ShieldCheck, ChevronDown, User, CalendarClock,
 } from "lucide-react";
-import { listExecutionPlans, approveExecution, listOpportunities } from "@/server/domain/store";
+import { listExecutionPlans, approveExecution, listOpportunities, advanceExecutionStep } from "@/server/domain/store";
 import type { ExecutionStep, AuditEntry, StepStatus } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { Button, Chip, Meter, EmptyState } from "@/ui/primitives";
@@ -48,6 +48,10 @@ export function ExecutionView({ params }: { params?: Record<string, string> }) {
 
   function approve(opportunityId: string) {
     approveExecution(opportunityId, APPROVER_SHORT);
+    refresh();
+  }
+  function advanceStep(planId: string, stepId: string) {
+    advanceExecutionStep(planId, stepId);
     refresh();
   }
 
@@ -104,6 +108,7 @@ export function ExecutionView({ params }: { params?: Record<string, string> }) {
               plan={plan}
               focused={focus === plan.opportunityId || focus === plan.id}
               onApprove={() => approve(plan.opportunityId)}
+              onAdvanceStep={(stepId) => advanceStep(plan.id, stepId)}
               t={t}
               ts={ts}
               fmt={fmt}
@@ -122,6 +127,7 @@ function PlanCard({
   plan,
   focused,
   onApprove,
+  onAdvanceStep,
   t,
   ts,
   fmt,
@@ -129,6 +135,7 @@ function PlanCard({
   plan: Plan;
   focused: boolean;
   onApprove: () => void;
+  onAdvanceStep: (stepId: string) => void;
   t: ReturnType<typeof useTranslations>;
   ts: ReturnType<typeof useTranslations>;
   fmt: ReturnType<typeof useFormatter>;
@@ -175,10 +182,13 @@ function PlanCard({
 
       {/* passos */}
       <div className="mt-6">
-        <p className="eyebrow mb-3">{t("steps")}</p>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <p className="eyebrow">{t("steps")}</p>
+          <p className="hidden sm:block text-[0.7rem] text-ink-4">{t("stepHint")}</p>
+        </div>
         <ol className="relative ml-1 border-l border-line">
           {plan.steps.map((step) => (
-            <StepRow key={step.id} step={step} t={t} fmt={fmt} />
+            <StepRow key={step.id} step={step} t={t} fmt={fmt} onAdvance={() => onAdvanceStep(step.id)} />
           ))}
         </ol>
       </div>
@@ -217,22 +227,34 @@ function StepRow({
   step,
   t,
   fmt,
+  onAdvance,
 }: {
   step: ExecutionStep;
   t: ReturnType<typeof useTranslations>;
   fmt: ReturnType<typeof useFormatter>;
+  onAdvance: () => void;
 }) {
   const done = step.status === "done";
   return (
     <li className="relative pl-7 pb-5 last:pb-0">
-      {/* ícone de status sobre a hairline vertical */}
-      <span className="absolute -left-[9px] top-0 grid place-items-center size-[18px] rounded-full bg-surface">
+      {/* ícone de status (clicável: avança todo → doing → done) sobre a hairline vertical */}
+      <button
+        type="button"
+        onClick={onAdvance}
+        aria-label={t("advanceStep")}
+        title={t("advanceStep")}
+        className="absolute -left-[9px] top-0 grid place-items-center size-[18px] rounded-full bg-surface cursor-pointer transition-shadow hover:ring-2 hover:ring-[color:var(--border-gold)] focus-visible:ring-2 focus-visible:ring-[color:var(--border-gold)] outline-none"
+      >
         <StepIcon status={step.status} />
-      </span>
+      </button>
 
-      <p className={cn("text-sm font-medium leading-snug", done ? "text-ink-4 line-through" : "text-ink")}>
+      <button
+        type="button"
+        onClick={onAdvance}
+        className={cn("block text-left text-sm font-medium leading-snug transition-colors hover:text-brand", done ? "text-ink-4 line-through" : "text-ink")}
+      >
         {step.title}
-      </p>
+      </button>
       {step.detail && <p className="mt-1 text-sm text-ink-4 text-pretty">{step.detail}</p>}
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 mono text-[0.72rem] text-ink-4">

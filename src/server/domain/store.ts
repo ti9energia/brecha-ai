@@ -16,7 +16,7 @@ import {
 } from "./seed";
 import type {
   Norm, Opportunity, ScenarioParams, ScenarioResult, Level, OpportunityType, ClientStructure,
-  Tenant, Plan, SectorId, Scenario,
+  Tenant, Plan, SectorId, Scenario, StepStatus,
 } from "./types";
 import { emit } from "@/server/events/bus";
 
@@ -296,6 +296,29 @@ export function approveExecution(opportunityId: string, approver: string) {
   }
   emit("execution.approved", { opportunityId, title: opp?.title ?? opportunityId, approver });
   return getExecutionPlan(opportunityId);
+}
+
+// Avança o status de um passo no ciclo todo → doing → done → todo (blocked → doing),
+// recalcula o progresso do plano e reflete o status macro. Botão na tela de Execução —
+// antes os passos eram somente-leitura e o progresso ficava preso no valor do seed.
+const STEP_NEXT: Record<StepStatus, StepStatus> = {
+  todo: "doing",
+  doing: "done",
+  done: "todo",
+  blocked: "doing",
+};
+export function advanceExecutionStep(planId: string, stepId: string) {
+  const plan = EXECUTION_PLANS.find((p) => p.id === planId);
+  if (!plan) return null;
+  const step = plan.steps.find((s) => s.id === stepId);
+  if (!step) return null;
+  step.status = STEP_NEXT[step.status] ?? "doing";
+  const done = plan.steps.filter((s) => s.status === "done").length;
+  plan.progress = plan.steps.length ? Math.round((done / plan.steps.length) * 100) / 100 : 0;
+  if (plan.progress >= 1) plan.status = "captured";
+  else if (plan.approved) plan.status = "executing";
+  recordAiAction({ actor: "Execução", action: "Passo atualizado", detail: `${step.title} → ${step.status}` });
+  return getExecutionPlan(plan.id);
 }
 
 export function getSavings() {

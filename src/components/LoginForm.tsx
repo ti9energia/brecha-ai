@@ -25,7 +25,10 @@ export function LoginForm() {
   const locale = useLocale();
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || `/${locale}/app`;
+  // Só aceita destino relativo same-origin (começa com "/" mas não "//"): impede
+  // open-redirect via ?next=https://… ou ?next=//evil.com.
+  const rawNext = params.get("next");
+  const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : `/${locale}/app`;
 
   const [email, setEmail] = useState(DEMO.email);
   const [password, setPassword] = useState(DEMO.password);

@@ -79,6 +79,10 @@ const messages: Deep<Messages> = {
     realized: "Réalisé",
     perYear: "/an",
     copyright: "Tous droits réservés.",
+    saveErrorTitle: "Échec de l'enregistrement",
+    saveErrorBody: "Le serveur a refusé la modification. Réessayez.",
+    saveForbidden: "Vous n'avez pas l'autorisation pour cette action.",
+    rateLimited: "Trop d'actions d'affilée. Patientez un instant.",
   },
 
   errorPages: {
@@ -158,6 +162,9 @@ const messages: Deep<Messages> = {
     trustLine: "Connecté aux sources officielles — fédérales, des États et municipales",
     tickerLabel: "L'argent laissé sur la table par les Brésiliens cette année",
     tickerNote: "incitations, régimes et classifications expirés sans que personne ne les capte",
+
+    liveOpenA: "Fenêtres ouvertes maintenant —",
+    liveOpenB: "en jeu.",
 
     statWindows: "fenêtres réglementaires cartographiées",
     statSpeed: "de la norme à l'alerte",
@@ -411,6 +418,8 @@ const messages: Deep<Messages> = {
     auditTrail: "Piste d'audit",
     emptyTitle: "Aucune exécution en cours",
     emptyHint: "Approuvez une opportunité pour construire le plan d'exécution ici.",
+    advanceStep: "Faire avancer l'étape",
+    stepHint: "Touchez une étape pour avancer : à faire → en cours → terminé.",
   },
 
   savings: {
@@ -480,6 +489,7 @@ const messages: Deep<Messages> = {
     feedbackThanks: "Merci pour le retour",
     youAsked: "Vous",
     actionsTaken: "Actions",
+    errorReply: "Je n'ai pas pu répondre à l'instant. Réessayez dans un moment.",
   },
 
   agent: {
@@ -494,6 +504,13 @@ const messages: Deep<Messages> = {
     impact: "Impact estimé",
     confidence: "Confiance",
     why: "Justification",
+    run: "Lancer l'agent",
+    running: "Analyse…",
+    ranTitle: "Agent exécuté",
+    ranBody: "{n} recommandation(s) en file",
+    ranEmpty: "Rien de nouveau — tout est sous contrôle.",
+    runError: "Impossible de lancer l'agent pour le moment.",
+    dismissed: "Recommandation ignorée",
   },
 
   owner: {

@@ -84,6 +84,10 @@ const messages: Deep<Messages> = {
     realized: "已实现",
     perYear: "/年",
     copyright: "保留所有权利。",
+    saveErrorTitle: "无法保存",
+    saveErrorBody: "服务器拒绝了此更改，请重试。",
+    saveForbidden: "您没有执行此操作的权限。",
+    rateLimited: "操作过于频繁，请稍候。",
   },
 
   errorPages: {
@@ -163,6 +167,9 @@ const messages: Deep<Messages> = {
     trustLine: "已对接官方数据源——联邦、州及市政",
     tickerLabel: "巴西企业今年留在桌上的钱",
     tickerNote: "无人捕获便已过期的激励、税制与纳税资格",
+
+    liveOpenA: "当前开启的窗口 —",
+    liveOpenB: "正待捕捉。",
 
     statWindows: "已绘制的监管窗口",
     statSpeed: "从法规到预警",
@@ -416,6 +423,8 @@ const messages: Deep<Messages> = {
     auditTrail: "审计留痕",
     emptyTitle: "暂无进行中的执行",
     emptyHint: "批准一个机会，即可在此搭建执行计划。",
+    advanceStep: "推进步骤状态",
+    stepHint: "点击步骤以推进：待办 → 进行中 → 完成。",
   },
 
   savings: {
@@ -485,6 +494,7 @@ const messages: Deep<Messages> = {
     feedbackThanks: "感谢反馈",
     youAsked: "你",
     actionsTaken: "操作",
+    errorReply: "我现在无法回答，请稍后再试。",
   },
 
   agent: {
@@ -499,6 +509,13 @@ const messages: Deep<Messages> = {
     impact: "预估影响",
     confidence: "置信度",
     why: "理由",
+    run: "运行智能体",
+    running: "分析中…",
+    ranTitle: "智能体已运行",
+    ranBody: "队列中有 {n} 条建议",
+    ranEmpty: "没有新动作 — 一切尽在掌握。",
+    runError: "暂时无法运行智能体。",
+    dismissed: "已忽略该建议",
   },
 
   owner: {

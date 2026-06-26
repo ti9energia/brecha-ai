@@ -213,7 +213,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             <div>
               <Eyebrow>{sectionNo("03")}{tc("new")} · {fmt.number(summary.openWindows)} {t("nav.product")}</Eyebrow>
               <h2 className="mt-4 display-2 font-bold text-ink text-balance max-w-2xl">
-                Janelas abertas agora — <span className="text-brand">{fmt.moneyCompact(summary.openGain)}</span> em jogo.
+                {t("liveOpenA")} <span className="text-brand">{fmt.moneyCompact(summary.openGain)}</span> {t("liveOpenB")}
               </h2>
             </div>
             <Link href={`/${locale}/login`} className={buttonClass("outline", "md", "group shrink-0")}>

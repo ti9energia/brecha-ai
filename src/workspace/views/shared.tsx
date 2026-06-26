@@ -4,6 +4,41 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { cn } from "@/ui/cn";
 
+// ── Escrita no servidor com confirmação honesta ────────────────────────────────
+// As views são client-first (mutam o store isomórfico para refletir na hora), mas
+// uma alteração só deve ser anunciada como "salva" se o servidor de fato aceitar.
+// Em 403 (papel sem permissão), 429 (rate-limit) ou erro, devolvemos ok:false para
+// a view NÃO refletir e avisar — nada de "Salvo!" quando o servidor recusou.
+export async function writeJson(
+  url: string,
+  body: unknown,
+  method: "PUT" | "POST" | "PATCH" = "PUT",
+): Promise<{ ok: boolean; status: number; data: unknown }> {
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    let data: unknown = null;
+    try {
+      data = ((await res.json()) as { data?: unknown })?.data ?? null;
+    } catch {
+      /* corpo vazio/não-JSON */
+    }
+    return { ok: res.ok, status: res.status, data };
+  } catch {
+    return { ok: false, status: 0, data: null };
+  }
+}
+
+// Chave de mensagem (namespace `common`) para o status de uma escrita recusada.
+export function writeErrorKey(status: number): "saveForbidden" | "rateLimited" | "saveErrorBody" {
+  if (status === 403) return "saveForbidden";
+  if (status === 429) return "rateLimited";
+  return "saveErrorBody";
+}
+
 // Container rolável padrão de cada módulo.
 export function ViewScroll({ children, className }: { children: ReactNode; className?: string }) {
   return (

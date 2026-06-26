@@ -9,7 +9,7 @@ import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
 import { ApertureRing } from "@/ui/ApertureRing";
 import { Button, Chip } from "@/ui/primitives";
-import { ViewScroll, ViewHeader, Section } from "./shared";
+import { ViewScroll, ViewHeader, Section, writeJson, writeErrorKey } from "./shared";
 
 const REGIMES = ["Lucro Real", "Lucro Presumido", "Simples Nacional"];
 const UFS = ["SP", "RJ", "MG", "SC", "RS", "PR", "BA", "PE", "CE", "GO", "AM", "DF"];
@@ -47,18 +47,16 @@ export function StructureView() {
       legalName: draft.legalName, regime: draft.regime, headquarters: draft.headquarters,
       annualRevenue: draft.annualRevenue, headcount: draft.headcount, jurisdictions: draft.jurisdictions,
     };
-    // Persiste no store isomórfico (a UI do cliente reflete na hora) e no servidor.
-    updateStructure(payload);
-    try {
-      await fetch("/api/structure", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    } catch {
-      /* o store local já persistiu */
-    }
+    // Server-confirmed: só reflete no store isomórfico (a UI lê dele) DEPOIS que o
+    // servidor aceitar. Em 403 (papel sem permissão) / 429 / erro, nada muda e o
+    // usuário é avisado — o modo de edição continua aberto para tentar de novo.
+    const res = await writeJson("/api/structure", payload, "PUT");
     setSaving(false);
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
+    updateStructure(payload);
     setEditing(false);
     toast({ title: t("saved"), description: draft.legalName, tone: "success" });
   }
