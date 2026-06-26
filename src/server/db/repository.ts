@@ -28,11 +28,16 @@ export interface ListOpportunitiesOpts {
 }
 
 export interface Repository {
+  // leitura
   listOpportunities(opts?: ListOpportunitiesOpts): Promise<OpportunityView[]>;
   getOpportunity(id: string): Promise<OpportunityView | null>;
   opportunitiesSummary(): Promise<OpportunitiesSummary>;
   listRadar(opts?: { level?: string; sector?: string }): Promise<RadarRow[]>;
   getStructure(): Promise<ClientStructure>;
+  // escrita (write-side — 0D §2): mantém leitura e escrita no MESMO backing store,
+  // evitando split-brain quando DATABASE_URL está setado.
+  updateStructure(patch: Record<string, unknown>): Promise<ClientStructure>;
+  approveExecution(opportunityId: string, approver: string): Promise<unknown>;
 }
 
 let cached: Repository | null = null;
