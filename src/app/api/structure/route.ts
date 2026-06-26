@@ -1,12 +1,15 @@
 import { getRepository } from "@/server/db/repository";
 import { ok } from "@/server/http";
-import { requireRole } from "@/server/auth/guard";
+import { requireRole, requireSession } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
 
 // GET/PUT /api/structure — perfil fiscal/jurídico do cliente, via seam de persistência
-// (leitura E escrita no mesmo backing store: in-memory por padrão, Postgres se DATABASE_URL).
+// e ESCOPADO POR TENANT (orgId da sessão). Ao impersonar outro tenant, mostra/edita a
+// estrutura daquele tenant. Leitura E escrita no mesmo backing store (sem split-brain).
 export async function GET() {
-  return ok(await getRepository().getStructure());
+  const gate = await requireSession();
+  if (gate.error) return gate.error;
+  return ok(await getRepository().getStructure(gate.session.orgId));
 }
 
 export async function PUT(req: Request) {
@@ -17,8 +20,11 @@ export async function PUT(req: Request) {
   const gate = await requireRole("manager", "org_admin", "platform_owner");
   if (gate.error) return gate.error;
 
-  // Aceita só campos conhecidos (sem mass-assignment), coage tipos e PERSISTE.
+  // Aceita só campos conhecidos (sem mass-assignment), coage tipos e PERSISTE no tenant.
   const patch = await req.json().catch(() => ({}));
-  const saved = await getRepository().updateStructure(patch && typeof patch === "object" ? (patch as Record<string, unknown>) : {});
+  const saved = await getRepository().updateStructure(
+    patch && typeof patch === "object" ? (patch as Record<string, unknown>) : {},
+    gate.session.orgId,
+  );
   return ok(saved, { saved: true });
 }
