@@ -13,7 +13,7 @@
 import { domainBrain, type CopilotReply, type CopilotSource } from "@/server/ai/brain";
 import { resolveProvider, type LLMMessage, type LLMProvider } from "./provider";
 import { inMemoryKnowledge } from "./knowledge";
-import { remember, recall } from "./memory";
+import { remember } from "./memory";
 import type { Locale } from "@/i18n/config";
 
 export type { LLMMessage, LLMProvider } from "./provider";
@@ -52,10 +52,13 @@ export async function aiChat(
     .filter((r) => r.ref)
     .map((r) => ({ ref: r.ref as string }));
   const sources = dedupeSources([...grounding.sources, ...retrieved]);
-  // Memória por usuário (0A §2.3): dá continuidade — o provider vê o histórico.
-  const history: LLMMessage[] = userId ? recall(userId).map((m) => ({ role: m.role, content: m.content })) : [];
-  // Camada de modelo: refina o texto (ou null → usa o texto determinístico).
-  const refined = await provider.refine([...history, ...messages], locale);
+  // Camada de modelo: refina o texto (ou null → usa o texto determinístico). O
+  // cliente já envia o thread visível completo em `messages` (rota /ai/chat, últimas
+  // N), que é a FONTE DA VERDADE do turno — então NÃO prependemos `recall()` aqui:
+  // isso duplicaria os mesmos turnos (e poderia gerar sequência user/user que a
+  // Anthropic rejeita, derrubando o caminho do modelo). A memória por usuário (0A
+  // §2.3) é gravada abaixo via remember() para continuidade/captura de treino.
+  const refined = await provider.refine(messages, locale);
 
   const reply: CopilotReply = {
     text: refined?.text ?? grounding.text,
