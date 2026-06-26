@@ -672,6 +672,38 @@ export function aiFeedbackStats() {
   return { total: AI_FEEDBACK.length, up, down: AI_FEEDBACK.length - up };
 }
 
+// ── Escritório / Advogado: carteira de clientes (perfil "firm") ────────────────
+// Cada cliente é uma empresa que o escritório assessora. Em produção, cada um seria
+// um ClientStructure próprio (multi-tenant do escritório); aqui, um snapshot do demo.
+export interface FirmClient {
+  id: string;
+  name: string;
+  cnpj: string;
+  sector: SectorId;
+  regime: string;
+  openBrechas: number;
+  capturedYtd: number; // R$
+  status: "active" | "onboarding" | "review";
+}
+const FIRM_CLIENTS: FirmClient[] = [
+  { id: "fc-1", name: "Metalúrgica Horizonte S.A.", cnpj: "11.222.333/0001-44", sector: "industry", regime: "Lucro Real", openBrechas: 4, capturedYtd: 3_180_000, status: "active" },
+  { id: "fc-2", name: "AgroVale Cooperativa", cnpj: "22.333.444/0001-55", sector: "agribusiness", regime: "Lucro Real", openBrechas: 3, capturedYtd: 1_920_000, status: "active" },
+  { id: "fc-3", name: "TechNova Software Ltda.", cnpj: "33.444.555/0001-66", sector: "tech", regime: "Lucro Presumido", openBrechas: 2, capturedYtd: 740_000, status: "review" },
+  { id: "fc-4", name: "LogPlus Transportes Ltda.", cnpj: "44.555.666/0001-77", sector: "logistics", regime: "Lucro Real", openBrechas: 5, capturedYtd: 2_410_000, status: "active" },
+  { id: "fc-5", name: "SolarOne Energia S.A.", cnpj: "55.666.777/0001-88", sector: "energy", regime: "Lucro Real", openBrechas: 2, capturedYtd: 0, status: "onboarding" },
+];
+export function listFirmClients(): FirmClient[] {
+  return FIRM_CLIENTS;
+}
+export function firmPortfolio() {
+  return {
+    clients: FIRM_CLIENTS.length,
+    openBrechas: FIRM_CLIENTS.reduce((s, c) => s + c.openBrechas, 0),
+    capturedYtd: FIRM_CLIENTS.reduce((s, c) => s + c.capturedYtd, 0),
+    activeClients: FIRM_CLIENTS.filter((c) => c.status === "active").length,
+  };
+}
+
 // agrega tudo o que o copiloto / WhatsApp precisa "entender" o sistema
 export function copilotContext() {
   return {

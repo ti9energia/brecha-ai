@@ -1,14 +1,18 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import type { AccountType } from "@/server/auth/session";
 
 export interface WorkspaceUser {
   name: string;
   email: string;
   role: string;
   orgId: string;
+  accountType: AccountType; // perfil do produto (autônomo/escritório/dono) → quais abas
   imp?: string; // sub do dono quando esta sessão é uma impersonação (mostra o banner)
 }
+
+export type { AccountType };
 
 const Ctx = createContext<WorkspaceUser | null>(null);
 

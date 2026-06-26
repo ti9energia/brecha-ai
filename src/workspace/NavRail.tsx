@@ -38,7 +38,7 @@ export function NavRail() {
         {groups.map((g, gi) => (
           <div key={g} className="contents">
             {gi > 0 && <span className="my-1.5 h-px w-7 bg-[color:var(--border)]" />}
-            {MODULES.filter((m) => m.group === g && !m.railHidden && (m.id !== "owner" || canOwner) && isModuleEnabled(m.id) && isEntitled(m.id)).map((m) => {
+            {MODULES.filter((m) => m.group === g && !m.railHidden && m.personas.includes(user.accountType) && (m.id !== "owner" || canOwner) && isModuleEnabled(m.id) && isEntitled(m.id)).map((m) => {
               const Icon = m.icon;
               const active = activeModule === m.id;
               return (

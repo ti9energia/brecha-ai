@@ -12,6 +12,7 @@ export type ModuleId =
   | "savings"
   | "settings"
   | "agent"
+  | "clients"
   | "owner";
 
 export interface Tab {
@@ -35,6 +36,7 @@ export interface WorkspaceState {
   focusedPaneId: string;
   layout: Layout;
   seq: number;
+  defaultModule: ModuleId; // módulo de partida do perfil (firm→clients, owner→owner…)
 }
 
 export type Action =
@@ -57,14 +59,15 @@ function sameTab(a: Tab, module: ModuleId, params?: Record<string, string>) {
   return true;
 }
 
-export function initial(): WorkspaceState {
-  const tab: Tab = { id: "tab-1", module: "opportunities" };
+export function initial(defaultModule: ModuleId = "opportunities"): WorkspaceState {
+  const tab: Tab = { id: "tab-1", module: defaultModule };
   return {
     tabs: { "tab-1": tab },
     panes: [{ id: "pane-1", tabIds: ["tab-1"], activeTabId: "tab-1" }],
     focusedPaneId: "pane-1",
     layout: "single",
     seq: 2,
+    defaultModule,
   };
 }
 
@@ -74,7 +77,7 @@ export function initial(): WorkspaceState {
 const STORAGE_KEY = "brecha-workspace-v1";
 const VALID_MODULES: ReadonlySet<string> = new Set<ModuleId>([
   "opportunities", "opportunity", "radar", "structure", "simulator",
-  "execution", "savings", "settings", "agent", "owner",
+  "execution", "savings", "settings", "agent", "clients", "owner",
 ]);
 
 function persist(state: WorkspaceState) {
@@ -88,7 +91,7 @@ function persist(state: WorkspaceState) {
 
 // Lê e SANEIA o estado salvo: descarta abas de módulos desconhecidos, painéis sem
 // abas e referências quebradas. Devolve null se nada utilizável (cai no initial()).
-function loadPersisted(): WorkspaceState | null {
+function loadPersisted(allowed: ReadonlySet<string>, defaultModule: ModuleId): WorkspaceState | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -98,7 +101,9 @@ function loadPersisted(): WorkspaceState | null {
 
     const tabs: Record<string, Tab> = {};
     for (const [id, tab] of Object.entries(s.tabs)) {
-      if (tab && typeof tab === "object" && VALID_MODULES.has((tab as Tab).module)) tabs[id] = tab as Tab;
+      // Descarta abas de módulos desconhecidos E as que o PERFIL atual não pode ver
+      // (ex.: trocou de escritório p/ autônomo — não reidrata a aba Clientes).
+      if (tab && typeof tab === "object" && VALID_MODULES.has((tab as Tab).module) && allowed.has((tab as Tab).module)) tabs[id] = tab as Tab;
     }
     const panes = s.panes
       .filter((p): p is Pane => !!p && Array.isArray(p.tabIds))
@@ -110,7 +115,7 @@ function loadPersisted(): WorkspaceState | null {
     const focusedPaneId = panes.some((p) => p.id === s.focusedPaneId) ? s.focusedPaneId! : panes[0].id;
     const layout: Layout = panes.length > 1 ? (s.layout === "split-h" ? "split-h" : "split-v") : "single";
     const seq = typeof s.seq === "number" && Number.isFinite(s.seq) && s.seq > 1 ? s.seq : Object.keys(tabs).length + 2;
-    return { tabs, panes, focusedPaneId, layout, seq };
+    return { tabs, panes, focusedPaneId, layout, seq, defaultModule };
   } catch {
     return null;
   }
@@ -185,12 +190,12 @@ export function reducer(state: WorkspaceState, action: Action): WorkspaceState {
         };
       }
 
-      // last tab of the only pane → reopen default
+      // last tab of the only pane → reopen o módulo default do perfil
       const id = `tab-${state.seq}`;
       return {
         ...state,
         seq: state.seq + 1,
-        tabs: { [id]: { id, module: "opportunities" } },
+        tabs: { [id]: { id, module: state.defaultModule } },
         panes: [{ id: pane.id, tabIds: [id], activeTabId: id }],
       };
     }
@@ -291,13 +296,23 @@ interface WorkspaceApi {
 
 const Ctx = createContext<WorkspaceApi | null>(null);
 
-export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, initial);
+export function WorkspaceProvider({
+  defaultModule = "opportunities",
+  allowed,
+  children,
+}: {
+  defaultModule?: ModuleId;
+  allowed: ReadonlySet<string>;
+  children: ReactNode;
+}) {
+  const [state, dispatch] = useReducer(reducer, undefined, () => initial(defaultModule));
 
   // Reidrata do localStorage uma vez, após o mount (SSR renderiza o initial()).
+  // Filtra pelas abas que o PERFIL pode ver e fixa o módulo default do perfil.
   useEffect(() => {
-    const saved = loadPersisted();
+    const saved = loadPersisted(allowed, defaultModule);
     if (saved) dispatch({ type: "HYDRATE", state: saved });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Persiste a cada mudança — o workspace sobrevive ao reload.

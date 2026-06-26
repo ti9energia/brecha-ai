@@ -53,7 +53,7 @@ export function CommandPalette({
   }, [open]);
 
   const base: Cmd[] = useMemo(() => {
-    const mods: Cmd[] = MODULES.filter((m) => !m.railHidden && (m.id !== "owner" || canOwner) && isModuleEnabled(m.id) && isEntitled(m.id)).map((m) => {
+    const mods: Cmd[] = MODULES.filter((m) => !m.railHidden && m.personas.includes(user.accountType) && (m.id !== "owner" || canOwner) && isModuleEnabled(m.id) && isEntitled(m.id)).map((m) => {
       const Icon = m.icon;
       return {
         id: `open-${m.id}`,
@@ -69,7 +69,7 @@ export function CommandPalette({
       { id: "single", label: tNav("single"), icon: <Maximize2 size={15} />, kind: "action", run: () => { ws.unsplit(); onClose(); } },
     ];
     return [...mods, ...actions];
-  }, [tNav, ws, targetPaneId, onClose, canOwner, isModuleEnabled, isEntitled]);
+  }, [tNav, ws, targetPaneId, onClose, canOwner, user.accountType, isModuleEnabled, isEntitled]);
 
   const items: Cmd[] = useMemo(() => {
     const q = query.trim().toLowerCase();

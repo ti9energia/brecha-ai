@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { WorkspaceProvider, useWorkspace } from "./store";
 import { SessionProvider, type WorkspaceUser } from "./session";
+import { allowedModuleIds, defaultModuleFor } from "./registry";
 import { EntitlementsProvider } from "./entitlements";
 import { FlagsProvider } from "./flags";
 import { useIsNarrow } from "./useIsNarrow";
@@ -18,10 +19,13 @@ import { Onboarding } from "./Onboarding";
 import { cn } from "@/ui/cn";
 
 export function Workspace({ user }: { user: WorkspaceUser }) {
+  // O perfil (autônomo/escritório/dono) decide o módulo de partida e as abas visíveis.
+  const allowed = allowedModuleIds(user.accountType);
+  const defaultModule = defaultModuleFor(user.accountType);
   return (
     <SessionProvider user={user}>
       <EntitlementsProvider>
-        <WorkspaceProvider>
+        <WorkspaceProvider defaultModule={defaultModule} allowed={allowed}>
           <FlagsProvider>
             <CopilotProvider>
               <ToastProvider>
