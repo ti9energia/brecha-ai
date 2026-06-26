@@ -128,6 +128,31 @@ export function opportunityForNorm(normId: string): Opportunity | undefined {
   return OPPORTUNITIES.find((o) => o.normId === normId);
 }
 
+/** Norma por id — usado pelo refino da brecha (monta o prompt com a norma-gatilho). */
+export function getNorm(id: string): Norm | undefined {
+  return NORMS.find((n) => n.id === id);
+}
+
+// Adiciona uma norma ao radar — ex.: vinda de um FEED REAL de diário oficial pelo
+// gazetteConnector (0A §2.5). Dedupe por id (sync idempotente). O detector passa a
+// considerá-la no próximo run, podendo abrir uma brecha se casar com a estrutura.
+export function addRadarNorm(n: Norm): Norm | null {
+  if (NORMS.some((x) => x.id === n.id)) return null;
+  NORMS.push(n);
+  return n;
+}
+
+// Sobrepõe o refino do modelo (Claude estruturado) na brecha persistida — só a
+// LINGUAGEM/tipo/confiança; a simulação e o ganho determinísticos ficam intactos.
+// In-place (mantém a referência no array OPPORTUNITIES, que a UI lê).
+export function applyEnrichedBrecha(id: string, next: Opportunity): void {
+  const opp = OPPORTUNITIES.find((o) => o.id === id);
+  if (!opp) return;
+  opp.type = next.type;
+  opp.confidence = next.confidence;
+  opp.recommendedMove = next.recommendedMove;
+}
+
 export function getStructure() {
   return STRUCTURE;
 }

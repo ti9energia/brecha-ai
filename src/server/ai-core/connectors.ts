@@ -7,7 +7,8 @@
 // credenciais + sync de verdade; aqui há um connector de demonstração.
 // ─────────────────────────────────────────────────────────────────────────────
 import { ingestDocument } from "./knowledge";
-import { listRadar } from "@/server/domain/store";
+import { listRadar, addRadarNorm } from "@/server/domain/store";
+import { parseGazetteFeed } from "./gazette";
 
 export type ConnectorCapability = "read" | "write";
 
@@ -29,9 +30,27 @@ export const gazetteConnector: Connector = {
   capabilities: ["read"],
   status: () => "connected",
   async sync(orgId) {
-    // SWAP: buscar feeds reais (DOU/CONFAZ/SEFAZ/DOM), normalizar para `Norm`. No
-    // demo, ingere as normas do radar no índice do tenant — o sync tem efeito real
-    // (o RAG do tenant cresce e passa a recuperar essas fontes).
+    // Produção: lê o feed REAL do diário (env GAZETTE_FEED_URL), normaliza para `Norm`,
+    // ADICIONA ao radar (vira candidato a brecha do detector) e ingere no RAG do tenant.
+    const url = process.env.GAZETTE_FEED_URL;
+    if (url) {
+      try {
+        const res = await fetch(url, { headers: { accept: "application/json" } });
+        if (res.ok) {
+          const norms = parseGazetteFeed(await res.json());
+          let ingested = 0;
+          for (const n of norms) {
+            addRadarNorm(n); // dedupe por id; alimenta o detector no próximo run
+            ingestDocument(orgId, { title: n.title, text: n.summary, ref: n.source.ref });
+            ingested++;
+          }
+          return { ingested, source: `feed: ${url}` };
+        }
+      } catch {
+        // rede/credencial falhou → cai no fallback do seed (o demo nunca quebra).
+      }
+    }
+    // Fallback offline (demo, default zero-config): ingere as normas do radar do seed.
     const norms = listRadar().slice(0, 8);
     for (const n of norms) ingestDocument(orgId, { title: n.title, text: n.summary, ref: n.source.ref });
     return { ingested: norms.length, source: "DOU/CONFAZ/SEFAZ (demo: seed)" };
