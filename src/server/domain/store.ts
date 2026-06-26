@@ -457,7 +457,7 @@ export function getPlans() {
 // ── Entitlements (0C §4.4 / 0D §3): acesso = papel E PLANO ──────────────────────
 // O plano do tenant libera um conjunto de módulos; o papel decide o que fazer dentro.
 // Em produção, o plano vem do billing por orgId; no demo, mapeado.
-const ORG_PLAN: Record<string, string> = { "org-acme": "plan-execution" };
+const ORG_PLAN: Record<string, string> = { "org-acme": "plan-execution", "org-silva-adv": "plan-firm-banca" };
 // Só estes módulos dependem de plano (aparecem em algum `entitlements`). Governança
 // (settings/owner) e o detalhe são gateados por PAPEL, não por plano.
 const PLAN_GATED_MODULES = new Set([

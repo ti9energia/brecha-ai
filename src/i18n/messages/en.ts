@@ -215,6 +215,10 @@ const messages: Deep<Messages> = {
     pricingCta: "Start now",
     pricingPopular: "Most chosen",
     pricingFeeNote: "+ success fee on the savings captured",
+    pricingForCompany: "For your company (self-serve)",
+    pricingForFirm: "For firms & lawyers",
+    pricingCustom: "Custom",
+    pricingTalk: "Talk to sales",
 
     faqEyebrow: "Questions",
     faqTitle: "What every CFO asks first",

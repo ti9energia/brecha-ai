@@ -215,6 +215,10 @@ const messages = {
     pricingCta: "Começar agora",
     pricingPopular: "Mais escolhido",
     pricingFeeNote: "+ success fee sobre a economia capturada",
+    pricingForCompany: "Para a sua empresa (autônomo)",
+    pricingForFirm: "Para escritórios e advogados",
+    pricingCustom: "Sob consulta",
+    pricingTalk: "Falar com vendas",
 
     faqEyebrow: "Perguntas",
     faqTitle: "O que todo CFO pergunta antes",

@@ -218,9 +218,10 @@ export interface Tenant {
 
 export interface Plan {
   id: string;
+  planType: "autonomo" | "escritorio"; // perfil-alvo do plano (dono do SaaS não paga)
   name: string;
   tagline: string;
-  price: number; // mensal R$
+  price: number; // mensal R$ (0 = sob consulta)
   period: "month";
   popular?: boolean;
   feeRate: number; // success fee

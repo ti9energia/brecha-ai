@@ -210,6 +210,10 @@ const messages: Deep<Messages> = {
     pricingCta: "Commencer maintenant",
     pricingPopular: "Le plus choisi",
     pricingFeeNote: "+ success fee sur l'économie captée",
+    pricingForCompany: "Pour votre entreprise (autonome)",
+    pricingForFirm: "Pour cabinets et avocats",
+    pricingCustom: "Sur devis",
+    pricingTalk: "Parler aux ventes",
 
     faqEyebrow: "Questions",
     faqTitle: "Ce que tout directeur financier demande avant",

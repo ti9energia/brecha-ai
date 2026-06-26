@@ -215,6 +215,10 @@ const messages: Deep<Messages> = {
     pricingCta: "立即开始",
     pricingPopular: "最受欢迎",
     pricingFeeNote: "+ 已捕获节省的成功佣金",
+    pricingForCompany: "面向您的企业（自助）",
+    pricingForFirm: "面向事务所与律师",
+    pricingCustom: "面议",
+    pricingTalk: "联系销售",
 
     faqEyebrow: "常见问题",
     faqTitle: "每位 CFO 都会先问的问题",
