@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Crosshair, SlidersHorizontal, TrendingUp, Timer, Coins, Sparkles } from "lucide-react";
+import { Crosshair, SlidersHorizontal, TrendingUp, Timer, Coins, Sparkles, Radar } from "lucide-react";
 import { listOpportunities, opportunitiesSummary, getSectors, type OppSort } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
+import { useWorkspace } from "@/workspace/store";
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { ViewScroll, ViewHeader, StatTiles, StatTile, UpdatedAt } from "./shared";
-import { EmptyState } from "@/ui/primitives";
+import { EmptyState, buttonClass } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
 
 export function OpportunitiesView() {
@@ -15,6 +16,7 @@ export function OpportunitiesView() {
   const tStates = useTranslations("states");
   const ts = useTranslations("status");
   const fmt = useFormatter();
+  const ws = useWorkspace();
   const [sort, setSort] = useState<OppSort>("gain");
   const [sector, setSector] = useState<string>("all");
 
@@ -81,6 +83,17 @@ export function OpportunitiesView() {
             icon={<Sparkles size={22} />}
             title={tStates("emptyOpportunities")}
             hint={tStates("emptyOpportunitiesHint")}
+            action={
+              sector !== "all" ? (
+                <button onClick={() => setSector("all")} className={buttonClass("secondary", "md")}>
+                  {tc("clearFilter")}
+                </button>
+              ) : (
+                <button onClick={() => ws.open("radar")} className={buttonClass("primary", "md")}>
+                  <Radar size={15} /> {tStates("openRadarCta")}
+                </button>
+              )
+            }
           />
         </div>
       ) : (

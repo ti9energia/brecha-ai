@@ -135,6 +135,10 @@ export function AgentView() {
           <div className="panel hairline py-16 grid place-items-center text-center">
             <span className="grid place-items-center size-14 rounded-full border border-line bg-surface-2 text-brand mb-4"><Radar size={22} /></span>
             <p className="text-ink-2">{tr("feedEmpty")}</p>
+            <button onClick={runAgent} disabled={running} className={buttonClass("primary", "sm", "mt-5")}>
+              {running ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+              {running ? t("running") : t("run")}
+            </button>
           </div>
         )}
       </div>

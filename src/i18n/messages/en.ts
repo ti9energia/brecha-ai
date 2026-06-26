@@ -72,6 +72,7 @@ const messages: Deep<Messages> = {
     soon: "Coming soon",
     open: "Open",
     close: "Close",
+    clearFilter: "Clear filter",
     learnMore: "Learn more",
     getStarted: "Get started",
     days: "days",
@@ -106,6 +107,8 @@ const messages: Deep<Messages> = {
     emptyOpportunitiesHint: "The agent is sweeping the official gazettes. You'll be alerted the moment a window opens.",
     errorTitle: "Something stalled on the radar",
     errorHint: "We couldn't load this right now. The audit trail logged the event.",
+    openRadarCta: "Open regulatory radar",
+    seeAllLevels: "See all levels",
   },
 
   status: {
@@ -425,6 +428,7 @@ const messages: Deep<Messages> = {
     emptyHint: "Approve an opportunity to build the execution plan here.",
     advanceStep: "Advance step status",
     stepHint: "Tap a step to advance: to do → in progress → done.",
+    seeOpportunities: "See opportunities",
   },
 
   savings: {
@@ -495,6 +499,25 @@ const messages: Deep<Messages> = {
     youAsked: "You",
     actionsTaken: "Actions",
     errorReply: "I couldn't answer just now. Please try again shortly.",
+    greetingRich: "Hi {name}. I'm Vega — I see **{open}** open windows ({gain} in play) for your structure. I can explain the highest-gain one, simulate a move, or open the radar. Where do we start?",
+  },
+
+  onboarding: {
+    title: "Welcome, {name}",
+    subtitle: "Your regulatory terminal — from open window to captured savings, in 4 steps.",
+    step1Title: "See the windows",
+    step1Body: "Opportunities open for your structure, ranked by potential gain.",
+    step2Title: "Simulate the move",
+    step2Body: "Open an opportunity and project burden, risk, and gain in the deterministic engine.",
+    step3Title: "Approve and execute",
+    step3Body: "Tax-advisor approval, a checklist with deadlines, and an audit trail at each step.",
+    step4Title: "Capture the savings",
+    step4Body: "Track realized gain and the success-fee base.",
+    tipCommand: "Open any screen with {kbd}.",
+    tipCopilot: "Ask Vega anytime with {kbd}.",
+    start: "Get started",
+    skip: "Skip",
+    reopen: "Welcome guide",
   },
 
   agent: {

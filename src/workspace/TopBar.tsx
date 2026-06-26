@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Search, ChevronDown, Command, LogOut, Eye } from "lucide-react";
+import { Search, ChevronDown, Command, LogOut, Eye, Keyboard } from "lucide-react";
 import { useWorkspace } from "./store";
 import { useSession } from "./session";
 import { useCopilot } from "@/components/Copilot";
@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/ui/ThemeToggle";
 import { LanguageSwitcher } from "@/ui/LanguageSwitcher";
 import { cn } from "@/ui/cn";
 
-export function TopBar({ onCommand }: { onCommand: () => void }) {
+export function TopBar({ onCommand, onHelp }: { onCommand: () => void; onHelp: () => void }) {
   const ws = useWorkspace();
   const tNav = useTranslations("nav");
   const tOwner = useTranslations("owner");
@@ -79,12 +79,22 @@ export function TopBar({ onCommand }: { onCommand: () => void }) {
         <button
           onClick={copilot.toggle}
           aria-pressed={copilot.open}
+          title={tNav("toggleCopilot")}
           className={cn(
             "hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] text-sm transition-all",
             "border border-line-gold bg-[var(--brand-soft)] text-brand hover:brightness-110",
           )}
         >
           <span aria-hidden>✦</span> Vega
+          <span className="hidden lg:flex items-center gap-0.5 ml-0.5 mono text-[0.6rem] opacity-75"><Command size={9} />J</span>
+        </button>
+        <button
+          onClick={onHelp}
+          title={tNav("shortcuts")}
+          aria-label={tNav("shortcuts")}
+          className="grid place-items-center size-9 rounded-[var(--radius-md)] border border-line bg-surface-2 text-ink-3 hover:text-ink hover:border-line-strong transition-colors"
+        >
+          <Keyboard size={15} />
         </button>
         <LanguageSwitcher />
         <ThemeToggle />

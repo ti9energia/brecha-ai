@@ -67,6 +67,7 @@ const messages: Deep<Messages> = {
     soon: "Bientôt",
     open: "Ouvrir",
     close: "Fermer",
+    clearFilter: "Effacer le filtre",
     learnMore: "En savoir plus",
     getStarted: "Commencer",
     days: "jours",
@@ -101,6 +102,8 @@ const messages: Deep<Messages> = {
     emptyOpportunitiesHint: "L'agent balaie les journaux officiels. Vous êtes averti à l'instant même où une brèche s'ouvre.",
     errorTitle: "Le radar a rencontré un blocage",
     errorHint: "Chargement impossible pour le moment. La piste d'audit a enregistré l'événement.",
+    openRadarCta: "Ouvrir le radar réglementaire",
+    seeAllLevels: "Voir toutes les sphères",
   },
 
   status: {
@@ -420,6 +423,7 @@ const messages: Deep<Messages> = {
     emptyHint: "Approuvez une opportunité pour construire le plan d'exécution ici.",
     advanceStep: "Faire avancer l'étape",
     stepHint: "Touchez une étape pour avancer : à faire → en cours → terminé.",
+    seeOpportunities: "Voir les opportunités",
   },
 
   savings: {
@@ -490,6 +494,25 @@ const messages: Deep<Messages> = {
     youAsked: "Vous",
     actionsTaken: "Actions",
     errorReply: "Je n'ai pas pu répondre à l'instant. Réessayez dans un moment.",
+    greetingRich: "Bonjour {name}. Je suis Vega — je vois **{open}** fenêtres ouvertes ({gain} en jeu) pour votre structure. Je peux expliquer celle au plus fort gain, simuler une manœuvre ou ouvrir le radar. Par où commençons-nous ?",
+  },
+
+  onboarding: {
+    title: "Bienvenue, {name}",
+    subtitle: "Votre terminal réglementaire — de la fenêtre ouverte à l'économie capturée, en 4 étapes.",
+    step1Title: "Voir les fenêtres",
+    step1Body: "Opportunités ouvertes pour votre structure, classées par gain potentiel.",
+    step2Title: "Simuler la manœuvre",
+    step2Body: "Ouvrez une opportunité et projetez charge, risque et gain dans le moteur déterministe.",
+    step3Title: "Approuver et exécuter",
+    step3Body: "Validation du fiscaliste, checklist avec échéances et piste d'audit à chaque étape.",
+    step4Title: "Capturer l'économie",
+    step4Body: "Suivez le gain réalisé et la base du success fee.",
+    tipCommand: "Ouvrez n'importe quel écran avec {kbd}.",
+    tipCopilot: "Demandez à Vega à tout moment avec {kbd}.",
+    start: "Commencer",
+    skip: "Passer",
+    reopen: "Guide de bienvenue",
   },
 
   agent: {

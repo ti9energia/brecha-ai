@@ -5,8 +5,10 @@ import {
   type ReactNode, type KeyboardEvent,
 } from "react";
 import { Send, X, Sparkles, ArrowUpRight, ExternalLink, Cpu, ThumbsUp, ThumbsDown } from "lucide-react";
-import { useTranslations, useLocale } from "@/i18n/provider";
+import { useTranslations, useLocale, useFormatter } from "@/i18n/provider";
 import { useWorkspace, type ModuleId } from "@/workspace/store";
+import { useSession } from "@/workspace/session";
+import { opportunitiesSummary } from "@/server/domain/store";
 import { useFocusTrap } from "@/ui/useFocusTrap";
 import { Mark } from "@/ui/Logo";
 import { cn } from "@/ui/cn";
@@ -102,7 +104,16 @@ function CopilotPanel({
 }) {
   const t = useTranslations("copilot");
   const locale = useLocale();
+  const fmt = useFormatter();
   const ws = useWorkspace();
+  const user = useSession();
+  // Saudação personalizada: nome da sessão + janelas/ganho ao vivo (vira guia de ativação).
+  const summary = opportunitiesSummary();
+  const greeting = t("greetingRich", {
+    name: user.name.split(" ")[0] || user.name,
+    open: String(summary.openWindows),
+    gain: fmt.moneyCompact(summary.openGain),
+  });
   const [draft, setDraft] = useState("");
   const [voted, setVoted] = useState<Record<number, "up" | "down">>({});
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -185,7 +196,7 @@ function CopilotPanel({
               <div className="flex gap-2.5">
                 <Avatar />
                 <div className="flex-1 rounded-[var(--radius-md)] rounded-tl-sm bg-surface-2 border border-line p-3.5 text-sm text-ink-2 text-pretty">
-                  {t("greeting")}
+                  <RichText text={greeting} />
                 </div>
               </div>
               <p className="eyebrow mt-6 mb-2.5">{t("suggestionsTitle")}</p>

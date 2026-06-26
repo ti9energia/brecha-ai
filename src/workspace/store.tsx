@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useReducer, useCallback, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useReducer, useCallback, useMemo, useEffect, type ReactNode } from "react";
 
 export type ModuleId =
   | "opportunities"
@@ -45,7 +45,8 @@ export type Action =
   | { type: "SPLIT"; direction: "split-v" | "split-h" }
   | { type: "UNSPLIT" }
   | { type: "MOVE_TAB"; tabId: string; fromPaneId: string; toPaneId: string }
-  | { type: "REORDER"; paneId: string; from: number; to: number };
+  | { type: "REORDER"; paneId: string; from: number; to: number }
+  | { type: "HYDRATE"; state: WorkspaceState };
 
 function sameTab(a: Tab, module: ModuleId, params?: Record<string, string>) {
   if (a.module !== module) return false;
@@ -67,8 +68,59 @@ export function initial(): WorkspaceState {
   };
 }
 
+// ── Persistência (localStorage) ────────────────────────────────────────────────
+// Um produto "estilo navegador" deve sobreviver ao reload. Persistimos abas/painéis
+// e reidratamos APÓS o mount (via efeito) para não divergir do HTML do SSR.
+const STORAGE_KEY = "brecha-workspace-v1";
+const VALID_MODULES: ReadonlySet<string> = new Set<ModuleId>([
+  "opportunities", "opportunity", "radar", "structure", "simulator",
+  "execution", "savings", "settings", "agent", "owner",
+]);
+
+function persist(state: WorkspaceState) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    /* quota cheia / modo privado — segue sem persistir */
+  }
+}
+
+// Lê e SANEIA o estado salvo: descarta abas de módulos desconhecidos, painéis sem
+// abas e referências quebradas. Devolve null se nada utilizável (cai no initial()).
+function loadPersisted(): WorkspaceState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw) as Partial<WorkspaceState>;
+    if (!s || typeof s !== "object" || !s.tabs || !Array.isArray(s.panes)) return null;
+
+    const tabs: Record<string, Tab> = {};
+    for (const [id, tab] of Object.entries(s.tabs)) {
+      if (tab && typeof tab === "object" && VALID_MODULES.has((tab as Tab).module)) tabs[id] = tab as Tab;
+    }
+    const panes = s.panes
+      .filter((p): p is Pane => !!p && Array.isArray(p.tabIds))
+      .map((p) => ({ ...p, tabIds: p.tabIds.filter((id) => tabs[id]) }))
+      .filter((p) => p.tabIds.length > 0)
+      .map((p) => ({ ...p, activeTabId: tabs[p.activeTabId] ? p.activeTabId : p.tabIds[0] }));
+    if (!panes.length) return null;
+
+    const focusedPaneId = panes.some((p) => p.id === s.focusedPaneId) ? s.focusedPaneId! : panes[0].id;
+    const layout: Layout = panes.length > 1 ? (s.layout === "split-h" ? "split-h" : "split-v") : "single";
+    const seq = typeof s.seq === "number" && Number.isFinite(s.seq) && s.seq > 1 ? s.seq : Object.keys(tabs).length + 2;
+    return { tabs, panes, focusedPaneId, layout, seq };
+  } catch {
+    return null;
+  }
+}
+
 export function reducer(state: WorkspaceState, action: Action): WorkspaceState {
   switch (action.type) {
+    case "HYDRATE":
+      return action.state;
+
     case "OPEN": {
       const paneId = action.paneId ?? state.focusedPaneId;
       const pane = state.panes.find((p) => p.id === paneId) ?? state.panes[0];
@@ -241,6 +293,17 @@ const Ctx = createContext<WorkspaceApi | null>(null);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, initial);
+
+  // Reidrata do localStorage uma vez, após o mount (SSR renderiza o initial()).
+  useEffect(() => {
+    const saved = loadPersisted();
+    if (saved) dispatch({ type: "HYDRATE", state: saved });
+  }, []);
+
+  // Persiste a cada mudança — o workspace sobrevive ao reload.
+  useEffect(() => {
+    persist(state);
+  }, [state]);
 
   const open = useCallback((module: ModuleId, params?: Record<string, string>, title?: string, paneId?: string) => {
     dispatch({ type: "OPEN", module, params, title, paneId });
