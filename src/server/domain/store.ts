@@ -232,7 +232,14 @@ export function openDetectedOpportunities(): Opportunity[] {
   const manualNormIds = new Set(
     OPPORTUNITIES.filter((o) => !o.id.startsWith("opp-auto-")).map((o) => o.normId),
   );
-  const detected = detectOpportunities(STRUCTURE, NORMS, { skipNormIds: manualNormIds });
+  // Escopo monitorado vem das Configurações (setores + UFs vigiadas): a detecção é
+  // governada pelo que a org liga/desliga — ligar um setor faz a IA achar mais brechas.
+  const cfg = getSettings();
+  const detected = detectOpportunities(STRUCTURE, NORMS, {
+    skipNormIds: manualNormIds,
+    monitoredSectors: cfg.sectors,
+    monitoredJurisdictions: cfg.jurisdictions,
+  });
   for (const opp of detected) {
     if (!OPPORTUNITIES.some((o) => o.id === opp.id)) OPPORTUNITIES.unshift(opp);
   }
@@ -380,7 +387,9 @@ const SETTINGS: AppSettings = {
   aiPersona: "Vega",
   aiTone: "Consultivo e direto",
   whatsapp: "+55 11 9 9999-0000",
-  sectors: ["industry", "tech", "energy"],
+  // Setores monitorados (08 §8): governam a detecção de brechas. A Acme tem indústria,
+  // tech (AcmeTech), energia (usina cativa) e logística (Acme Log) — todos vigiados.
+  sectors: ["industry", "tech", "energy", "logistics"],
   jurisdictions: ["SP", "SC", "MG"],
 };
 export function getSettings(): AppSettings {
@@ -633,3 +642,9 @@ export function copilotContext() {
     agentRecs: AGENT_RECS,
   };
 }
+
+// Detecção SEMPRE-LIGADA (08 §12): ao carregar o store, o agente já abre as brechas
+// relevantes ao perfil monitorado — assim Oportunidades, Radar e Detalhe já mostram o
+// que a IA achou, sem depender do botão "Rodar agente". Idempotente; mesmo padrão do
+// seed de faturas acima. Roda uma vez por instância do módulo (servidor e cliente).
+openDetectedOpportunities();

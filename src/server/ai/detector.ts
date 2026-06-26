@@ -58,6 +58,20 @@ function norm(s: string): string {
   return s.toLowerCase();
 }
 
+// A jurisdição da norma ("Santa Catarina", "Município de São José…") casa com alguma
+// das UFs informadas? Retorna a UF casada (ou undefined). Federal não passa por aqui.
+export function matchesJurisdiction(jurisdiction: string, ufs: string[]): string | undefined {
+  const j = norm(jurisdiction);
+  return ufs.find((uf) => {
+    const code = uf.toUpperCase();
+    return j.includes(code.toLowerCase()) || (UF_NAME[code] && j.includes(UF_NAME[code]));
+  });
+}
+
+function isFederal(n: Norm): boolean {
+  return n.level === "federal" || norm(n.jurisdiction).includes("brasil");
+}
+
 function companyText(st: ClientStructure): string {
   return norm(
     [st.mainActivity, st.businessProfile, st.regime, ...st.activities.map((a) => a.label)].join(" "),
@@ -106,16 +120,11 @@ export function relevanceFor(n: Norm, st: ClientStructure): Relevance {
   }
 
   // 2) Jurisdição — federal aplica-se a todo o grupo; estadual/municipal só se a UF é vigiada.
-  const j = norm(n.jurisdiction);
-  const federal = n.level === "federal" || j.includes("brasil");
-  if (federal) {
+  if (isFederal(n)) {
     score += 0.15;
     reasons.push("Norma federal — alcança todas as entidades do grupo");
   } else {
-    const hitUf = st.jurisdictions.find((uf) => {
-      const code = uf.toUpperCase();
-      return j.includes(code.toLowerCase()) || (UF_NAME[code] && j.includes(UF_NAME[code]));
-    });
+    const hitUf = matchesJurisdiction(n.jurisdiction, st.jurisdictions);
     if (hitUf) {
       score += 0.3;
       reasons.push(`Jurisdição ${hitUf} — onde o grupo tem presença`);
@@ -235,18 +244,29 @@ export interface DetectOpts {
   /** normIds que JÁ têm oportunidade manual/seed — não reabrir como brecha automática. */
   skipNormIds?: Set<string>;
   threshold?: number;
+  /** Setores que a org monitora (Configurações). Vazio/ausente = todos. (08 §3.8 / §8) */
+  monitoredSectors?: string[];
+  /** UFs vigiadas pelo radar. Norma federal sempre passa; estadual/municipal só se vigiada. */
+  monitoredJurisdictions?: string[];
 }
 
 /**
- * Detecta brechas: para cada norma relevante (acima do limiar) e ainda sem
- * oportunidade, sintetiza a jogada. Ordena por ganho. Determinístico e puro.
+ * Detecta brechas: para cada norma DENTRO DO ESCOPO MONITORADO (setor/jurisdição —
+ * Configurações), relevante (acima do limiar) e ainda sem oportunidade, sintetiza a
+ * jogada. Ordena por ganho. Determinístico e puro. O escopo monitorado é o que torna
+ * a detecção CONFIGURÁVEL: o dono liga/desliga setores e UFs e o agente obedece.
  */
 export function detectOpportunities(st: ClientStructure, norms: Norm[], opts: DetectOpts = {}): Opportunity[] {
   const skip = opts.skipNormIds ?? new Set<string>();
   const threshold = opts.threshold ?? DETECT_THRESHOLD;
+  const sectors = opts.monitoredSectors?.length ? new Set(opts.monitoredSectors) : null;
+  const ufs = opts.monitoredJurisdictions?.length ? opts.monitoredJurisdictions : null;
   const out: Opportunity[] = [];
   for (const n of norms) {
     if (skip.has(n.id)) continue;
+    // Escopo monitorado (Configurações): fora dele, a norma nem é avaliada.
+    if (sectors && !sectors.has(n.sector)) continue;
+    if (ufs && !isFederal(n) && !matchesJurisdiction(n.jurisdiction, ufs)) continue;
     const rel = relevanceFor(n, st);
     if (rel.score < threshold) continue;
     out.push(synthesizeOpportunity(n, st, rel));

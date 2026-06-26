@@ -89,3 +89,42 @@ describe("Detector de brechas (norma × empresa) — 08 §6/§12", () => {
     expect(autoAfter).toBe(autoBefore);
   });
 });
+
+describe("Detector — escopo monitorado (Configurações) e robustez", () => {
+  it("setor fora do escopo monitorado não é avaliado, mesmo sendo relevante", () => {
+    const energyNorm = norm({ id: "n-e", sector: "energy", tags: ["energia", "REIDI"], title: "Incentivo de energia" });
+    const st = structure({ businessProfile: "Indústria com autoprodução de energia solar." });
+    expect(detectOpportunities(st, [energyNorm])).toHaveLength(1); // sem filtro → acha
+    expect(detectOpportunities(st, [energyNorm], { monitoredSectors: ["industry"] })).toHaveLength(0); // energy desligado
+    expect(detectOpportunities(st, [energyNorm], { monitoredSectors: ["industry", "energy"] })).toHaveLength(1); // ligou energy
+  });
+
+  it("norma estadual fora das UFs vigiadas é barrada pelo gate; federal sempre passa", () => {
+    const stateNorm = norm({
+      id: "n-rj", level: "state", jurisdiction: "Rio de Janeiro", sector: "industry",
+      title: "Crédito de ICMS para a indústria metalúrgica", tags: ["ICMS", "metalúrgica"],
+    });
+    const st = structure({ jurisdictions: ["RJ"] }); // grupo atua no RJ → relevante por jurisdição
+    expect(detectOpportunities(st, [stateNorm])).toHaveLength(1); // sem gate de UF, é relevante
+    expect(detectOpportunities(st, [stateNorm], { monitoredJurisdictions: ["SP"] })).toHaveLength(0); // RJ não vigiada
+    const fed = norm({ id: "n-fed", level: "federal", jurisdiction: "Brasil", sector: "industry", tags: ["crédito"] });
+    expect(detectOpportunities(st, [fed], { monitoredJurisdictions: ["SP"] })).toHaveLength(1); // federal passa
+  });
+
+  it("perfil livre vazio: ainda detecta pelo setor derivado das atividades", () => {
+    const st = structure({ businessProfile: "", activities: [{ code: "24", label: "Indústria metalúrgica de aço" }] });
+    expect(detectOpportunities(st, [norm({ id: "n-i", sector: "industry", tags: ["crédito"] })])).toHaveLength(1);
+  });
+
+  it("invariantes da brecha: janela válida, confiança = relevância, ganho escala com faturamento", () => {
+    const small = structure({ annualRevenue: 10_000_000 });
+    const big = structure({ annualRevenue: 1_000_000_000 });
+    const n = norm({ id: "n-x", sector: "industry", tags: ["incentivo", "SUDENE"] });
+    const [os] = detectOpportunities(small, [n]);
+    const [ob] = detectOpportunities(big, [n]);
+    expect(new Date(os.windowEnd).getTime()).toBeGreaterThan(new Date(os.windowStart).getTime());
+    expect(os.confidence).toBe(relevanceFor(n, small).score);
+    expect(ob.estimatedGain).toBeGreaterThan(os.estimatedGain);
+    expect(os.simulation.annualGain).toBe(os.estimatedGain);
+  });
+});
