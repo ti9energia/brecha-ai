@@ -3,12 +3,12 @@ import { localeMeta, type Locale } from "./config";
 
 export function makeFormatter(locale: Locale) {
   const intl = localeMeta[locale].intl;
-  const orgCurrency = localeMeta[locale].currency;
 
   return {
-    /** Currency. `currency` defaults to the locale's currency, but the DATA's
-     *  currency (e.g. BRL) is independent of the display locale. */
-    money(value: number, currency: string = orgCurrency, opts?: Intl.NumberFormatOptions) {
+    /** Currency. Os valores do produto são em BRL (plataforma fiscal brasileira) —
+     *  a moeda dos DADOS é independente do locale de exibição. Default BRL; passe
+     *  `currency` só quando o registro tiver moeda própria. */
+    money(value: number, currency: string = "BRL", opts?: Intl.NumberFormatOptions) {
       return new Intl.NumberFormat(intl, {
         style: "currency",
         currency,
@@ -17,7 +17,7 @@ export function makeFormatter(locale: Locale) {
       }).format(value);
     },
     /** Compact money for big headline numbers: R$ 2,4 mi */
-    moneyCompact(value: number, currency: string = orgCurrency) {
+    moneyCompact(value: number, currency: string = "BRL") {
       return new Intl.NumberFormat(intl, {
         style: "currency",
         currency,
@@ -37,7 +37,12 @@ export function makeFormatter(locale: Locale) {
     },
     date(value: Date | string | number, opts?: Intl.DateTimeFormatOptions) {
       const d = value instanceof Date ? value : new Date(value);
-      return new Intl.DateTimeFormat(intl, opts ?? { day: "2-digit", month: "short", year: "numeric" }).format(d);
+      // Datas "só-data" (ex.: "2026-07-01") são meia-noite UTC; sem timeZone fixo o
+      // Intl usa o fuso do runtime e, a oeste de UTC (Brasil, UTC-3), exibe o dia
+      // anterior — e diverge entre SSR e cliente (hydration mismatch). Fixar UTC
+      // torna determinístico e correto para prazos/vigências.
+      const base = opts ?? { day: "2-digit", month: "short", year: "numeric" };
+      return new Intl.DateTimeFormat(intl, { timeZone: "UTC", ...base }).format(d);
     },
     /** "em 14 dias" / "in 14 days" */
     relativeDays(days: number) {

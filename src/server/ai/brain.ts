@@ -53,7 +53,10 @@ export function domainBrain(message: string, locale: Locale): CopilotReply {
   const ctx = copilotContext();
   const summary = opportunitiesSummary();
   const top = listOpportunities({ sort: "gain" });
-  const urgent = listOpportunities({ sort: "deadline" }).filter((o) => daysUntil(o.windowEnd) <= 21);
+  const urgent = listOpportunities({ sort: "deadline" }).filter((o) => {
+    const d = daysUntil(o.windowEnd);
+    return d >= 0 && d <= 21; // janela ainda aberta e fechando em ≤ 21 dias
+  });
   const t = getT(locale, "brain");
   const pct = (v: number) => (v * 100).toFixed(0);
   const model = "Cérebro local";

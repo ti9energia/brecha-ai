@@ -67,7 +67,7 @@ export function AgentView() {
       <ViewHeader
         icon={<Bot size={20} />}
         title={t("title")}
-        subtitle={t("monitoring", { n: "1.247" })}
+        subtitle={t("monitoring", { n: fmt.number(1247) })}
         actions={
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-2 chip" style={{ borderColor: "var(--border-gold)" }}>
