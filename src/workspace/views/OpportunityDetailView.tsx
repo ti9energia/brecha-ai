@@ -14,7 +14,7 @@ import { ApertureRing } from "@/ui/ApertureRing";
 import { Chip, Meter, buttonClass } from "@/ui/primitives";
 import { SectorIcon } from "@/ui/SectorIcon";
 import { apertureFraction, EFFORT_VALUE } from "@/ui/opp";
-import { ViewScroll } from "./shared";
+import { ViewScroll, writeJson, writeErrorKey } from "./shared";
 import { cn } from "@/ui/cn";
 
 export function OpportunityDetailView({ params }: { params?: Record<string, string> }) {
@@ -29,6 +29,7 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
   const { toast } = useToast();
   const opp = params?.id ? getOpportunity(params.id) : null;
   const [approved, setApproved] = useState(opp?.status === "approved" || opp?.status === "executing");
+  const [approving, setApproving] = useState(false);
 
   if (!opp) {
     return (
@@ -44,7 +45,17 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
   const maxBurden = Math.max(sim.annualBurdenBefore, sim.annualBurdenAfter, 1);
   const ringValue = apertureFraction(opp.daysRemaining);
 
-  function approve() {
+  // Aprovação server-confirmed: a rota valida o papel (manager+), atribui o aprovador
+  // pela SESSÃO (trilha não-forjável) e é idempotente. Só reflete no store client e
+  // navega se o servidor aceitar; um `member` recebe 403 e é avisado, sem "aprovar".
+  async function approve() {
+    setApproving(true);
+    const res = await writeJson(`/api/opportunities/${opp!.id}/execute`, {}, "POST");
+    setApproving(false);
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
     approveExecution(opp!.id, user.name);
     setApproved(true);
     toast({
@@ -200,7 +211,7 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
                   <ShieldCheck size={15} /> {ts("approved")}
                 </div>
               ) : (
-                <button onClick={approve} className={buttonClass("primary", "md", "w-full group")}>
+                <button onClick={approve} disabled={approving} className={buttonClass("primary", "md", "w-full group")}>
                   <ShieldCheck size={15} /> {t("approveExecution")}
                   <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
                 </button>
