@@ -431,6 +431,27 @@ export function updatePlan(id: string, patch: Record<string, unknown>): Plan | n
   return p;
 }
 
+// ── CMS da landing (0C §2.5): overrides por locale do conteúdo do herói ─────────
+// Vazio = usa o catálogo i18n. O dono edita; a landing aplica o override quando há.
+export const LANDING_FIELDS = ["heroTitleA", "heroTitleB", "heroSub", "heroCta", "heroNote"] as const;
+export type LandingField = (typeof LANDING_FIELDS)[number];
+const LANDING_CMS: Record<string, Partial<Record<LandingField, string>>> = {};
+export function getLandingContent(locale: string): Partial<Record<LandingField, string>> {
+  return LANDING_CMS[locale] ?? {};
+}
+export function updateLandingContent(locale: string, patch: Record<string, unknown>): Partial<Record<LandingField, string>> {
+  const cur = (LANDING_CMS[locale] ??= {});
+  for (const f of LANDING_FIELDS) {
+    if (typeof patch[f] === "string") {
+      const v = (patch[f] as string).slice(0, 400);
+      if (v.trim()) cur[f] = v;
+      else delete cur[f]; // vazio = volta ao padrão do catálogo
+    }
+  }
+  recordAiAction({ actor: "platform_owner", action: "Landing CMS atualizado", detail: locale });
+  return cur;
+}
+
 // Governança (0A §2.8 / 0B §3): toda ação da IA (tool invocada, comando de
 // WhatsApp) entra na trilha imutável — prepende (mais recente no topo).
 let aiAuditSeq = 0;

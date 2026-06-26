@@ -17,7 +17,7 @@ import { SectorIcon } from "@/ui/SectorIcon";
 import { Eyebrow, Chip, buttonClass } from "@/ui/primitives";
 import { getT, getFmt } from "@/i18n/server";
 import { resolveLocale } from "@/i18n/config";
-import { listOpportunities, opportunitiesSummary, getSectors, getPlans, ownerKpis } from "@/server/domain/store";
+import { listOpportunities, opportunitiesSummary, getSectors, getPlans, ownerKpis, getLandingContent } from "@/server/domain/store";
 
 const SOURCES = ["Diário Oficial da União", "CONFAZ", "Receita Federal", "PGFN", "SEF/SC", "SEFAZ/SP", "STJ", "MCTI", "SUDENE", "JUCESP"];
 
@@ -27,6 +27,8 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   const t = getT(locale, "landing");
   const tc = getT(locale, "common");
   const fmt = getFmt(locale);
+  // CMS (0C §2.5): override editável do herói por locale; vazio = catálogo i18n.
+  const cms = getLandingContent(locale);
 
   const summary = opportunitiesSummary();
   const kpis = ownerKpis();
@@ -64,19 +66,19 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
 
             <Reveal delay={80}>
               <h1 className="mt-6 display-1 font-bold text-ink text-balance">
-                {t("heroTitleA")}{" "}
-                <span className="gold-foil gold-foil-shimmer">{t("heroTitleB")}</span>
+                {cms.heroTitleA ?? t("heroTitleA")}{" "}
+                <span className="gold-foil gold-foil-shimmer">{cms.heroTitleB ?? t("heroTitleB")}</span>
               </h1>
             </Reveal>
 
             <Reveal delay={160}>
-              <p className="mt-6 max-w-xl text-lg text-ink-2 text-pretty leading-relaxed">{t("heroSub")}</p>
+              <p className="mt-6 max-w-xl text-lg text-ink-2 text-pretty leading-relaxed">{cms.heroSub ?? t("heroSub")}</p>
             </Reveal>
 
             <Reveal delay={240}>
               <div className="mt-9 flex flex-wrap items-center gap-3">
                 <Link href={`/${locale}/login`} className={buttonClass("primary", "lg", "group")}>
-                  {t("heroCta")}
+                  {cms.heroCta ?? t("heroCta")}
                   <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link href="#how" className={buttonClass("secondary", "lg", "group")}>
@@ -87,7 +89,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             </Reveal>
 
             <Reveal delay={320}>
-              <p className="mt-5 mono text-xs text-ink-4">{t("heroNote")}</p>
+              <p className="mt-5 mono text-xs text-ink-4">{cms.heroNote ?? t("heroNote")}</p>
             </Reveal>
 
             {/* prova social — números reais no topo (não chavão) */}
@@ -372,7 +374,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               {t("finalCta")}
               <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
             </Link>
-            <Chip tone="gold">{t("heroNote")}</Chip>
+            <Chip tone="gold">{cms.heroNote ?? t("heroNote")}</Chip>
           </div>
         </Reveal>
       </section>

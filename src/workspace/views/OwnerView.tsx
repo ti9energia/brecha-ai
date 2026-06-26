@@ -4,13 +4,14 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Crown, Building2, CreditCard, ToggleLeft, ScrollText, TrendingUp,
-  Sparkles, ArrowUpRight, ShieldCheck, Plus,
+  Sparkles, ArrowUpRight, ShieldCheck, Plus, FileText,
 } from "lucide-react";
 import {
   ownerKpis, listTenants, getPlans, listFlags, ownerAudit, aiFeedbackStats,
-  createTenant, setTenantStatus, updatePlan,
+  createTenant, setTenantStatus, updatePlan, getLandingContent, updateLandingContent, LANDING_FIELDS,
 } from "@/server/domain/store";
 import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
+import { locales, localeMeta, type Locale } from "@/i18n/config";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
 import { useSession } from "@/workspace/session";
@@ -20,7 +21,7 @@ import { SectorIcon } from "@/ui/SectorIcon";
 import { Button, Chip, Meter } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
 
-type Section = "overview" | "tenants" | "plans" | "flags" | "audit";
+type Section = "overview" | "tenants" | "plans" | "landing" | "flags" | "audit";
 
 export function OwnerView() {
   const t = useTranslations("owner");
@@ -42,6 +43,7 @@ export function OwnerView() {
     { id: "overview", label: t("overview"), icon: <TrendingUp size={14} /> },
     { id: "tenants", label: t("tenants"), icon: <Building2 size={14} /> },
     { id: "plans", label: t("plans"), icon: <CreditCard size={14} /> },
+    { id: "landing", label: t("landing"), icon: <FileText size={14} /> },
     { id: "flags", label: t("flags"), icon: <ToggleLeft size={14} /> },
     { id: "audit", label: t("audit"), icon: <ScrollText size={14} /> },
   ];
@@ -98,6 +100,7 @@ export function OwnerView() {
       {section === "overview" && <Overview k={k} t={t} tc={tc} fmt={fmt} />}
       {section === "tenants" && <Tenants rows={tenants} t={t} fmt={fmt} refresh={refresh} />}
       {section === "plans" && <Plans rows={plans} t={t} fmt={fmt} refresh={refresh} />}
+      {section === "landing" && <LandingCms t={t} />}
       {section === "flags" && <Flags rows={flags} t={t} />}
       {section === "audit" && <Audit rows={audit} t={t} fmt={fmt} />}
     </ViewScroll>
@@ -421,6 +424,61 @@ function QuotaRow({ label, value }: { label: string; value: number | string }) {
     <div className="flex items-center justify-between gap-3">
       <dt className="text-ink-3">{label}</dt>
       <dd className="mono tnum text-ink-2">{value}</dd>
+    </div>
+  );
+}
+
+// ── LANDING CMS (0C §2.5) ────────────────────────────────────────────────────
+function LandingCms({ t }: { t: Tr }) {
+  const { toast } = useToast();
+  const [loc, setLoc] = useState<Locale>(locales[0]);
+  const [vals, setVals] = useState<Record<string, string>>(() => ({ ...getLandingContent(locales[0]) }));
+
+  function pick(l: Locale) {
+    setLoc(l);
+    setVals({ ...getLandingContent(l) });
+  }
+  function save() {
+    updateLandingContent(loc, vals); // store client-side (a landing aplica o override)
+    fetch("/api/owner/landing", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ locale: loc, ...vals }),
+    }).catch(() => {});
+    toast({ title: t("landingSaved"), description: localeMeta[loc].native, tone: "success" });
+  }
+
+  return (
+    <div className="panel hairline p-6 space-y-5 max-w-2xl">
+      <div>
+        <p className="eyebrow mb-1">{t("landing")}</p>
+        <p className="text-sm text-ink-3 mb-3 text-pretty">{t("landingHint")}</p>
+        <div className="flex flex-wrap gap-2">
+          {locales.map((l) => (
+            <button
+              key={l}
+              onClick={() => pick(l)}
+              className={cn("chip", l === loc ? "text-brand border-[color:var(--border-gold)] bg-[var(--brand-soft)]" : "text-ink-3 border-line bg-surface-2 hover:text-ink-2")}
+            >
+              {localeMeta[l].native}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-3">
+        {LANDING_FIELDS.map((f) => (
+          <div key={f}>
+            <label className="block text-xs font-medium text-ink-2 mb-1.5 mono">{f}</label>
+            <input
+              className="input"
+              value={vals[f] ?? ""}
+              placeholder={t("landingHint")}
+              onChange={(e) => setVals((v) => ({ ...v, [f]: e.target.value }))}
+            />
+          </div>
+        ))}
+      </div>
+      <Button variant="primary" onClick={save}>{t("landingSave")}</Button>
     </div>
   );
 }

@@ -12,7 +12,8 @@ import { POST as createTenant } from "./tenants/route";
 import { PATCH as patchTenant } from "./tenants/[id]/route";
 import { PUT as putPlan } from "./plans/[id]/route";
 import { POST as impersonate } from "./tenants/[id]/impersonate/route";
-import { listTenants } from "@/server/domain/store";
+import { PUT as putLanding } from "./landing/route";
+import { listTenants, getLandingContent } from "@/server/domain/store";
 
 const owner: Omit<SessionUser, "exp"> = {
   sub: "u-owner", email: "owner@brecha.ai", name: "Dono", role: "platform_owner", orgId: "org-acme",
@@ -83,5 +84,14 @@ describe("/api/owner/* — admin CRUD", () => {
     const res = await impersonate(req(`tenants/${id}/impersonate`, "POST"), { params: Promise.resolve({ id }) });
     expect(res.status).toBe(200);
     expect((await res.json()).meta.impersonating).toBe(true);
+  });
+
+  it("CMS da landing (0C §2.5): 403 para member; owner edita o herói por locale", async () => {
+    h.token = await signSession({ ...owner, role: "member" });
+    expect((await putLanding(req("landing", "PUT", { locale: "pt-BR", heroTitleA: "X" }))).status).toBe(403);
+    h.token = await signSession(owner);
+    const res = await putLanding(req("landing", "PUT", { locale: "pt-BR", heroTitleA: "Capture já a brecha" }));
+    expect(res.status).toBe(200);
+    expect(getLandingContent("pt-BR").heroTitleA).toBe("Capture já a brecha");
   });
 });
