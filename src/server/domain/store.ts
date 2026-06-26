@@ -96,7 +96,12 @@ export function getOpportunity(id: string): OpportunityView | null {
 export function opportunitiesSummary() {
   const active = OPPORTUNITIES.filter((o) => isActive(o.status));
   const openGain = active.reduce((s, o) => s + o.estimatedGain, 0);
-  const closingSoon = active.filter((o) => daysUntil(o.windowEnd) <= 21).length;
+  // "Fechando em breve" = janela ainda aberta (>= 0) E a ≤ 21 dias. Sem o piso, uma
+  // janela já vencida (dias negativos) entraria na contagem de urgência.
+  const closingSoon = active.filter((o) => {
+    const d = daysUntil(o.windowEnd);
+    return d >= 0 && d <= 21;
+  }).length;
   return {
     openWindows: active.length,
     openGain,
