@@ -22,7 +22,8 @@ export { listTools, invokeTool, TOOLS, type Tool, type ToolResult } from "./tool
 export { inMemoryKnowledge, ingestDocument, ingestedCount, type KnowledgeStore, type Retrieved } from "./knowledge";
 export { remember, recall, memorySize, type MemoryTurn } from "./memory";
 export { listConnectors, getConnector, type Connector } from "./connectors";
-export { trainingSnapshot, type TrainingSnapshot } from "./training";
+export { trainingSnapshot, trainingPipeline, type TrainingSnapshot, type TrainingPipeline } from "./training";
+export { runScheduledJobs, type JobsResult } from "./jobs";
 export { agentRun } from "./agent";
 
 function dedupeSources(sources: CopilotSource[]): CopilotSource[] {

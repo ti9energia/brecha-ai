@@ -38,7 +38,30 @@ export const gazetteConnector: Connector = {
   },
 };
 
-const CONNECTORS: Connector[] = [gazetteConnector];
+// ERP / contabilidade — leitura do plano de contas/notas (bidirecional).
+export const erpConnector: Connector = {
+  id: "erp",
+  label: "ERP / Contabilidade",
+  capabilities: ["read", "write"],
+  status: () => "connected",
+  async sync(_orgId) {
+    // SWAP: ler do ERP real e mapear para a estrutura/economia do tenant.
+    return { ingested: 0, source: "demo:erp" };
+  },
+};
+
+// Assinatura / protocolo de documentos (escrita) — para a execução da jogada.
+export const esignConnector: Connector = {
+  id: "esign",
+  label: "Assinatura / Protocolo",
+  capabilities: ["write"],
+  status: () => "connected",
+  async sync(_orgId) {
+    return { ingested: 0, source: "demo:esign" };
+  },
+};
+
+const CONNECTORS: Connector[] = [gazetteConnector, erpConnector, esignConnector];
 
 export function listConnectors(): Connector[] {
   return CONNECTORS;
