@@ -812,9 +812,10 @@ export const TENANTS: Tenant[] = [
 export const PLANS: Plan[] = [
   {
     id: "plan-radar",
+    planType: "autonomo",
     name: "Radar",
     tagline: "Veja cada janela abrir.",
-    price: 9_900,
+    price: 1_900,
     period: "month",
     feeRate: 0,
     features: [
@@ -829,9 +830,10 @@ export const PLANS: Plan[] = [
   },
   {
     id: "plan-structure",
+    planType: "autonomo",
     name: "Estrutura",
     tagline: "Simule a jogada antes de mover.",
-    price: 24_900,
+    price: 4_900,
     period: "month",
     popular: true,
     feeRate: 0.18,
@@ -847,9 +849,10 @@ export const PLANS: Plan[] = [
   },
   {
     id: "plan-execution",
+    planType: "autonomo",
     name: "Execução",
     tagline: "Da norma à jogada protocolada.",
-    price: 39_900,
+    price: 9_900,
     period: "month",
     feeRate: 0.15,
     features: [
@@ -861,6 +864,62 @@ export const PLANS: Plan[] = [
     ],
     entitlements: ["radar", "structure", "simulator", "opportunities", "execution", "copilot", "agent", "whatsapp", "savings", "connectors"],
     quotas: { users: "∞", jurisdictions: "∞", aiCredits: "100k/mês" },
+  },
+  // ── Escritório / advogado (carteira de clientes) ──────────────────────────────
+  {
+    id: "plan-firm-boutique",
+    planType: "escritorio",
+    name: "Boutique",
+    tagline: "Até 10 clientes na carteira.",
+    price: 4_900,
+    period: "month",
+    feeRate: 0.20,
+    features: [
+      "Carteira de até 10 clientes",
+      "Detecção de brechas por cliente",
+      "Economia agregada e faturamento do escritório",
+      "+ R$ 490 por cliente adicional",
+      "20% do success fee compartilhado",
+    ],
+    entitlements: ["radar", "structure", "simulator", "opportunities", "execution", "copilot", "agent", "whatsapp", "savings", "connectors"],
+    quotas: { users: 10, jurisdictions: "∞", aiCredits: "50k/mês" },
+  },
+  {
+    id: "plan-firm-banca",
+    planType: "escritorio",
+    name: "Banca",
+    tagline: "Até 30 clientes, banca estruturada.",
+    price: 14_900,
+    period: "month",
+    popular: true,
+    feeRate: 0.15,
+    features: [
+      "Carteira de até 30 clientes",
+      "Tudo do Boutique",
+      "Connectors de ERP e assinatura",
+      "Gestor de conta dedicado",
+      "15% do success fee",
+    ],
+    entitlements: ["radar", "structure", "simulator", "opportunities", "execution", "copilot", "agent", "whatsapp", "savings", "connectors"],
+    quotas: { users: 30, jurisdictions: "∞", aiCredits: "200k/mês" },
+  },
+  {
+    id: "plan-firm-enterprise",
+    planType: "escritorio",
+    name: "Enterprise",
+    tagline: "Clientes ilimitados, white-label.",
+    price: 0, // sob consulta
+    period: "month",
+    feeRate: 0.12,
+    features: [
+      "Clientes ilimitados",
+      "White-label e SSO",
+      "API e integrações sob medida",
+      "SLA e suporte prioritário",
+      "12% do success fee",
+    ],
+    entitlements: ["radar", "structure", "simulator", "opportunities", "execution", "copilot", "agent", "whatsapp", "savings", "connectors"],
+    quotas: { users: "∞", jurisdictions: "∞", aiCredits: "ilimitado" },
   },
 ];
 

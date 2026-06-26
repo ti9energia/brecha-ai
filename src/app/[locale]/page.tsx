@@ -314,35 +314,52 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
             <p className="mt-5 text-lg text-ink-2 text-pretty">{t("pricingSub")}</p>
           </Reveal>
 
-          <div className="mt-14 grid md:grid-cols-3 gap-5 items-start">
-            {plans.map((plan, i) => (
-              <Reveal key={plan.id} delay={i * 100}>
-                <div className={`relative panel p-7 flex flex-col h-full ${plan.popular ? "border-line-gold shadow-[var(--shadow-gold)]" : "hairline"}`}>
-                  {plan.popular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand text-on-brand px-3 py-1 text-xs font-semibold flex items-center gap-1.5">
-                      <Sparkles size={12} /> {t("pricingPopular")}
-                    </span>
-                  )}
-                  <h3 className="font-display font-semibold text-xl text-ink">{plan.name}</h3>
-                  <p className="mt-1 text-sm text-ink-3">{plan.tagline}</p>
-                  <div className="mt-5 flex items-end gap-1">
-                    <span className="font-display font-bold text-4xl text-ink tnum">{fmt.money(plan.price)}</span>
-                    <span className="text-ink-4 text-sm mb-1.5">{t("pricingMonth")}</span>
-                  </div>
-                  {plan.feeRate > 0 && <p className="mt-1 mono text-[0.7rem] text-brand">{t("pricingFeeNote")} · {fmt.percent(plan.feeRate)}</p>}
-                  <Link href={`/${locale}/login`} className={buttonClass(plan.popular ? "primary" : "secondary", "md", "mt-6 w-full")}>
-                    {t("pricingCta")}
-                  </Link>
-                  <ul className="mt-7 space-y-3 flex-1">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5 text-sm text-ink-2">
-                        <Check size={15} className="text-brand shrink-0 mt-0.5" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
+          {/* Preços por PERFIL: autônomo (empresa) e escritório (carteira de clientes). */}
+          <div className="mt-12 space-y-14">
+            {([
+              { type: "autonomo", label: t("pricingForCompany") },
+              { type: "escritorio", label: t("pricingForFirm") },
+            ] as const).map((group) => (
+              <div key={group.type}>
+                <p className="text-center eyebrow text-brand mb-7">{group.label}</p>
+                <div className="grid md:grid-cols-3 gap-5 items-start">
+                  {plans.filter((p) => p.planType === group.type).map((plan, i) => (
+                    <Reveal key={plan.id} delay={i * 100}>
+                      <div className={`relative panel p-7 flex flex-col h-full ${plan.popular ? "border-line-gold shadow-[var(--shadow-gold)]" : "hairline"}`}>
+                        {plan.popular && (
+                          <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand text-on-brand px-3 py-1 text-xs font-semibold flex items-center gap-1.5">
+                            <Sparkles size={12} /> {t("pricingPopular")}
+                          </span>
+                        )}
+                        <h3 className="font-display font-semibold text-xl text-ink">{plan.name}</h3>
+                        <p className="mt-1 text-sm text-ink-3">{plan.tagline}</p>
+                        <div className="mt-5 flex items-end gap-1">
+                          {plan.price > 0 ? (
+                            <>
+                              <span className="font-display font-bold text-4xl text-ink tnum">{fmt.money(plan.price)}</span>
+                              <span className="text-ink-4 text-sm mb-1.5">{t("pricingMonth")}</span>
+                            </>
+                          ) : (
+                            <span className="font-display font-bold text-3xl text-ink">{t("pricingCustom")}</span>
+                          )}
+                        </div>
+                        {plan.feeRate > 0 && <p className="mt-1 mono text-[0.7rem] text-brand">{t("pricingFeeNote")} · {fmt.percent(plan.feeRate)}</p>}
+                        <Link href={`/${locale}/login`} className={buttonClass(plan.popular ? "primary" : "secondary", "md", "mt-6 w-full")}>
+                          {plan.price > 0 ? t("pricingCta") : t("pricingTalk")}
+                        </Link>
+                        <ul className="mt-7 space-y-3 flex-1">
+                          {plan.features.map((f) => (
+                            <li key={f} className="flex items-start gap-2.5 text-sm text-ink-2">
+                              <Check size={15} className="text-brand shrink-0 mt-0.5" />
+                              {f}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </Reveal>
+                  ))}
                 </div>
-              </Reveal>
+              </div>
             ))}
           </div>
         </div>
