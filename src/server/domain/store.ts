@@ -1,19 +1,37 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Store — repositórios em memória sobre o seed. Espelha o contrato que seria
 // servido por Prisma/Postgres. Mutações persistem no processo (suficiente p/ demo).
+//
+// FRONTEIRA cliente↔servidor (dívida técnica consciente do demo): as views client
+// importam estas funções e as executam NO NAVEGADOR (sem round-trip de API). Por
+// isso este módulo NÃO leva `import "server-only"` — levaria a quebrar o build.
+// Nada sensível vaza: só dados de seed + o motor fiscal (sem segredos; senhas/JWT
+// ficam em auth/*, importados só pelo servidor). Caminho de produção: trocar o
+// store por Postgres/Prisma e as views passarem a consumir as rotas `/api/*` (que
+// já existem) ou Server Actions — aí o `server-only` entra. Ver AUDITORIA §3/§7.
 // ─────────────────────────────────────────────────────────────────────────────
 import {
   NORMS, OPPORTUNITIES, STRUCTURE, SCENARIOS, EXECUTION_PLANS, SAVINGS,
   AGENT_RECS, SECTORS, OWNER_KPIS, TENANTS, PLANS, FEATURE_FLAGS, AUDIT_LOG,
 } from "./seed";
 import type {
-  Norm, Opportunity, ScenarioParams, ScenarioResult, Level, OpportunityType,
+  Norm, Opportunity, ScenarioParams, ScenarioResult, Level, OpportunityType, ClientStructure,
+  Tenant, Plan, SectorId,
 } from "./types";
+import { emit } from "@/server/events/bus";
 
 const DAY = 1000 * 60 * 60 * 24;
 
+// Diferença em dias-calendário (UTC), inclusiva: uma janela que termina HOJE
+// retorna 0 ("fecha hoje", ainda válida) e só vira negativa no dia seguinte.
+// Normaliza ambos os lados ao início do dia para não depender da hora atual —
+// `windowEnd` é uma data sem hora (ex.: "2026-07-08"), então Math.ceil dava
+// off-by-one ao longo do próprio dia de fechamento.
 export function daysUntil(iso: string, now = new Date()): number {
-  return Math.ceil((new Date(iso).getTime() - now.getTime()) / DAY);
+  const end = new Date(iso);
+  const endDay = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
+  const nowDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Math.round((endDay - nowDay) / DAY);
 }
 
 export type WindowState = "fresh" | "open" | "closing" | "urgent" | "expired";
@@ -32,9 +50,18 @@ export interface OpportunityView extends Opportunity {
   windowState: WindowState;
 }
 
-function join(opp: Opportunity): OpportunityView {
-  const norm = NORMS.find((n) => n.id === opp.normId)!;
+// Uma oportunidade sem a norma-gatilho correspondente (erro de integridade do
+// seed) é descartada em vez de derrubar a lista inteira com um TypeError.
+function join(opp: Opportunity): OpportunityView | null {
+  const norm = NORMS.find((n) => n.id === opp.normId);
+  if (!norm) return null;
   return { ...opp, norm, daysRemaining: daysUntil(opp.windowEnd), windowState: windowState(opp.windowEnd) };
+}
+
+// "Ativa" = ainda acionável (nem expirada nem já capturada). Predicado único
+// compartilhado pela lista e pelo sumário para não divergirem.
+function isActive(status: Opportunity["status"]): boolean {
+  return status !== "expired" && status !== "captured";
 }
 
 export type OppSort = "gain" | "deadline" | "confidence";
@@ -45,9 +72,9 @@ export function listOpportunities(opts?: {
   sort?: OppSort;
   status?: "active" | "all";
 }): OpportunityView[] {
-  let rows = OPPORTUNITIES.map(join);
+  let rows = OPPORTUNITIES.map(join).filter((o): o is OpportunityView => o !== null);
   if (opts?.status !== "all") {
-    rows = rows.filter((o) => o.status !== "expired");
+    rows = rows.filter((o) => isActive(o.status));
   }
   if (opts?.sector && opts.sector !== "all") rows = rows.filter((o) => o.sector === opts.sector);
   if (opts?.type) rows = rows.filter((o) => o.type === opts.type);
@@ -67,7 +94,7 @@ export function getOpportunity(id: string): OpportunityView | null {
 }
 
 export function opportunitiesSummary() {
-  const active = OPPORTUNITIES.filter((o) => !["expired", "captured"].includes(o.status));
+  const active = OPPORTUNITIES.filter((o) => isActive(o.status));
   const openGain = active.reduce((s, o) => s + o.estimatedGain, 0);
   const closingSoon = active.filter((o) => daysUntil(o.windowEnd) <= 21).length;
   return {
@@ -96,6 +123,30 @@ export function opportunityForNorm(normId: string): Opportunity | undefined {
 }
 
 export function getStructure() {
+  return STRUCTURE;
+}
+
+// Persiste de fato a edição do perfil (muta o objeto in-memory) com coerção e
+// limites por campo — sem mass-assignment. Antes, o PUT só devolvia mesclado e
+// nada persistia. `jurisdictions` é normalizado (UF maiúscula, sem duplicatas).
+export function updateStructure(patch: Record<string, unknown>): ClientStructure {
+  if (typeof patch.legalName === "string") STRUCTURE.legalName = patch.legalName.slice(0, 200);
+  if (typeof patch.regime === "string") STRUCTURE.regime = patch.regime.slice(0, 120);
+  if (typeof patch.mainActivity === "string") STRUCTURE.mainActivity = patch.mainActivity.slice(0, 200);
+  if (typeof patch.headquarters === "string") STRUCTURE.headquarters = patch.headquarters.slice(0, 120);
+
+  const rev = Number(patch.annualRevenue);
+  if (Number.isFinite(rev) && rev >= 0) STRUCTURE.annualRevenue = Math.min(rev, 1e15);
+  const hc = Number(patch.headcount);
+  if (Number.isFinite(hc) && hc >= 0) STRUCTURE.headcount = Math.min(Math.round(hc), 1e9);
+
+  if (Array.isArray(patch.jurisdictions)) {
+    const ufs = patch.jurisdictions
+      .filter((j): j is string => typeof j === "string")
+      .map((j) => j.trim().toUpperCase().slice(0, 4))
+      .filter(Boolean);
+    STRUCTURE.jurisdictions = [...new Set(ufs)].slice(0, 27); // 26 UFs + DF
+  }
   return STRUCTURE;
 }
 
@@ -130,8 +181,10 @@ export function runScenario(params: ScenarioParams): ScenarioResult {
   const effectiveRate = Math.max(0.04, base + jd + cd);
   const annualBurden = Math.round(params.revenue * effectiveRate);
 
-  const baseline = SCENARIOS.find((s) => s.isBaseline)!;
-  const annualSaving = baseline.result.annualBurden - annualBurden;
+  // Fallback se o seed não tiver um cenário-baseline: economia 0 em vez de crash.
+  const baseline = SCENARIOS.find((s) => s.isBaseline);
+  const baselineBurden = baseline?.result.annualBurden ?? annualBurden;
+  const annualSaving = baselineBurden - annualBurden;
 
   let riskLevel: Level = "low";
   if (jd <= -0.025 || params.regime === "Simples Nacional") riskLevel = "medium";
@@ -185,6 +238,7 @@ export function approveExecution(opportunityId: string, approver: string) {
     plan.approvedBy = approver;
     plan.status = "approved";
   }
+  emit("execution.approved", { opportunityId, title: opp?.title ?? opportunityId, approver });
   return getExecutionPlan(opportunityId);
 }
 
@@ -199,8 +253,67 @@ export function listAgentRecs() {
 export function getSectors() {
   return SECTORS;
 }
+
+// ── Configurações da org (in-memory, persistente no processo) ─────────────────
+export interface AppSettings {
+  orgName: string;
+  defaultLocale: string;
+  timezone: string;
+  aiPersona: string;
+  aiTone: string;
+  whatsapp: string;
+  sectors: string[]; // ids de setor monitorados
+  jurisdictions: string[]; // UFs vigiadas pelo radar
+}
+const SETTINGS: AppSettings = {
+  orgName: STRUCTURE.legalName,
+  defaultLocale: "pt-BR",
+  timezone: "America/Sao_Paulo (BRT)",
+  aiPersona: "Vega",
+  aiTone: "Consultivo e direto",
+  whatsapp: "+55 11 9 9999-0000",
+  sectors: ["industry", "tech", "energy"],
+  jurisdictions: ["SP", "SC", "MG"],
+};
+export function getSettings(): AppSettings {
+  return SETTINGS;
+}
+export function updateSettings(patch: Record<string, unknown>): AppSettings {
+  if (typeof patch.orgName === "string") SETTINGS.orgName = patch.orgName.slice(0, 200);
+  if (typeof patch.defaultLocale === "string") SETTINGS.defaultLocale = patch.defaultLocale.slice(0, 10);
+  if (typeof patch.timezone === "string") SETTINGS.timezone = patch.timezone.slice(0, 60);
+  if (typeof patch.aiPersona === "string") SETTINGS.aiPersona = patch.aiPersona.slice(0, 60);
+  if (typeof patch.aiTone === "string") SETTINGS.aiTone = patch.aiTone.slice(0, 60);
+  if (typeof patch.whatsapp === "string") SETTINGS.whatsapp = patch.whatsapp.slice(0, 40);
+  if (Array.isArray(patch.sectors)) {
+    SETTINGS.sectors = patch.sectors.filter((s): s is string => typeof s === "string").slice(0, 50);
+  }
+  if (Array.isArray(patch.jurisdictions)) {
+    const ufs = patch.jurisdictions.filter((j): j is string => typeof j === "string").map((j) => j.toUpperCase());
+    SETTINGS.jurisdictions = [...new Set(ufs)].slice(0, 27);
+  }
+  return SETTINGS;
+}
 export function getPlans() {
   return PLANS;
+}
+
+// ── Entitlements (0C §4.4 / 0D §3): acesso = papel E PLANO ──────────────────────
+// O plano do tenant libera um conjunto de módulos; o papel decide o que fazer dentro.
+// Em produção, o plano vem do billing por orgId; no demo, mapeado.
+const ORG_PLAN: Record<string, string> = { "org-acme": "plan-execution" };
+// Só estes módulos dependem de plano (aparecem em algum `entitlements`). Governança
+// (settings/owner) e o detalhe são gateados por PAPEL, não por plano.
+const PLAN_GATED_MODULES = new Set([
+  "radar", "structure", "simulator", "opportunities", "execution", "agent", "savings",
+]);
+export function orgEntitlements(orgId: string): string[] {
+  const planId = ORG_PLAN[orgId] ?? "plan-execution";
+  return PLANS.find((p) => p.id === planId)?.entitlements ?? [];
+}
+export function isModuleEntitled(moduleId: string, entitlements: string[]): boolean {
+  if (!PLAN_GATED_MODULES.has(moduleId)) return true; // núcleo/governança: independe de plano
+  return entitlements.includes(moduleId);
 }
 
 // ── Painel do Dono ───────────────────────────────────────────────────────────
@@ -215,6 +328,90 @@ export function listFlags() {
 }
 export function ownerAudit() {
   return AUDIT_LOG;
+}
+
+// ── Painel do Dono — CRUD (0C §2.2/§2.4/§8). Muta o store in-memory + audita. ───
+let tenantSeq = 0;
+export function createTenant(input: { name?: string; plan?: string; locale?: string; sector?: SectorId }): Tenant {
+  const t: Tenant = {
+    id: `tenant-${TENANTS.length}-${++tenantSeq}`,
+    name: (typeof input.name === "string" && input.name.trim() ? input.name : "Novo tenant").slice(0, 120),
+    plan: typeof input.plan === "string" ? input.plan : "plan-structure",
+    status: "trial",
+    mrr: 0,
+    users: 1,
+    capturedNet: 0,
+    aiSpend: 0,
+    locale: typeof input.locale === "string" ? input.locale : "pt-BR",
+    sector: input.sector ?? "industry",
+  };
+  TENANTS.unshift(t);
+  recordAiAction({ actor: "platform_owner", action: "Tenant criado", detail: t.name });
+  emit("tenant.created", { id: t.id, name: t.name });
+  return t;
+}
+
+const TENANT_STATUSES = new Set<Tenant["status"]>(["active", "trial", "suspended", "past_due"]);
+export function setTenantStatus(id: string, status: string): Tenant | null {
+  const t = TENANTS.find((x) => x.id === id);
+  if (!t || !TENANT_STATUSES.has(status as Tenant["status"])) return null;
+  t.status = status as Tenant["status"];
+  recordAiAction({ actor: "platform_owner", action: "Tenant atualizado", detail: `${t.name} → ${status}` });
+  emit("tenant.status_changed", { id: t.id, status: t.status });
+  return t;
+}
+
+export function updatePlan(id: string, patch: Record<string, unknown>): Plan | null {
+  const p = PLANS.find((x) => x.id === id);
+  if (!p) return null;
+  if (typeof patch.price === "number" && Number.isFinite(patch.price) && patch.price >= 0) p.price = Math.min(patch.price, 1e9);
+  if (typeof patch.feeRate === "number" && patch.feeRate >= 0 && patch.feeRate <= 1) p.feeRate = patch.feeRate;
+  if (typeof patch.tagline === "string") p.tagline = patch.tagline.slice(0, 160);
+  if (Array.isArray(patch.entitlements)) {
+    p.entitlements = [...new Set(patch.entitlements.filter((e): e is string => typeof e === "string"))].slice(0, 50);
+  }
+  recordAiAction({ actor: "platform_owner", action: "Plano atualizado", detail: p.name });
+  emit("plan.updated", { id: p.id, name: p.name });
+  return p;
+}
+
+// Governança (0A §2.8 / 0B §3): toda ação da IA (tool invocada, comando de
+// WhatsApp) entra na trilha imutável — prepende (mais recente no topo).
+let aiAuditSeq = 0;
+export function recordAiAction(entry: { actor: string; action: string; detail: string }) {
+  AUDIT_LOG.unshift({
+    id: `ai-${++aiAuditSeq}`,
+    at: new Date().toISOString(),
+    actor: entry.actor,
+    tenant: STRUCTURE.legalName,
+    action: entry.action,
+    detail: entry.detail.slice(0, 160),
+  });
+}
+
+// ── Feedback da IA (0A §2.7/§2.9) — alimenta o dataset de treino do AI Core ─────
+// Isolado por tenant (orgId). Em produção, persistir + curar para finetune.
+export interface AiFeedback {
+  rating: "up" | "down";
+  message: string;
+  locale: string;
+  userId: string;
+  orgId: string;
+  at: string; // ISO
+}
+const AI_FEEDBACK: AiFeedback[] = [];
+// Histórico-semente para o Painel do Dono não começar zerado; votos reais somam.
+for (let i = 0; i < 48; i++) {
+  AI_FEEDBACK.push({ rating: i % 8 === 0 ? "down" : "up", message: "", locale: "pt-BR", userId: "seed", orgId: "org-acme", at: "2026-06-20T12:00:00Z" });
+}
+
+export function recordAiFeedback(f: Omit<AiFeedback, "at">) {
+  AI_FEEDBACK.push({ ...f, at: new Date().toISOString() });
+  return aiFeedbackStats();
+}
+export function aiFeedbackStats() {
+  const up = AI_FEEDBACK.filter((f) => f.rating === "up").length;
+  return { total: AI_FEEDBACK.length, up, down: AI_FEEDBACK.length - up };
 }
 
 // agrega tudo o que o copiloto / WhatsApp precisa "entender" o sistema

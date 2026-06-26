@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import {
   Building2, Pencil, MapPin, Users, Receipt, Landmark, CalendarClock, Check, X, Plus,
 } from "lucide-react";
-import { getStructure } from "@/server/domain/store";
+import { getStructure, updateStructure } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
 import { ApertureRing } from "@/ui/ApertureRing";
@@ -43,17 +43,20 @@ export function StructureView() {
 
   async function save() {
     setSaving(true);
+    const payload = {
+      legalName: draft.legalName, regime: draft.regime, headquarters: draft.headquarters,
+      annualRevenue: draft.annualRevenue, headcount: draft.headcount, jurisdictions: draft.jurisdictions,
+    };
+    // Persiste no store isomórfico (a UI do cliente reflete na hora) e no servidor.
+    updateStructure(payload);
     try {
       await fetch("/api/structure", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          legalName: draft.legalName, regime: draft.regime,
-          headquarters: draft.headquarters, annualRevenue: draft.annualRevenue, headcount: draft.headcount,
-        }),
+        body: JSON.stringify(payload),
       });
     } catch {
-      /* demo: persiste local */
+      /* o store local já persistiu */
     }
     setSaving(false);
     setEditing(false);
@@ -183,7 +186,7 @@ export function StructureView() {
               <MapPin size={13} />
               <span className="mono text-sm tracking-wide">{uf}</span>
               {editing && (
-                <button onClick={() => setDraft((d) => ({ ...d, jurisdictions: d.jurisdictions.filter((x) => x !== uf) }))} className="grid place-items-center size-5 rounded-full hover:bg-[var(--brand-soft)] text-brand/70 hover:text-brand" aria-label={`remover ${uf}`}>
+                <button onClick={() => setDraft((d) => ({ ...d, jurisdictions: d.jurisdictions.filter((x) => x !== uf) }))} className="grid place-items-center size-5 rounded-full hover:bg-[var(--brand-soft)] text-brand/70 hover:text-brand" aria-label={t("removeJurisdiction", { uf })}>
                   <X size={12} />
                 </button>
               )}
@@ -191,9 +194,9 @@ export function StructureView() {
           ))}
           {editing && (
             <span className="inline-flex items-center gap-1">
-              <input list="uf-list" value={newUf} onChange={(e) => setNewUf(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addUf(newUf); }} placeholder="UF" className="input !h-9 !w-24 !pl-3" maxLength={4} />
+              <input list="uf-list" value={newUf} onChange={(e) => setNewUf(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addUf(newUf); }} placeholder="UF" aria-label={t("addJurisdiction")} className="input !h-9 !w-24 !pl-3" maxLength={4} />
               <datalist id="uf-list">{UFS.map((u) => <option key={u} value={u} />)}</datalist>
-              <button onClick={() => addUf(newUf)} className="grid place-items-center size-9 rounded-full border border-line-gold bg-[var(--brand-soft)] text-brand hover:brightness-110" aria-label="adicionar"><Plus size={15} /></button>
+              <button onClick={() => addUf(newUf)} className="grid place-items-center size-9 rounded-full border border-line-gold bg-[var(--brand-soft)] text-brand hover:brightness-110" aria-label={t("addJurisdiction")}><Plus size={15} /></button>
             </span>
           )}
         </div>

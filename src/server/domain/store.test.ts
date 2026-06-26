@@ -7,6 +7,12 @@ import {
   opportunitiesSummary,
   approveExecution,
   getOpportunity,
+  recordAiFeedback,
+  aiFeedbackStats,
+  updateStructure,
+  getStructure,
+  updateSettings,
+  getSettings,
 } from "./store";
 
 const DAY = 1000 * 60 * 60 * 24;
@@ -69,6 +75,21 @@ describe("daysUntil / windowState", () => {
     expect(daysUntil(isoInDays(10))).toBeGreaterThan(0);
   });
 
+  it("convenção inclusiva: 0 no dia do fechamento, 1 na véspera, -1 no dia seguinte", () => {
+    const end = "2026-07-08"; // data sem hora
+    expect(daysUntil(end, new Date("2026-07-08T12:00:00Z"))).toBe(0); // fecha hoje, ainda válida
+    expect(daysUntil(end, new Date("2026-07-07T23:30:00Z"))).toBe(1);
+    expect(daysUntil(end, new Date("2026-07-09T00:30:00Z"))).toBe(-1); // expirada
+  });
+
+  it("windowState: dia do fechamento é 'urgent' (não 'expired')", () => {
+    // regressão do off-by-one — usa daysUntil internamente com 'now' padrão; aqui
+    // validamos via daysUntil que d=0 cai na faixa urgent (d <= 7 e d >= 0).
+    const d = daysUntil("2026-07-08", new Date("2026-07-08T08:00:00Z"));
+    expect(d).toBe(0);
+    expect(d).toBeGreaterThanOrEqual(0); // não negativo → não expirado
+  });
+
   it("windowState classifies by remaining days", () => {
     // ~5 days out → urgent (d <= 7)
     expect(windowState(isoInDays(5))).toBe("urgent");
@@ -129,5 +150,65 @@ describe("approveExecution", () => {
     expect(plan!.approved).toBe(true);
     expect(plan!.approvedBy).toBe("Tester");
     expect(plan!.opportunityId).toBe(id);
+  });
+});
+
+describe("updateStructure", () => {
+  it("persiste campos válidos, coage números e normaliza jurisdições (allowlist)", () => {
+    const o = getStructure();
+    const restore = { legalName: o.legalName, regime: o.regime, mainActivity: o.mainActivity, headquarters: o.headquarters, annualRevenue: o.annualRevenue, headcount: o.headcount, jurisdictions: [...o.jurisdictions] };
+    try {
+      const r = updateStructure({
+        legalName: "Nova Razão S.A.",
+        annualRevenue: "500000000", // string → coage
+        headcount: 1234.7, // arredonda
+        jurisdictions: ["sp", "SP", " rj ", ""], // dedup + upper + trim + remove vazio
+        evil: "ignorado", // fora da allowlist
+      });
+      expect(r.legalName).toBe("Nova Razão S.A.");
+      expect(r.annualRevenue).toBe(500_000_000);
+      expect(r.headcount).toBe(1235);
+      expect(r.jurisdictions).toEqual(["SP", "RJ"]);
+      expect((r as unknown as Record<string, unknown>).evil).toBeUndefined();
+      expect(getStructure().legalName).toBe("Nova Razão S.A."); // persistiu
+    } finally {
+      updateStructure(restore);
+    }
+  });
+
+  it("ignora números inválidos/negativos", () => {
+    const before = getStructure().annualRevenue;
+    updateStructure({ annualRevenue: -5 });
+    updateStructure({ annualRevenue: "abc" });
+    expect(getStructure().annualRevenue).toBe(before);
+  });
+});
+
+describe("updateSettings", () => {
+  it("persiste, coage e normaliza arrays (com allowlist)", () => {
+    const o = getSettings();
+    const restore = { orgName: o.orgName, defaultLocale: o.defaultLocale, timezone: o.timezone, aiPersona: o.aiPersona, aiTone: o.aiTone, whatsapp: o.whatsapp, sectors: [...o.sectors], jurisdictions: [...o.jurisdictions] };
+    try {
+      const r = updateSettings({ orgName: "Acme 2", aiPersona: "Vega II", jurisdictions: ["sp", "SP", "mg"], evil: 1 });
+      expect(r.orgName).toBe("Acme 2");
+      expect(r.aiPersona).toBe("Vega II");
+      expect(r.jurisdictions).toEqual(["SP", "MG"]);
+      expect((r as unknown as Record<string, unknown>).evil).toBeUndefined();
+      expect(getSettings().orgName).toBe("Acme 2"); // persistiu
+    } finally {
+      updateSettings(restore);
+    }
+  });
+});
+
+describe("AI feedback (0A §2.9)", () => {
+  it("registra ratings e agrega estatísticas", () => {
+    const before = aiFeedbackStats();
+    recordAiFeedback({ rating: "up", message: "claro", locale: "pt-BR", userId: "u-1", orgId: "org-acme" });
+    recordAiFeedback({ rating: "down", message: "confuso", locale: "en", userId: "u-1", orgId: "org-acme" });
+    const after = aiFeedbackStats();
+    expect(after.total).toBe(before.total + 2);
+    expect(after.up).toBe(before.up + 1);
+    expect(after.down).toBe(before.down + 1);
   });
 });

@@ -16,7 +16,15 @@ export interface SessionUser {
 }
 
 function secret(): string {
-  return process.env.AUTH_SECRET || "brecha-dev-secret-troque-em-producao-32+chars";
+  const fromEnv = process.env.AUTH_SECRET;
+  if (fromEnv) return fromEnv;
+  // Fail-closed: nunca assinar sessões com um segredo público em produção — qualquer
+  // um que leia o repositório poderia forjar uma sessão platform_owner. Em produção
+  // AUTH_SECRET é obrigatório (ver .env.example).
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET é obrigatório em produção — defina uma chave aleatória de 32+ caracteres.");
+  }
+  return "brecha-dev-secret-troque-em-producao-32+chars";
 }
 
 // base64url (isomórfico Edge/Node)

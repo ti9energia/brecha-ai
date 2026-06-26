@@ -28,6 +28,13 @@ function unauthorized() {
   );
 }
 
+function forbidden() {
+  return NextResponse.json(
+    { data: null, meta: null, error: { code: "FORBIDDEN", messageKey: "auth.forbidden" } },
+    { status: 403 },
+  );
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -38,11 +45,19 @@ export async function middleware(req: NextRequest) {
 
   // ── API: auth + health públicos; o resto exige sessão ──
   if (pathname.startsWith("/api")) {
-    if (pathname.startsWith("/api/auth") || pathname === "/api/health") {
+    // Normaliza a versão: /api/v1/x é tratado como /api/x nas checagens (o rewrite
+    // mapeia para o handler em /api/x).
+    const api = pathname.startsWith("/api/v1/") ? "/api/" + pathname.slice("/api/v1/".length) : pathname;
+    // Webhook do WhatsApp é público: autentica por assinatura (Meta) + vínculo
+    // número↔usuário no gateway, não por cookie de sessão.
+    if (api.startsWith("/api/auth") || api === "/api/health" || api === "/api/whatsapp/webhook") {
       return NextResponse.next();
     }
     const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
     if (!session) return unauthorized();
+    // Painel do Dono: dados cross-tenant só para platform_owner (o handler também
+    // checa — defesa em profundidade).
+    if (api.startsWith("/api/owner") && session.role !== "platform_owner") return forbidden();
     return NextResponse.next();
   }
 

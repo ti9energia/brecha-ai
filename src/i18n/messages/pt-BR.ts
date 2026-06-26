@@ -10,7 +10,41 @@ const messages = {
     copilotName: "Vega",
   },
 
+  // SEO / <head> — fonte única (antes era um mapa inline em [locale]/layout.tsx).
+  meta: {
+    title: "Brecha.ai — Capture a oportunidade regulatória antes da janela fechar",
+    description: "GPS de oportunidade regulatória: detecta a janela, simula a jogada e executa a reorganização ótima antes de fechar.",
+  },
+
+  // Respostas do cérebro local (fallback determinístico, 4 idiomas). Markdown **negrito**.
+  brain: {
+    savings: "Até agora você capturou **{realized}** em economia realizada no ano. Há **{inExec}** ainda em execução e o projetado para 12 meses é **{projected}**. O success fee sobre a base conciliada é de **{feeDue}** ({feeRate}%).",
+    savingsAction: "Abrir economia capturada",
+    closingNone: "Nenhuma janela fechando nos próximos 21 dias. Você tem **{open}** janela(s) aberta(s) com mais folga — quer ver as de maior ganho?",
+    closingNoneAction: "Ver oportunidades",
+    closingSome: "Há **{count}** janela(s) fechando em até 21 dias. A mais urgente é **{title}** — fecha em **{days} dias**, com ganho estimado de **{gain}/ano**. Disparada por {source}.",
+    viewPlay: "Ver a jogada",
+    viewAll: "Ver todas",
+    biggestNone: "No momento não há nenhuma janela aberta. O radar segue varrendo os diários oficiais — você é avisado assim que uma brecha abrir.",
+    viewRadar: "Ver radar normativo",
+    biggestSome: "A jogada de maior ganho aberta é **{title}**, com **{gain}/ano**. Recomendação: {headline}. Confiança de {confidence}% sobre {norms} normas correlatas.",
+    openDetail: "Abrir detalhe",
+    simulateVariations: "Simular variações",
+    simulate: "Posso simular a reorganização no motor fiscal. Abra o simulador e ajuste regime, jurisdição e enquadramento — o cálculo do antes/depois é determinístico. Quer que eu já abra com o cenário SUDENE (maior economia projetada)?",
+    openSimulator: "Abrir simulador",
+    structure: "A {legalName} está no **{regime}**, com sede em {hq}, faturamento de **{revenue}/ano** e atuação em {jurisdictions}. O perfil está {completeness}% completo — quanto mais completo, mais precisa a simulação.",
+    openStructure: "Abrir minha estrutura",
+    listIntro: "Você tem **{open}** janelas abertas, somando **{gain}** em ganho potencial. As maiores:",
+    listItem: "{n}. **{title}** — {gain}/ano · fecha em {days}d",
+    openOpportunities: "Abrir oportunidades",
+    greeting: "Sou a Vega, seu copiloto regulatório. Conheço cada janela aberta para a {legalName}, sei simular a jogada e calcular a economia. Você tem **{open}** oportunidades abertas ({gain}). Pergunte, por exemplo: \"qual a jogada de maior ganho?\" ou \"quais janelas estão fechando?\".",
+    opportunities: "Oportunidades",
+    savingsShort: "Economia",
+  },
+
   common: {
+    toggleTheme: "Alternar tema",
+    language: "Idioma",
     save: "Salvar",
     cancel: "Cancelar",
     approve: "Aprovar",
@@ -42,6 +76,7 @@ const messages = {
     getStarted: "Começar",
     days: "dias",
     day: "dia",
+    months: "meses",
     high: "Alta",
     medium: "Média",
     low: "Baixa",
@@ -49,6 +84,16 @@ const messages = {
     realized: "Realizado",
     perYear: "/ano",
     copyright: "Todos os direitos reservados.",
+  },
+
+  errorPages: {
+    notFoundCode: "404",
+    notFoundTitle: "Janela não encontrada",
+    notFoundBody: "Esta rota não existe ou a janela já fechou. Volte ao radar.",
+    backHome: "Voltar ao início",
+    errorTitle: "Algo escapou pela brecha",
+    errorBody: "Um erro inesperado aconteceu. A trilha de auditoria registrou o evento.",
+    tryAgain: "Tentar de novo",
   },
 
   states: {
@@ -59,7 +104,23 @@ const messages = {
     errorHint: "Não foi possível carregar agora. A trilha de auditoria registrou o evento.",
   },
 
+  status: {
+    radarActive: "Radar ativo",
+    sourcesLabel: "fontes",
+    windowsLabel: "janelas abertas",
+    recsLabel: "recomendações",
+    auditActive: "auditoria ativa",
+    online: "Online",
+  },
+
   nav: {
+    toggleCopilot: "Vega — abrir/fechar copiloto",
+    showShortcuts: "Mostrar estes atalhos",
+    drag: "arrastar",
+    reorderTabs: "Reordenar abas",
+    middleClick: "botão do meio",
+    shortcuts: "Atalhos",
+    tabs: "Abas",
     opportunities: "Oportunidades",
     radar: "Radar normativo",
     structure: "Minha estrutura",
@@ -84,6 +145,7 @@ const messages = {
     closePane: "Fechar painel",
     closeTab: "Fechar aba",
     backToSite: "Sair",
+    logout: "Encerrar sessão",
   },
 
   landing: {
@@ -154,6 +216,20 @@ const messages = {
     footerCompany: "Empresa",
     footerLegal: "Legal",
     footerTagline: "Detecta a janela. Simula a jogada. Executa antes de fechar.",
+    faq: {
+      q1: "Como vocês detectam uma oportunidade antes de mim?",
+      a1: "O radar ingere continuamente normas federais, estaduais e municipais de 1.247 fontes oficiais. Cada mudança é vetorizada e cruzada com o perfil fiscal e jurídico da sua estrutura. Quando há relevância e ganho, a janela abre — com prazo, esforço e confiança calculados.",
+      q2: "Os números da simulação são confiáveis?",
+      a2: "A jogada é explicada pela IA, mas validada por um motor fiscal/jurídico determinístico: o cálculo do antes e depois não é estimativa de linguagem, é regra tributária aplicada à sua base. Você vê as premissas de cada cenário.",
+      q3: "Vocês executam sozinhos? E se der errado?",
+      a3: "Nunca. Toda jogada irreversível passa pela aprovação do seu tributarista. A execução é um checklist auditado de documentos, prazos e responsáveis. Tudo é registrado em trilha imutável e, quando aplicável, reversível.",
+      q4: "Como funciona o success fee?",
+      a4: "Você paga uma assinatura enxuta pelo radar e pela simulação. O grosso é success fee: um percentual da economia que de fato entrou na sua conta e foi conciliada. Sem captura, sem fee — nosso ganho está alinhado ao seu.",
+      q5: "Meus dados ficam seguros?",
+      a5: "Isolamento multi-tenant rígido, criptografia em trânsito e repouso, e conformidade com LGPD. Os textos normativos são públicos; a sua estrutura é sua, e a IA opera dentro das permissões do seu papel.",
+    },
+    successFeeShort: "success fee",
+    testimonial: "Capturamos R$ 14,8 mi em janelas que teriam fechado sem ninguém ver. O fee só apareceu depois que o dinheiro entrou.",
     flink: {
       how: "Como funciona",
       pricing: "Planos",
@@ -228,6 +304,8 @@ const messages = {
   },
 
   detail: {
+    assumptions: "premissas",
+    approvedTitle: "Execução aprovada",
     backToList: "Oportunidades",
     triggerNorm: "Norma-gatilho",
     triggerNormSub: "A mudança normativa que abriu esta janela.",
@@ -271,6 +349,7 @@ const messages = {
   },
 
   structure: {
+    removeJurisdiction: "remover {uf}",
     title: "Minha estrutura",
     subtitle: "O perfil fiscal e jurídico da Acme — base de toda simulação.",
     legalName: "Razão social",
@@ -340,9 +419,11 @@ const messages = {
   },
 
   savings: {
+    feeNote: "só sobre ganho realizado e conciliado",
     title: "Economia capturada",
     subtitle: "O ganho realizado e a base do success fee da Acme.",
     realizedYtd: "Realizado no ano",
+    chartAria: "Gráfico de barras: economia realizada e projetada por trimestre",
     inExecution: "Em execução",
     projected: "Projetado (12m)",
     successFee: "Success fee",
@@ -368,11 +449,16 @@ const messages = {
     monitoredJurisdictions: "Jurisdições monitoradas",
     aiPersona: "Persona da IA",
     aiPersonaHint: "Nome e tom do Copiloto e do WhatsApp.",
+    toneConsultive: "Consultivo e direto",
+    toneFormal: "Formal",
+    toneFriendly: "Próximo e didático",
     whatsapp: "WhatsApp",
     whatsappHint: "Número que recebe alertas e executa comandos.",
     whatsappConnect: "Conectar número",
     team: "Equipe & papéis",
     role: "Papel",
+    memberName: "Nome",
+    memberEmail: "E-mail",
     danger: "Zona de risco",
     saved: "Configurações salvas",
   },
@@ -392,6 +478,9 @@ const messages = {
     sources: "Fontes",
     poweredBy: "AI Core · {model}",
     localBrain: "Cérebro local",
+    feedbackUp: "Útil",
+    feedbackDown: "Não ajudou",
+    feedbackThanks: "Obrigado pelo retorno",
     youAsked: "Você",
     actionsTaken: "Ações",
   },
@@ -411,6 +500,24 @@ const messages = {
   },
 
   owner: {
+    restricted: "Acesso restrito ao dono da plataforma (platform_owner).",
+    last12m: "12 meses",
+    plan: "Plano",
+    popular: "Popular",
+    perMonth: "/mês",
+    successFee: "success fee",
+    jurisdictions: "Jurisdições",
+    aiCredits: "Créditos de IA",
+    aiSatisfaction: "Satisfação da IA",
+    state: "Estado",
+    immutableTrail: "trilha imutável · append-only",
+    auditNote: "Registros assinados e encadeados por hash. A trilha é imutável e não pode ser editada ou removida.",
+    tenantStatus: {
+      active: "Ativo",
+      trial: "Trial",
+      past_due: "Inadimplente",
+      suspended: "Suspenso",
+    },
     title: "Painel do dono",
     subtitle: "Governança do SaaS — tenants, planos, landing, IA e auditoria.",
     overview: "Visão geral",
@@ -432,6 +539,11 @@ const messages = {
     errorRate: "Taxa de erro",
     health: "Saúde",
     impersonate: "Impersonar",
+    newTenant: "Novo tenant",
+    tenantCreated: "Tenant criado",
+    reactivate: "Reativar",
+    editEntitlements: "Toque para ligar/desligar módulos do plano",
+    planSaved: "Plano atualizado",
     impersonateBanner: "Você está operando como {tenant}",
     suspend: "Suspender",
     entitlements: "Entitlements",
@@ -471,8 +583,23 @@ const messages = {
     secure: "Conexão segura · isolamento multi-tenant",
     demoHint: "Demo: marina.alves@acme.com.br · senha demo1234",
     invalidCreds: "E-mail ou senha inválidos.",
+    rateLimited: "Muitas tentativas. Aguarde um instante.",
     unauthenticated: "Sessão expirada. Entre novamente.",
+    forbidden: "Você não tem permissão para esta ação.",
     signingOut: "Saindo…",
+  },
+
+  whatsapp: {
+    unbound: "Este número não está vinculado a uma conta Brecha.ai. Faça o opt-in no app para usar o copiloto por WhatsApp.",
+    confirmYes: "SIM",
+    confirmNo: "NÃO",
+    confirmPrompt: "Você está prestes a **aprovar a execução** de: {title}. Responda **SIM** para confirmar ou **NÃO** para cancelar.",
+    confirmed: "✅ Execução aprovada: {title}. A ação foi registrada na trilha de auditoria.",
+    cancelled: "Ok, cancelado — nada foi executado.",
+    nothingPending: "Não há nenhuma jogada pendente de aprovação no momento.",
+    optinConfirmed: "✅ Número vinculado à sua conta Brecha.ai. Agora você pode operar o copiloto por aqui.",
+    channelNotInPlan: "O canal WhatsApp não está incluído no plano do seu tenant. Fale com o administrador.",
+    mediaReceived: "Recebi seu {kind}. A transcrição automática é um passo de produção — por ora, envie o comando em texto.",
   },
 
   units: {

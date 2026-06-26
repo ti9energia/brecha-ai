@@ -48,7 +48,7 @@ export function LoginForm() {
         return;
       }
       const json = await res.json().catch(() => null);
-      setError(json?.error?.code === "RATE_LIMITED" ? "Muitas tentativas. Aguarde um instante." : t("invalidCreds"));
+      setError(json?.error?.code === "RATE_LIMITED" ? t("rateLimited") : t("invalidCreds"));
     } catch {
       setError(t("invalidCreds"));
     }

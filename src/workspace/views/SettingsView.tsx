@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Settings, Building2, Radar, Bot, MessageCircle, Users, Check, Save, Globe } from "lucide-react";
-import { getStructure, getSectors } from "@/server/domain/store";
+import { getSettings, updateSettings, getSectors } from "@/server/domain/store";
 import { useTranslations } from "@/i18n/provider";
 import { locales, localeMeta } from "@/i18n/config";
 import { Button, Chip } from "@/ui/primitives";
@@ -36,13 +36,19 @@ export function SettingsView() {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
   const { toast } = useToast();
-  const structure = getStructure();
+  const settings = getSettings();
   const sectors = getSectors();
 
-  // Estado puramente visual.
-  const [sectorSel, setSectorSel] = useState<Set<string>>(() => new Set(["industry", "tech", "energy"]));
-  const [ufSel, setUfSel] = useState<Set<string>>(() => new Set(["SP", "SC", "MG"]));
+  const [orgName, setOrgName] = useState(settings.orgName);
+  const [defaultLocale, setDefaultLocale] = useState(settings.defaultLocale);
+  const [timezone, setTimezone] = useState(settings.timezone);
+  const [aiPersona, setAiPersona] = useState(settings.aiPersona);
+  const [aiTone, setAiTone] = useState(settings.aiTone);
+  const [whatsapp, setWhatsapp] = useState(settings.whatsapp);
+  const [sectorSel, setSectorSel] = useState<Set<string>>(() => new Set(settings.sectors));
+  const [ufSel, setUfSel] = useState<Set<string>>(() => new Set(settings.jurisdictions));
   const [saved, setSaved] = useState(false);
+  const savedTimer = useRef<number | undefined>(undefined);
 
   function toggle(set: Set<string>, value: string, apply: (next: Set<string>) => void) {
     const next = new Set(set);
@@ -52,9 +58,30 @@ export function SettingsView() {
   }
 
   function handleSave() {
+    const payload = {
+      orgName, defaultLocale, timezone, aiPersona, aiTone, whatsapp,
+      sectors: [...sectorSel], jurisdictions: [...ufSel],
+    };
+    updateSettings(payload); // store isomórfico — reflete na hora
+    fetch("/api/settings", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
     setSaved(true);
-    window.setTimeout(() => setSaved(false), 2000);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = window.setTimeout(() => setSaved(false), 2000);
   }
+
+  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current); }, []);
+
+  // Rótulos localizados dos tons da IA — o VALOR persistido continua canônico (PT),
+  // pois é o que o motor/persona usa; só a exibição muda por locale.
+  const toneLabel: Record<string, string> = {
+    "Consultivo e direto": t("toneConsultive"),
+    Formal: t("toneFormal"),
+    "Próximo e didático": t("toneFriendly"),
+  };
 
   return (
     <ViewScroll>
@@ -89,11 +116,11 @@ export function SettingsView() {
         <Panel icon={<Building2 size={15} />} label={t("org")}>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label={t("orgName")} className="sm:col-span-2">
-              <input className="input" defaultValue={structure.legalName} />
+              <input className="input" value={orgName} onChange={(e) => setOrgName(e.target.value)} />
             </Field>
 
             <Field label={t("defaultLocale")}>
-              <select className="input" defaultValue="pt-BR">
+              <select className="input" value={defaultLocale} onChange={(e) => setDefaultLocale(e.target.value)}>
                 {locales.map((l) => (
                   <option key={l} value={l}>
                     {localeMeta[l].native}
@@ -103,7 +130,7 @@ export function SettingsView() {
             </Field>
 
             <Field label={t("timezone")}>
-              <select className="input" defaultValue={TIMEZONES[0]}>
+              <select className="input" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
                 {TIMEZONES.map((tz) => (
                   <option key={tz} value={tz}>
                     {tz}
@@ -160,13 +187,13 @@ export function SettingsView() {
             </div>
             <div className="grid flex-1 gap-5 sm:grid-cols-2">
               <Field label={t("aiPersona")}>
-                <input className="input" defaultValue="Vega" />
+                <input className="input" value={aiPersona} onChange={(e) => setAiPersona(e.target.value)} />
               </Field>
               <Field label={tc("adjust")}>
-                <select className="input" defaultValue={AI_TONES[0]}>
+                <select className="input" value={aiTone} onChange={(e) => setAiTone(e.target.value)}>
                   {AI_TONES.map((tone) => (
                     <option key={tone} value={tone}>
-                      {tone}
+                      {toneLabel[tone] ?? tone}
                     </option>
                   ))}
                 </select>
@@ -181,9 +208,9 @@ export function SettingsView() {
         <Panel icon={<MessageCircle size={15} />} label={t("whatsapp")}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <Field label={t("whatsapp")} className="flex-1">
-              <input className="input mono" defaultValue="+55 11 9 9999-0000" inputMode="tel" />
+              <input className="input mono" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} inputMode="tel" />
             </Field>
-            <Button variant="secondary" className="shrink-0" onClick={() => toast({ title: t("whatsappConnect"), description: "+55 11 9 9999-0000 · " + t("whatsappHint"), tone: "success" })}>
+            <Button variant="secondary" className="shrink-0" onClick={() => toast({ title: t("whatsappConnect"), description: whatsapp + " · " + t("whatsappHint"), tone: "success" })}>
               <MessageCircle size={16} className="text-positive" />
               {t("whatsappConnect")}
             </Button>
@@ -198,9 +225,9 @@ export function SettingsView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left">
-                  <th className="px-5 py-3 eyebrow font-normal">{t("orgName").split(" ")[0]}</th>
+                  <th className="px-5 py-3 eyebrow font-normal">{t("memberName")}</th>
                   <th className="px-5 py-3 eyebrow font-normal">{t("role")}</th>
-                  <th className="px-5 py-3 eyebrow font-normal">E-mail</th>
+                  <th className="px-5 py-3 eyebrow font-normal">{t("memberEmail")}</th>
                 </tr>
               </thead>
               <tbody>

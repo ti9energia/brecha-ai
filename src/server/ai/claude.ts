@@ -18,7 +18,9 @@ function systemPrompt(locale: Locale): string {
     headquarters: ctx.structure.headquarters,
     annualRevenue: ctx.structure.annualRevenue,
     jurisdictions: ctx.structure.jurisdictions,
-    openOpportunities: ctx.opportunities.map((o) => ({
+    // Cap no system prompt: top-12 por ganho (já vêm ordenadas) — o custo do
+    // prompt não deve crescer sem limite com o tamanho do dataset do tenant.
+    openOpportunities: ctx.opportunities.slice(0, 12).map((o) => ({
       id: o.id,
       title: o.title,
       type: o.type,

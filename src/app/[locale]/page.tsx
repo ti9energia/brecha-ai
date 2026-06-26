@@ -36,13 +36,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
   const sectors = getSectors();
   const plans = getPlans();
 
-  const faqItems = [
-    { q: "Como vocês detectam uma oportunidade antes de mim?", a: "O radar ingere continuamente normas federais, estaduais e municipais de 1.247 fontes oficiais. Cada mudança é vetorizada e cruzada com o perfil fiscal e jurídico da sua estrutura. Quando há relevância e ganho, a janela abre — com prazo, esforço e confiança calculados." },
-    { q: "Os números da simulação são confiáveis?", a: "A jogada é explicada pela IA, mas validada por um motor fiscal/jurídico determinístico: o cálculo do antes e depois não é estimativa de linguagem, é regra tributária aplicada à sua base. Você vê as premissas de cada cenário." },
-    { q: "Vocês executam sozinhos? E se der errado?", a: "Nunca. Toda jogada irreversível passa pela aprovação do seu tributarista. A execução é um checklist auditado de documentos, prazos e responsáveis. Tudo é registrado em trilha imutável e, quando aplicável, reversível." },
-    { q: "Como funciona o success fee?", a: "Você paga uma assinatura enxuta pelo radar e pela simulação. O grosso é success fee: um percentual da economia que de fato entrou na sua conta e foi conciliada. Sem captura, sem fee — nosso ganho está alinhado ao seu." },
-    { q: "Meus dados ficam seguros?", a: "Isolamento multi-tenant rígido, criptografia em trânsito e repouso, e conformidade com LGPD. Os textos normativos são públicos; a sua estrutura é sua, e a IA opera dentro das permissões do seu papel." },
-  ];
+  const faqItems = [1, 2, 3, 4, 5].map((n) => ({ q: t(`faq.q${n}`), a: t(`faq.a${n}`) }));
 
   const sectionNo = (n: string) => <span className="mono text-brand/70 text-xs mr-3">{n}</span>;
 
@@ -226,7 +220,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
           <div className="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {opps.slice(0, 3).map((opp, i) => (
               <Reveal key={opp.id} delay={i * 90}>
-                <OpportunityCard opp={opp} index={i} />
+                <OpportunityCard opp={opp} />
               </Reveal>
             ))}
           </div>
@@ -280,7 +274,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
               <div className="relative">
                 <Quote size={28} className="text-brand mb-4" />
                 <p className="font-display text-xl text-ink text-pretty leading-snug">
-                  "Capturamos R$ 14,8 mi em janelas que teriam fechado sem ninguém ver. O fee só apareceu depois que o dinheiro entrou."
+                  &ldquo;{t("testimonial")}&rdquo;
                 </p>
                 <div className="mt-6 flex items-center gap-3">
                   <span className="grid place-items-center size-10 rounded-full bg-surface-3 text-brand font-display font-semibold">MA</span>
@@ -292,7 +286,7 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                 <div className="mt-8 grid grid-cols-3 gap-px bg-[color:var(--border)] rounded-[var(--radius-md)] overflow-hidden border border-line">
                   {[
                     { v: fmt.moneyCompact(14_820_000), l: tc("realized") },
-                    { v: "18%", l: t("pricingFeeNote").replace("+ success fee sobre a economia capturada", "success fee") },
+                    { v: "18%", l: t("successFeeShort") },
                     { v: "6", l: tc("viewAll") },
                   ].map((m, i) => (
                     <div key={i} className="bg-surface p-4">

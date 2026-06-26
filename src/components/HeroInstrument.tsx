@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Radar } from "lucide-react";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { ApertureRing } from "@/ui/ApertureRing";
+import { apertureFraction } from "@/ui/opp";
 import { cn } from "@/ui/cn";
 
 export interface HeroOpp {
@@ -17,6 +18,7 @@ export interface HeroOpp {
 export function HeroInstrument({ opps, sources }: { opps: HeroOpp[]; sources: number }) {
   const fmt = useFormatter();
   const tc = useTranslations("common");
+  const ts = useTranslations("status");
   const top = opps[0];
   const [active, setActive] = useState(0);
   const focused = opps[active] ?? top;
@@ -33,8 +35,7 @@ export function HeroInstrument({ opps, sources }: { opps: HeroOpp[]; sources: nu
     };
   });
 
-  const maxWindow = 120;
-  const ringValue = Math.min(1, Math.max(0.05, focused.daysRemaining / maxWindow));
+  const ringValue = apertureFraction(focused.daysRemaining);
 
   return (
     <div className="relative w-full max-w-[34rem] mx-auto">
@@ -66,8 +67,11 @@ export function HeroInstrument({ opps, sources }: { opps: HeroOpp[]; sources: nu
         {blips.map((b) => (
           <button
             key={b.id}
+            type="button"
             onMouseEnter={() => setActive(b.i)}
             onFocus={() => setActive(b.i)}
+            onClick={() => setActive(b.i)}
+            aria-pressed={b.i === active}
             className="absolute -translate-x-1/2 -translate-y-1/2 group"
             style={{ left: `${b.x}%`, top: `${b.y}%` }}
             aria-label={b.title}
@@ -116,13 +120,13 @@ export function HeroInstrument({ opps, sources }: { opps: HeroOpp[]; sources: nu
             <span className="absolute inset-0 rounded-full border border-[color:var(--positive)]/40 animate-[pulse-ring_2.6s_ease-out_infinite]" />
           </span>
           <div className="min-w-0">
-            <p className="mono text-[0.66rem] text-ink-3 uppercase tracking-wider">RADAR ATIVO · {fmt.number(sources)} fontes</p>
+            <p className="mono text-[0.66rem] text-ink-3 uppercase tracking-wider">{ts("radarActive")} · {fmt.number(sources)} {ts("sourcesLabel")}</p>
             <p className="text-sm text-ink truncate">{focused.title}</p>
           </div>
         </div>
         <div className="text-right shrink-0">
           <p className="font-display font-semibold text-brand tnum leading-none">{fmt.moneyCompact(focused.estimatedGain)}</p>
-          <p className="mono text-[0.62rem] text-ink-4">/ano</p>
+          <p className="mono text-[0.62rem] text-ink-4">{tc("perYear")}</p>
         </div>
       </div>
     </div>

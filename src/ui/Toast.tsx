@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from "react";
 import { CheckCircle2, Info, AlertTriangle, XCircle, X } from "lucide-react";
+import { useTranslations } from "@/i18n/provider";
 import { cn } from "./cn";
 
 type Tone = "success" | "info" | "warning" | "error";
@@ -39,8 +40,10 @@ const ICON: Record<Tone, ReactNode> = {
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const t = useTranslations("common");
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const seq = useRef(0);
+  const timers = useRef<number[]>([]);
 
   const remove = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
 
@@ -48,31 +51,34 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     ({ title, description, tone = "success", duration = 4000 }) => {
       const id = ++seq.current;
       setToasts((t) => [...t.slice(-3), { id, title, description, tone }]);
-      window.setTimeout(() => remove(id), duration);
+      timers.current.push(window.setTimeout(() => remove(id), duration));
     },
     [remove],
   );
+
+  // Limpa timers pendentes ao desmontar (evita callback órfão após unmount).
+  useEffect(() => () => { timers.current.forEach((h) => clearTimeout(h)); }, []);
 
   return (
     <Ctx.Provider value={{ toast }}>
       {children}
       <div className="fixed z-[95] bottom-4 right-4 flex flex-col gap-2 w-[min(92vw,360px)] pointer-events-none">
-        {toasts.map((t) => (
+        {toasts.map((item) => (
           <div
-            key={t.id}
+            key={item.id}
             role="status"
             className="pointer-events-auto glass rounded-[var(--radius-md)] border border-line-strong shadow-[var(--shadow-lg)] p-3.5 flex items-start gap-3"
             style={{ animation: "toast-in 0.4s var(--ease-out-expo)" }}
           >
-            <span className="mt-0.5 shrink-0">{ICON[t.tone]}</span>
+            <span className="mt-0.5 shrink-0">{ICON[item.tone]}</span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-ink leading-tight">{t.title}</p>
-              {t.description && <p className="mt-0.5 text-xs text-ink-3 text-pretty">{t.description}</p>}
+              <p className="text-sm font-medium text-ink leading-tight">{item.title}</p>
+              {item.description && <p className="mt-0.5 text-xs text-ink-3 text-pretty">{item.description}</p>}
             </div>
             <button
-              onClick={() => remove(t.id)}
+              onClick={() => remove(item.id)}
               className={cn("shrink-0 grid place-items-center size-6 rounded-[var(--radius-sm)] text-ink-4 hover:text-ink hover:bg-surface-3 transition-colors")}
-              aria-label="Fechar"
+              aria-label={t("close")}
             >
               <X size={14} />
             </button>

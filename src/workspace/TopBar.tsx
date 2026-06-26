@@ -28,8 +28,12 @@ export function TopBar({ onCommand }: { onCommand: () => void }) {
 
   return (
     <header className="flex items-center gap-3 h-12 px-3 border-b border-line bg-surface shrink-0">
-      {/* workspace switcher */}
-      <button className="flex items-center gap-2.5 h-9 pl-2 pr-2.5 rounded-[var(--radius-md)] hover:bg-surface-2 transition-colors max-w-[15rem]">
+      {/* workspace switcher → abre configurações da organização */}
+      <button
+        onClick={() => ws.open("settings")}
+        aria-label={tNav("workspace")}
+        className="flex items-center gap-2.5 h-9 pl-2 pr-2.5 rounded-[var(--radius-md)] hover:bg-surface-2 transition-colors max-w-[15rem]"
+      >
         <span className="grid place-items-center size-6 rounded-[var(--radius-sm)] bg-brand text-on-brand font-display font-bold text-xs">A</span>
         <span className="min-w-0 text-left hidden sm:block">
           <span className="block text-[0.82rem] text-ink leading-tight truncate">{tNav("workspace")}</span>
@@ -41,6 +45,7 @@ export function TopBar({ onCommand }: { onCommand: () => void }) {
       {/* command palette trigger */}
       <button
         onClick={onCommand}
+        aria-label={tNav("askCopilot")}
         className="flex-1 max-w-md flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] border border-line bg-surface-2 text-ink-4 hover:border-line-strong transition-colors"
       >
         <Search size={14} />
@@ -54,16 +59,17 @@ export function TopBar({ onCommand }: { onCommand: () => void }) {
       <div className="ml-auto flex items-center gap-1.5">
         <button
           onClick={copilot.toggle}
+          aria-pressed={copilot.open}
           className={cn(
             "hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] text-sm transition-all",
             "border border-line-gold bg-[var(--brand-soft)] text-brand hover:brightness-110",
           )}
         >
-          ✦ Vega
+          <span aria-hidden>✦</span> Vega
         </button>
         <LanguageSwitcher />
         <ThemeToggle />
-        <button onClick={logout} className="grid place-items-center size-9 rounded-[var(--radius-md)] border border-line bg-surface-2 text-ink-3 hover:text-ink hover:border-line-strong transition-colors" title={tNav("backToSite")}>
+        <button onClick={logout} className="grid place-items-center size-9 rounded-[var(--radius-md)] border border-line bg-surface-2 text-ink-3 hover:text-ink hover:border-line-strong transition-colors" title={tNav("logout")} aria-label={tNav("logout")}>
           <LogOut size={15} />
         </button>
       </div>

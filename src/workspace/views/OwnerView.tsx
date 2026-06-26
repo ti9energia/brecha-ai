@@ -3,15 +3,17 @@
 import { useMemo, useState } from "react";
 import {
   Crown, Building2, CreditCard, ToggleLeft, ScrollText, TrendingUp,
-  Sparkles, ArrowUpRight, ShieldCheck,
+  Sparkles, ArrowUpRight, ShieldCheck, Plus,
 } from "lucide-react";
 import {
-  ownerKpis, listTenants, getPlans, listFlags, ownerAudit,
+  ownerKpis, listTenants, getPlans, listFlags, ownerAudit, aiFeedbackStats,
+  createTenant, setTenantStatus, updatePlan,
 } from "@/server/domain/store";
 import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
 import { useSession } from "@/workspace/session";
+import { useFlags } from "@/workspace/flags";
 import { ViewScroll, ViewHeader, StatTiles, StatTile } from "./shared";
 import { SectorIcon } from "@/ui/SectorIcon";
 import { Button, Chip, Meter } from "@/ui/primitives";
@@ -25,12 +27,15 @@ export function OwnerView() {
   const fmt = useFormatter();
   const user = useSession();
   const [section, setSection] = useState<Section>("overview");
+  // Mutações do CRUD bumpam o tick → re-lê o store in-memory (mesmo padrão da Execução).
+  const [tick, setTick] = useState(0);
+  const refresh = () => setTick((n) => n + 1);
 
   const k = useMemo(() => ownerKpis(), []);
-  const tenants = useMemo(() => listTenants(), []);
-  const plans = useMemo(() => getPlans(), []);
+  const tenants = useMemo(() => [...listTenants()], [tick]);
+  const plans = useMemo(() => [...getPlans()], [tick]);
   const flags = useMemo(() => listFlags(), []);
-  const audit = useMemo(() => ownerAudit(), []);
+  const audit = useMemo(() => [...ownerAudit()], [tick]);
 
   const tabs: { id: Section; label: string; icon: React.ReactNode }[] = [
     { id: "overview", label: t("overview"), icon: <TrendingUp size={14} /> },
@@ -47,7 +52,7 @@ export function OwnerView() {
         <div className="panel hairline p-12 text-center">
           <ShieldCheck size={28} className="mx-auto text-ink-4 mb-4" />
           <h2 className="font-display font-semibold text-ink">{t("title")}</h2>
-          <p className="mt-2 text-sm text-ink-3">Acesso restrito ao dono da plataforma (platform_owner).</p>
+          <p className="mt-2 text-sm text-ink-3">{t("restricted")}</p>
         </div>
       </ViewScroll>
     );
@@ -70,10 +75,12 @@ export function OwnerView() {
 
       {/* sub-tabs (segmented control) */}
       <div className="mb-7 overflow-x-auto no-scrollbar">
-        <div className="inline-flex items-center gap-1 p-1 rounded-[var(--radius-md)] border border-line bg-surface-2">
+        <div role="tablist" className="inline-flex items-center gap-1 p-1 rounded-[var(--radius-md)] border border-line bg-surface-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={section === tab.id}
               onClick={() => setSection(tab.id)}
               className={cn(
                 "inline-flex items-center gap-1.5 px-3 h-8 rounded-[var(--radius-sm)] text-sm whitespace-nowrap transition-colors",
@@ -88,8 +95,8 @@ export function OwnerView() {
       </div>
 
       {section === "overview" && <Overview k={k} t={t} tc={tc} fmt={fmt} />}
-      {section === "tenants" && <Tenants rows={tenants} t={t} fmt={fmt} />}
-      {section === "plans" && <Plans rows={plans} t={t} fmt={fmt} />}
+      {section === "tenants" && <Tenants rows={tenants} t={t} fmt={fmt} refresh={refresh} />}
+      {section === "plans" && <Plans rows={plans} t={t} fmt={fmt} refresh={refresh} />}
       {section === "flags" && <Flags rows={flags} t={t} />}
       {section === "audit" && <Audit rows={audit} t={t} fmt={fmt} />}
     </ViewScroll>
@@ -101,6 +108,8 @@ type Fmt = ReturnType<typeof useFormatter>;
 
 // ── OVERVIEW ─────────────────────────────────────────────────────────────────
 function Overview({ k, t, tc, fmt }: { k: ReturnType<typeof ownerKpis>; t: Tr; tc: Tr; fmt: Fmt }) {
+  const fb = aiFeedbackStats();
+  const aiSat = fb.total ? Math.round((fb.up / fb.total) * 100) : 0;
   return (
     <div>
       <StatTiles>
@@ -140,7 +149,7 @@ function Overview({ k, t, tc, fmt }: { k: ReturnType<typeof ownerKpis>; t: Tr; t
           <Sparkline series={k.mrrSeries} />
           <div className="mt-3 flex items-center justify-between mono text-[0.7rem] text-ink-4">
             <span>{fmt.money(k.mrrSeries[0] * 1000)}</span>
-            <span className="text-ink-3">12 {tc("days").replace("dias", "meses")}</span>
+            <span className="text-ink-3">{t("last12m")}</span>
             <span className="text-brand">{fmt.money(k.mrrSeries[k.mrrSeries.length - 1] * 1000)}</span>
           </div>
         </div>
@@ -155,6 +164,7 @@ function Overview({ k, t, tc, fmt }: { k: ReturnType<typeof ownerKpis>; t: Tr; t
             <HealthRow label={t("health")} value="99,98%" tone="positive" />
             <HealthRow label={t("aiSpend")} value={fmt.money(k.aiSpend)} tone="info" />
             <HealthRow label={t("activeTenants")} value={fmt.number(k.activeTenants)} tone="gold" />
+            <HealthRow label={t("aiSatisfaction")} value={`${aiSat}% · ${fmt.number(fb.total)}`} tone="positive" />
           </div>
         </div>
       </div>
@@ -198,7 +208,7 @@ function Sparkline({ series }: { series: number[] }) {
   const gridY = [0.25, 0.5, 0.75].map((f) => PAD + innerH * f);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[132px] block" preserveAspectRatio="none" role="img" aria-hidden>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[132px] block" preserveAspectRatio="none" aria-hidden>
       <defs>
         <linearGradient id="brc-spark-fill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.28" />
@@ -225,22 +235,36 @@ const TENANT_STATUS: Record<Tenant["status"], { tone: "positive" | "info" | "war
   past_due: { tone: "warning", key: "past_due" },
   suspended: { tone: "danger", key: "suspended" },
 };
-const TENANT_STATUS_LABEL: Record<Tenant["status"], string> = {
-  active: "Ativo",
-  trial: "Trial",
-  past_due: "Inadimplente",
-  suspended: "Suspenso",
-};
-
-function Tenants({ rows, t, fmt }: { rows: Tenant[]; t: Tr; fmt: Fmt }) {
+function Tenants({ rows, t, fmt, refresh }: { rows: Tenant[]; t: Tr; fmt: Fmt; refresh: () => void }) {
   const { toast } = useToast();
+
+  // Padrão do demo: muta o store client-side (UI atualiza no refresh) e espelha no
+  // endpoint admin (servidor, com RBAC). 0C §2.2.
+  function setStatus(tn: Tenant) {
+    const status = tn.status === "suspended" ? "active" : "suspended";
+    setTenantStatus(tn.id, status);
+    fetch(`/api/owner/tenants/${tn.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }).catch(() => {});
+    refresh();
+    toast({ title: tn.name, description: t(`tenantStatus.${status}`), tone: status === "suspended" ? "warning" : "success" });
+  }
+  function create() {
+    const created = createTenant({ name: "Nova Holding S.A.", plan: "plan-structure", sector: "industry" });
+    fetch("/api/owner/tenants", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: created.name, plan: created.plan, sector: created.sector }) }).catch(() => {});
+    refresh();
+    toast({ title: t("tenantCreated"), description: created.name, tone: "success" });
+  }
+
   return (
+   <div className="space-y-3">
+    <div className="flex justify-end">
+      <Button variant="secondary" size="sm" onClick={create}><Plus size={14} />{t("newTenant")}</Button>
+    </div>
     <div className="panel hairline overflow-hidden">
       <div className="overflow-x-auto no-scrollbar">
         <table className="w-full min-w-[820px] text-sm border-collapse">
           <thead>
             <tr className="border-b border-line">
-              {[t("tenants"), "Plano", t("system"), t("mrr"), t("users"), t("captured"), ""].map((h, i) => (
+              {[t("tenants"), t("plan"), t("system"), t("mrr"), t("users"), t("captured"), ""].map((h, i) => (
                 <th
                   key={i}
                   className={cn(
@@ -271,14 +295,19 @@ function Tenants({ rows, t, fmt }: { rows: Tenant[]; t: Tr; fmt: Fmt }) {
                     </div>
                   </td>
                   <td className="px-4 py-3.5 text-right"><Chip tone="neutral">{tn.plan}</Chip></td>
-                  <td className="px-4 py-3.5 text-right"><Chip tone={st.tone}>{TENANT_STATUS_LABEL[tn.status]}</Chip></td>
+                  <td className="px-4 py-3.5 text-right"><Chip tone={st.tone}>{t(`tenantStatus.${tn.status}`)}</Chip></td>
                   <td className="px-4 py-3.5 text-right tnum text-ink-2">{tn.mrr > 0 ? fmt.money(tn.mrr) : <span className="text-ink-4">—</span>}</td>
                   <td className="px-4 py-3.5 text-right tnum text-ink-3">{fmt.number(tn.users)}</td>
                   <td className="px-4 py-3.5 text-right tnum text-positive">{fmt.moneyCompact(tn.capturedNet)}</td>
                   <td className="px-4 pr-5 py-3.5 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => toast({ title: t("impersonateBanner", { tenant: tn.name }), description: `${tn.plan} · ${fmt.number(tn.users)} ${t("users").toLowerCase()}`, tone: "info" })}>
-                      {t("impersonate")}
-                    </Button>
+                    <div className="inline-flex items-center gap-1 justify-end">
+                      <Button variant="ghost" size="sm" onClick={() => setStatus(tn)}>
+                        {tn.status === "suspended" ? t("reactivate") : t("suspend")}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => toast({ title: t("impersonateBanner", { tenant: tn.name }), description: `${tn.plan} · ${fmt.number(tn.users)} ${t("users").toLowerCase()}`, tone: "info" })}>
+                        {t("impersonate")}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -287,11 +316,23 @@ function Tenants({ rows, t, fmt }: { rows: Tenant[]; t: Tr; fmt: Fmt }) {
         </table>
       </div>
     </div>
+   </div>
   );
 }
 
 // ── PLANS ────────────────────────────────────────────────────────────────────
-function Plans({ rows, t, fmt }: { rows: Plan[]; t: Tr; fmt: Fmt }) {
+// Módulos que um plano pode liberar (0C §2.4 — casa com isModuleEntitled no store).
+const ALL_ENTITLEMENTS = ["radar", "structure", "opportunities", "simulator", "execution", "savings", "agent", "copilot", "whatsapp", "connectors"];
+
+function Plans({ rows, t, fmt, refresh }: { rows: Plan[]; t: Tr; fmt: Fmt; refresh: () => void }) {
+  const { toast } = useToast();
+  function toggleEnt(p: Plan, mod: string) {
+    const next = p.entitlements.includes(mod) ? p.entitlements.filter((e) => e !== mod) : [...p.entitlements, mod];
+    updatePlan(p.id, { entitlements: next });
+    fetch(`/api/owner/plans/${p.id}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ entitlements: next }) }).catch(() => {});
+    refresh();
+    toast({ title: t("planSaved"), description: p.name, tone: "success" });
+  }
   return (
     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
       {rows.map((p) => (
@@ -304,7 +345,7 @@ function Plans({ rows, t, fmt }: { rows: Plan[]; t: Tr; fmt: Fmt }) {
         >
           {p.popular && (
             <span className="absolute top-4 right-4 inline-flex items-center gap-1 chip text-brand border-[color:var(--border-gold)] bg-[var(--brand-soft)]">
-              <Sparkles size={11} />Popular
+              <Sparkles size={11} />{t("popular")}
             </span>
           )}
           <h3 className="font-display font-semibold text-lg text-ink">{p.name}</h3>
@@ -312,20 +353,34 @@ function Plans({ rows, t, fmt }: { rows: Plan[]; t: Tr; fmt: Fmt }) {
 
           <div className="mt-4 flex items-baseline gap-1.5">
             <span className="font-display font-bold text-2xl tnum text-ink">{fmt.money(p.price)}</span>
-            <span className="text-sm text-ink-4">/mês</span>
+            <span className="text-sm text-ink-4">{t("perMonth")}</span>
           </div>
           {p.feeRate > 0 && (
             <p className="mt-1.5 inline-flex w-fit items-center gap-1 chip text-positive border-[color:var(--positive)]/25 bg-[var(--positive-soft)]">
-              + {fmt.percent(p.feeRate)} success fee
+              + {fmt.percent(p.feeRate)} {t("successFee")}
             </p>
           )}
 
           <div className="mt-5 pt-5 border-t border-line">
-            <p className="eyebrow mb-2.5">{t("entitlements")}</p>
+            <p className="eyebrow mb-1">{t("entitlements")}</p>
+            <p className="text-[0.68rem] text-ink-4 mb-2.5">{t("editEntitlements")}</p>
             <div className="flex flex-wrap gap-1.5">
-              {p.entitlements.map((e) => (
-                <span key={e} className="chip text-ink-2 border-line bg-surface-2 mono text-[0.68rem]">{e}</span>
-              ))}
+              {ALL_ENTITLEMENTS.map((e) => {
+                const on = p.entitlements.includes(e);
+                return (
+                  <button
+                    key={e}
+                    onClick={() => toggleEnt(p, e)}
+                    aria-pressed={on}
+                    className={cn(
+                      "chip mono text-[0.68rem] transition-colors",
+                      on ? "text-brand border-[color:var(--border-gold)] bg-[var(--brand-soft)]" : "text-ink-4 border-line bg-surface-2 hover:text-ink-2",
+                    )}
+                  >
+                    {e}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -333,8 +388,8 @@ function Plans({ rows, t, fmt }: { rows: Plan[]; t: Tr; fmt: Fmt }) {
             <p className="eyebrow mb-2.5">{t("quotas")}</p>
             <dl className="space-y-2 text-sm">
               <QuotaRow label={t("users")} value={p.quotas.users} />
-              <QuotaRow label="Jurisdições" value={p.quotas.jurisdictions} />
-              <QuotaRow label="Créditos de IA" value={p.quotas.aiCredits} />
+              <QuotaRow label={t("jurisdictions")} value={p.quotas.jurisdictions} />
+              <QuotaRow label={t("aiCredits")} value={p.quotas.aiCredits} />
             </dl>
           </div>
         </div>
@@ -354,9 +409,9 @@ function QuotaRow({ label, value }: { label: string; value: number | string }) {
 
 // ── FLAGS ────────────────────────────────────────────────────────────────────
 function Flags({ rows, t }: { rows: FeatureFlag[]; t: Tr }) {
-  const [enabled, setEnabled] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(rows.map((f) => [f.module, f.enabled])),
-  );
+  // Estado compartilhado: alternar aqui some/aparece o módulo no rail e no
+  // command palette na hora (0D §9c — módulos condicionados por flag).
+  const { enabled, toggle } = useFlags();
 
   const scopeLabel = (scope: FeatureFlag["scope"]) =>
     scope === "global" ? t("global") : scope === "plan" ? t("perPlan") : t("perTenant");
@@ -371,13 +426,13 @@ function Flags({ rows, t }: { rows: FeatureFlag[]; t: Tr }) {
             <tr className="border-b border-line">
               <th className="eyebrow px-4 pl-5 py-3 text-left font-medium">{t("module")}</th>
               <th className="eyebrow px-4 py-3 text-left font-medium">{t("system")}</th>
-              <th className="eyebrow px-4 py-3 text-center font-medium w-px whitespace-nowrap">Estado</th>
+              <th className="eyebrow px-4 py-3 text-center font-medium w-px whitespace-nowrap">{t("state")}</th>
               <th className="eyebrow px-4 pr-5 py-3 text-left font-medium">{t("rollout")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((f) => {
-              const on = enabled[f.module];
+              const on = enabled[f.module] ?? f.enabled;
               return (
                 <tr key={f.module} className="border-b border-line last:border-0 hover:bg-surface-2/60 transition-colors">
                   <td className="px-4 pl-5 py-3.5">
@@ -389,7 +444,7 @@ function Flags({ rows, t }: { rows: FeatureFlag[]; t: Tr }) {
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex justify-center">
-                      <Switch on={on} onClick={() => setEnabled((s) => ({ ...s, [f.module]: !s[f.module] }))} />
+                      <Switch on={on} onClick={() => toggle(f.module)} />
                     </div>
                   </td>
                   <td className="px-4 pr-5 py-3.5">
@@ -447,7 +502,7 @@ function Audit({ rows, t, fmt }: { rows: ReturnType<typeof ownerAudit>; t: Tr; f
           </span>
           <span className="inline-flex items-center gap-1.5 mono text-[0.7rem] text-ink-4">
             <ShieldCheck size={12} className="text-positive" />
-            trilha imutável · append-only
+            {t("immutableTrail")}
           </span>
         </div>
         <div className="divide-y divide-line">
@@ -470,7 +525,7 @@ function Audit({ rows, t, fmt }: { rows: ReturnType<typeof ownerAudit>; t: Tr; f
       </div>
       <p className="mt-3 text-xs text-ink-4 inline-flex items-center gap-1.5">
         <ShieldCheck size={12} className="text-ink-4" />
-        Registros assinados e encadeados por hash. A trilha é imutável e não pode ser editada ou removida.
+        {t("auditNote")}
       </p>
     </div>
   );

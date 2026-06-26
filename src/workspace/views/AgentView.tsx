@@ -25,6 +25,7 @@ export function AgentView() {
   const t = useTranslations("agent");
   const tc = useTranslations("common");
   const tr = useTranslations("radar");
+  const ts = useTranslations("status");
   const fmt = useFormatter();
   const ws = useWorkspace();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -40,7 +41,7 @@ export function AgentView() {
         actions={
           <span className="inline-flex items-center gap-2 chip" style={{ borderColor: "var(--border-gold)" }}>
             <span className="size-1.5 rounded-full bg-positive animate-[pulse-ring_2.4s_ease-out_infinite]" />
-            <span className="text-positive">online</span>
+            <span className="text-positive">{ts("online")}</span>
           </span>
         }
       />

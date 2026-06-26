@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  async rewrites() {
+    // API versionada (00-PADRÃO §4 / 0D §4): /api/v1/* é o caminho canônico de
+    // versão; reescreve para os handlers em /api/*. O middleware normaliza o
+    // prefixo /v1 nas checagens de auth.
+    return [{ source: "/api/v1/:path*", destination: "/api/:path*" }];
+  },
   async headers() {
     // CSP sem nonce (mantém render estático/CDN). React escapa toda saída e não
     // há sink de HTML cru; 'unsafe-inline' cobre o ThemeScript + scripts do Next.

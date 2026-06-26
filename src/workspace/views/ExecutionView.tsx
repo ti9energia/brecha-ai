@@ -8,8 +8,8 @@ import {
 import { listExecutionPlans, approveExecution, listOpportunities } from "@/server/domain/store";
 import type { ExecutionStep, AuditEntry, StepStatus } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
-import { Button, Chip, Meter } from "@/ui/primitives";
-import { ViewScroll, ViewHeader } from "./shared";
+import { Button, Chip, Meter, EmptyState } from "@/ui/primitives";
+import { ViewScroll, ViewHeader, UpdatedAt } from "./shared";
 import { cn } from "@/ui/cn";
 
 const APPROVER = "Helena Vasconcelos — Tributarista";
@@ -57,20 +57,14 @@ export function ExecutionView({ params }: { params?: Record<string, string> }) {
     <ViewScroll>
       <ViewHeader
         icon={<ListChecks size={20} />}
-        eyebrow={tc("updatedAt") + " · " + fmt.date(new Date(), { day: "2-digit", month: "long" })}
+        eyebrow={<UpdatedAt />}
         title={t("title")}
         subtitle={t("subtitle")}
       />
 
       {isEmpty ? (
         <div className="panel hairline">
-          <div className="flex flex-col items-center justify-center text-center py-16 px-6">
-            <div className="mb-5 grid place-items-center size-16 rounded-full border border-line bg-surface-2 text-brand">
-              <ListChecks size={22} />
-            </div>
-            <h3 className="text-lg font-semibold text-ink">{t("emptyTitle")}</h3>
-            <p className="mt-2 max-w-sm text-sm text-ink-3 text-pretty">{t("emptyHint")}</p>
-          </div>
+          <EmptyState icon={<ListChecks size={22} />} title={t("emptyTitle")} hint={t("emptyHint")} />
         </div>
       ) : (
         <div className="space-y-5">

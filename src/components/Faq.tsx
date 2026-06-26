@@ -13,9 +13,11 @@ export function Faq({ items }: { items: { q: string; a: string }[] }) {
         return (
           <div key={i}>
             <button
+              id={`faq-q-${i}`}
               onClick={() => setOpen(isOpen ? null : i)}
               className="w-full flex items-center justify-between gap-6 py-5 text-left group"
               aria-expanded={isOpen}
+              aria-controls={`faq-a-${i}`}
             >
               <span className={cn("font-display text-base md:text-lg transition-colors", isOpen ? "text-brand" : "text-ink group-hover:text-ink")}>
                 {item.q}
@@ -29,7 +31,7 @@ export function Faq({ items }: { items: { q: string; a: string }[] }) {
               style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
             >
               <div className="overflow-hidden">
-                <p className="pb-6 pr-14 text-ink-3 text-pretty leading-relaxed">{item.a}</p>
+                <p id={`faq-a-${i}`} role="region" aria-labelledby={`faq-q-${i}`} className="pb-6 pr-14 text-ink-3 text-pretty leading-relaxed">{item.a}</p>
               </div>
             </div>
           </div>

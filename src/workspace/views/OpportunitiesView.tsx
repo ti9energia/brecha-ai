@@ -5,13 +5,15 @@ import { Crosshair, SlidersHorizontal, TrendingUp, Timer, Coins, Sparkles } from
 import { listOpportunities, opportunitiesSummary, getSectors, type OppSort } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { OpportunityCard } from "@/components/OpportunityCard";
-import { ViewScroll, ViewHeader, StatTiles, StatTile } from "./shared";
+import { ViewScroll, ViewHeader, StatTiles, StatTile, UpdatedAt } from "./shared";
+import { EmptyState } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
 
 export function OpportunitiesView() {
   const t = useTranslations("opportunities");
   const tc = useTranslations("common");
   const tStates = useTranslations("states");
+  const ts = useTranslations("status");
   const fmt = useFormatter();
   const [sort, setSort] = useState<OppSort>("gain");
   const [sector, setSector] = useState<string>("all");
@@ -30,13 +32,13 @@ export function OpportunitiesView() {
     <ViewScroll>
       <ViewHeader
         icon={<Crosshair size={20} />}
-        eyebrow={tc("updatedAt") + " · " + fmt.date(new Date(), { day: "2-digit", month: "long" })}
+        eyebrow={<UpdatedAt />}
         title={t("title")}
         subtitle={t("subtitle")}
       />
 
       <StatTiles>
-        <StatTile label={t("openWindows")} value={fmt.number(summary.openWindows)} accent="gold" hint={<span className="inline-flex items-center gap-1"><TrendingUp size={11} className="text-positive" />radar ativo</span>} />
+        <StatTile label={t("openWindows")} value={fmt.number(summary.openWindows)} accent="gold" hint={<span className="inline-flex items-center gap-1"><TrendingUp size={11} className="text-positive" />{ts("radarActive")}</span>} />
         <StatTile label={t("potentialGain")} value={fmt.moneyCompact(summary.openGain)} accent="gold" hint={tc("estimated") + " · " + tc("perYear")} />
         <StatTile label={t("closingSoon")} value={fmt.number(summary.closingSoon)} accent="danger" hint={<span className="inline-flex items-center gap-1"><Timer size={11} />≤ 21 {tc("days")}</span>} />
         <StatTile label={t("captured")} value={fmt.moneyCompact(summary.capturedYtd)} accent="positive" hint={<span className="inline-flex items-center gap-1"><Coins size={11} />{tc("realized")}</span>} />
@@ -50,6 +52,7 @@ export function OpportunitiesView() {
             <button
               key={s.id}
               onClick={() => setSort(s.id)}
+              aria-pressed={sort === s.id}
               className={cn(
                 "px-3 h-8 rounded-[var(--radius-sm)] text-sm transition-colors",
                 sort === s.id ? "bg-surface-4 text-ink" : "text-ink-3 hover:text-ink",
@@ -74,18 +77,16 @@ export function OpportunitiesView() {
 
       {rows.length === 0 ? (
         <div className="panel hairline">
-          <div className="flex flex-col items-center justify-center text-center py-16 px-6">
-            <div className="mb-5 grid place-items-center size-16 rounded-full border border-line bg-surface-2 text-brand">
-              <Sparkles size={22} />
-            </div>
-            <h3 className="text-lg font-semibold text-ink">{tStates("emptyOpportunities")}</h3>
-            <p className="mt-2 max-w-sm text-sm text-ink-3">{tStates("emptyOpportunitiesHint")}</p>
-          </div>
+          <EmptyState
+            icon={<Sparkles size={22} />}
+            title={tStates("emptyOpportunities")}
+            hint={tStates("emptyOpportunitiesHint")}
+          />
         </div>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {rows.map((opp, i) => (
-            <OpportunityCard key={opp.id} opp={opp} index={i} />
+          {rows.map((opp) => (
+            <OpportunityCard key={opp.id} opp={opp} />
           ))}
         </div>
       )}
@@ -97,6 +98,7 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
         "shrink-0 h-8 px-3 rounded-full border text-sm transition-colors whitespace-nowrap",
         active ? "border-line-gold bg-[var(--brand-soft)] text-brand" : "border-line bg-surface-2 text-ink-3 hover:text-ink hover:border-line-strong",

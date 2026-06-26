@@ -1,12 +1,13 @@
 "use client";
 
 import {
-  createContext, useContext, useState, useRef, useEffect, useCallback,
+  createContext, useContext, useState, useRef, useEffect, useCallback, useMemo,
   type ReactNode, type KeyboardEvent,
 } from "react";
-import { Send, X, Sparkles, ArrowUpRight, ExternalLink, Cpu } from "lucide-react";
+import { Send, X, Sparkles, ArrowUpRight, ExternalLink, Cpu, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useTranslations, useLocale } from "@/i18n/provider";
 import { useWorkspace, type ModuleId } from "@/workspace/store";
+import { useFocusTrap } from "@/ui/useFocusTrap";
 import { Mark } from "@/ui/Logo";
 import { cn } from "@/ui/cn";
 
@@ -57,24 +58,30 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
     }
   }, [messages, sending, locale]);
 
+  // `askTrigger` garante que o prompt pendente dispare mesmo se o painel JÁ estiver
+  // aberto (antes, o efeito dependia só de [open, send] e o prompt era engolido).
+  const [askTrigger, setAskTrigger] = useState(0);
   const ask = useCallback((prompt: string) => {
-    setOpen(true);
     pending.current = prompt;
+    setOpen(true);
+    setAskTrigger((n) => n + 1);
   }, []);
 
-  // dispara o prompt pendente quando o painel abre
+  // dispara o prompt pendente quando o painel abre (ou a cada novo ask)
   useEffect(() => {
     if (open && pending.current) {
       const p = pending.current;
       pending.current = null;
       send(p);
     }
-  }, [open, send]);
+  }, [open, askTrigger, send]);
 
   const toggle = useCallback(() => setOpen((o) => !o), []);
 
+  const api = useMemo<CopilotApi>(() => ({ open, setOpen, toggle, ask, messages }), [open, toggle, ask, messages]);
+
   return (
-    <Ctx.Provider value={{ open, setOpen, toggle, ask, messages }}>
+    <Ctx.Provider value={api}>
       {children}
       <CopilotPanel open={open} setOpen={setOpen} messages={messages} sending={sending} onSend={send} />
     </Ctx.Provider>
@@ -87,10 +94,29 @@ function CopilotPanel({
   open: boolean; setOpen: (v: boolean) => void; messages: Msg[]; sending: boolean; onSend: (t: string) => void;
 }) {
   const t = useTranslations("copilot");
+  const locale = useLocale();
   const ws = useWorkspace();
   const [draft, setDraft] = useState("");
+  const [voted, setVoted] = useState<Record<number, "up" | "down">>({});
   const scrollRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  useFocusTrap(panelRef, open);
   const lastModel = [...messages].reverse().find((m) => m.model)?.model;
+
+  // Captura de feedback (0A §2.9) — alimenta o dataset de treino do AI Core.
+  async function vote(i: number, rating: "up" | "down", content: string) {
+    if (voted[i]) return;
+    setVoted((v) => ({ ...v, [i]: rating }));
+    try {
+      await fetch("/api/ai/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ rating, message: content, locale }),
+      });
+    } catch {
+      /* best-effort */
+    }
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -118,6 +144,11 @@ function CopilotPanel({
         onClick={() => setOpen(false)}
       />
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("title")}
+        inert={!open}
         className={cn(
           "fixed right-0 top-0 bottom-0 z-[81] w-full sm:w-[400px] flex flex-col glass border-l border-line shadow-[var(--shadow-lg)] transition-transform duration-400 ease-[var(--ease-out-expo)]",
           open ? "translate-x-0" : "translate-x-full",
@@ -199,6 +230,22 @@ function CopilotPanel({
                           {a.label} <ArrowUpRight size={12} />
                         </button>
                       ))}
+                    </div>
+                  )}
+                  {m.content !== "—" && (
+                    <div className="flex items-center gap-1 pt-0.5">
+                      {voted[i] ? (
+                        <span className="mono text-[0.62rem] text-ink-4">{t("feedbackThanks")}</span>
+                      ) : (
+                        <>
+                          <button onClick={() => vote(i, "up", m.content)} aria-label={t("feedbackUp")} title={t("feedbackUp")} className="grid place-items-center size-6 rounded-[var(--radius-sm)] text-ink-4 hover:text-positive hover:bg-surface-3 transition-colors">
+                            <ThumbsUp size={13} />
+                          </button>
+                          <button onClick={() => vote(i, "down", m.content)} aria-label={t("feedbackDown")} title={t("feedbackDown")} className="grid place-items-center size-6 rounded-[var(--radius-sm)] text-ink-4 hover:text-danger hover:bg-surface-3 transition-colors">
+                            <ThumbsDown size={13} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

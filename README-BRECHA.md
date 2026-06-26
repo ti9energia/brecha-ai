@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/ti9energia/brecha-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ti9energia/brecha-ai/actions/workflows/ci.yml)
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fti9energia%2Fbrecha-ai&project-name=brecha-ai&repository-name=brecha-ai)
-&nbsp;`Next.js 15` · `TypeScript` · `Tailwind v4` · `36 testes` · `4 idiomas` · `PWA`
+&nbsp;`Next.js 15` · `TypeScript` · `Tailwind v4` · `77 testes` · `4 idiomas` · `PWA`
 
 > **Detecta a janela. Simula a jogada. Executa antes de fechar.**
 > Plataforma SaaS premium construída de ponta a ponta a partir das specs (`08-Brecha-ai.md` + arquitetura transversal `0A`/`0B`/`0C`/`0D`).
@@ -46,11 +46,11 @@ Sem a chave, o Copiloto continua funcionando (cérebro local). Com a chave, o Cl
 | Área | Entregue |
 |---|---|
 | **Landing page** | Herói "surreal" com radar/aurora animados, instrumento de radar com blips das oportunidades reais, ticker de "dinheiro na mesa" ao vivo, como-funciona, setores, success fee, planos (do CMS), FAQ, CTA. |
-| **Login** | Split-screen premium (painel de marca + formulário): e-mail/senha, Google, link mágico. Demo — qualquer credencial entra. |
+| **Login** | Split-screen premium (painel de marca + formulário): e-mail/senha, Google, link mágico. Demo: `marina.alves@acme.com.br` · senha `demo1234` (4 usuários seedados com papéis distintos; comparação de hash em tempo constante). |
 | **Workspace (estilo Chrome)** | **Abas** abríveis/fecháveis por painel + **split view** (vertical/horizontal). Nav rail, command palette (`⌘/Ctrl+K`), status bar ao vivo, atalhos (`⌘K`, `⌘J`, `⌘\`). |
 | **8 telas do produto** | Oportunidades · Detalhe (norma-gatilho + simulação antes/depois + jogada + Abertura) · Radar normativo · Minha estrutura · Simulador · Execução (aprovação + trilha) · Economia capturada · Configurações. |
-| **Inteligência** | Copiloto **Vega** em toda tela (`⌘J`) + Agente autônomo (fila de recomendações). |
-| **Painel do Dono (0C)** | Visão geral (MRR, tenants, IA), tenants, planos & entitlements, feature flags, auditoria. |
+| **Inteligência** | Copiloto **Vega** em toda tela (`⌘J`) + Agente autônomo (fila de recomendações) + feedback 👍/👎 que alimenta o dataset de treino do AI Core. |
+| **Painel do Dono (0C)** | Visão geral (MRR, tenants, satisfação da IA), tenants, planos & entitlements, **feature flags que ligam/desligam módulos ao vivo**, auditoria. |
 | **Backend** | Camada de domínio modular + route handlers (`/api/...`) no envelope `{ data, meta, error }`. |
 | **i18n (4 idiomas)** | pt-BR (fonte) · en · zh-CN · fr-FR, com troca de idioma, formatação por locale e fallback. |
 | **PWA** | `manifest.webmanifest`, service worker (shell offline), ícones da marca, instalável, responsivo. |
@@ -98,12 +98,29 @@ src/
 ### Mapeamento com as specs
 
 - **`08`** — produto Brecha.ai: as 8 telas, modelo de dados, endpoints, fluxos.
-- **`0A`** — AI Core: Copiloto (`/api/ai/chat`), Agente (fila de recomendações), tools como ações que abrem abas, provider trocável (Claude → modelo próprio).
-- **`0B`** — WhatsApp: o mesmo cérebro/tools; o gateway é plugável (documentado, não provisionado no demo).
+- **`0A`** — **AI Core** (`src/server/ai-core/`): provider de modelo **trocável**, registry de **tools** governado (`/api/ai/tools` + `/invoke`), **RAG**, **connectors** e export de **treino** — pontos de troca prontos para extrair como serviço (ver seção abaixo). Copiloto (`/api/ai/chat`), Agente e feedback (`/api/ai/feedback`).
+- **`0B`** — WhatsApp **bidirecional**: entrada (`/api/whatsapp/webhook` — verificação Meta + assinatura HMAC + vínculo número↔usuário) pelo AI Core, saída (`/api/whatsapp/send`) e **push proativo do agente**; tudo auditado. Um número real (Meta/Twilio) só encaminha para cá.
 - **`0C`** — Painel do Dono: tenants, planos→entitlements, flags, auditoria, papéis.
-- **`0D`** — Modularidade: registry de módulos, cada aba ligável/desligável, contrato tipado FE↔BE.
+- **`0D`** — Modularidade: registry de módulos; os feature flags do Painel do Dono **ligam/desligam abas em runtime** (somem do rail e do command palette na hora); contrato tipado FE↔BE.
 
 ---
+
+## 🧠 AI Core — pontos de troca para escala (modelo pré-pronto)
+
+`src/server/ai-core/` é o "Cérebro" como módulo, pronto para virar `apps/ai-core`
+(serviço separado) **sem reescrever o produto** — o contrato já existe. Quando
+escalar, é só implementar a interface no ponto marcado com `// SWAP (produção):`.
+
+| Camada | Arquivo | Hoje (demo) | `// SWAP` para produção |
+|---|---|---|---|
+| **Modelo** | `provider.ts` | Claude + cérebro local | `selfHostedProvider` → seu servidor de inferência/finetune |
+| **Tools** | `tools.ts` | registry central c/ RBAC | cada módulo declara as suas (`module.config`, 0D) |
+| **RAG** | `knowledge.ts` | índice keyword in-memory | `pgvector`/Qdrant (embeddings + ANN), mesma interface |
+| **Connectors** | `connectors.ts` | connector de demo | integrações reais (diários, ERPs) estilo MCP |
+| **Treino** | `training.ts` | snapshot do feedback | curadoria → finetune/eval → `modelo@vN` + rollback |
+
+O produto fala **só** com a fachada `aiChat()`; trocar qualquer camada não toca no
+resto. Endpoints já expostos: `/api/ai/{chat,feedback,tools,tools/invoke,connectors}`.
 
 ## 🧪 Dados de demonstração
 
