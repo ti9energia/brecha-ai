@@ -26,18 +26,40 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
+  const typed = (isLocale(locale) ? locale : defaultLocale) as Locale;
   // Fonte única: chaves `meta.*` do catálogo i18n (com a cadeia de fallback).
-  const t = getT((isLocale(locale) ? locale : defaultLocale) as Locale, "meta");
+  const t = getT(typed, "meta");
   const title = t("title");
   const description = t("description");
+  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://brecha.ai";
+  const path = `/${typed}`;
   return {
     title,
     description,
-    metadataBase: new URL("https://brecha.ai"),
+    metadataBase: new URL(base),
     applicationName: "Brecha.ai",
+    creator: "Brecha.ai",
+    keywords: [
+      "oportunidade regulatória", "reforma tributária", "CBS", "IBS", "planejamento tributário",
+      "compliance fiscal", "regtech", "incentivos fiscais", "economia tributária", "diário oficial",
+    ],
+    // SEO internacional: canônica + hreflang das 4 versões (+ x-default).
+    alternates: {
+      canonical: path,
+      languages: { ...Object.fromEntries(locales.map((l) => [l, `/${l}`])), "x-default": `/${defaultLocale}` },
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+    },
+    openGraph: {
+      title, description, type: "website", url: path, siteName: "Brecha.ai",
+      locale: localeMeta[typed].intl.replace("-", "_"),
+    },
+    twitter: { card: "summary_large_image", title, description },
     appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Brecha.ai" },
     formatDetection: { telephone: false },
-    openGraph: { title, description, type: "website" },
   };
 }
 
