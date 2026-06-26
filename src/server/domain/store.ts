@@ -16,7 +16,7 @@ import {
 } from "./seed";
 import type {
   Norm, Opportunity, ScenarioParams, ScenarioResult, Level, OpportunityType, ClientStructure,
-  Tenant, Plan, SectorId, Scenario, StepStatus,
+  Tenant, Plan, SectorId, Scenario, StepStatus, SavingsSummary,
 } from "./types";
 import { emit } from "@/server/events/bus";
 import { detectOpportunities } from "@/server/ai/detector";
@@ -383,6 +383,20 @@ export function advanceExecutionStep(planId: string, stepId: string) {
 }
 
 export function getSavings() {
+  return SAVINGS;
+}
+
+// Concilia um registro de economia (08 §7): a economia capturada só entra na BASE do
+// success fee depois de conciliada (bancária). Marca o registro, soma o ganho à feeBase
+// e recalcula a feeDue. Idempotente: registro inexistente ou já conciliado → null.
+export function reconcileSaving(id: string): SavingsSummary | null {
+  const rec = SAVINGS.records.find((r) => r.id === id);
+  if (!rec || rec.reconciled) return null;
+  rec.reconciled = true;
+  SAVINGS.feeBase += rec.realizedGain;
+  SAVINGS.feeDue = Math.round(SAVINGS.feeBase * SAVINGS.feeRate);
+  recordAiAction({ actor: "Conciliação", action: "Economia conciliada", detail: `${rec.playTitle} (${id})` });
+  emit("savings.reconciled", { id, gain: rec.realizedGain });
   return SAVINGS;
 }
 

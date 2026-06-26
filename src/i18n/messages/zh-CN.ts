@@ -453,6 +453,8 @@ const messages: Deep<Messages> = {
     realizedGain: "已实现收益",
     reconciled: "已对账",
     pendingReconcile: "对账中",
+    reconcileAction: "对账",
+    reconciledToast: "节省已对账",
   },
 
   settings: {

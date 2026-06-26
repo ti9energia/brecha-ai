@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
-import { Coins, TrendingUp, Receipt, BadgeCheck, Clock, Wallet } from "lucide-react";
-import { getSavings } from "@/server/domain/store";
+import { useMemo, useState } from "react";
+import { Coins, TrendingUp, Receipt, BadgeCheck, Clock, Wallet, Loader2 } from "lucide-react";
+import { getSavings, reconcileSaving } from "@/server/domain/store";
 import type { SavingsRecord } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
+import { useToast } from "@/ui/Toast";
 import { CountUp } from "@/ui/CountUp";
-import { Chip } from "@/ui/primitives";
-import { ViewScroll, ViewHeader, StatTiles, StatTile, Section, UpdatedAt } from "./shared";
+import { Chip, Button } from "@/ui/primitives";
+import { ViewScroll, ViewHeader, StatTiles, StatTile, Section, UpdatedAt, writeJson, writeErrorKey } from "./shared";
 import { cn } from "@/ui/cn";
 
 export function SavingsView() {
@@ -15,7 +16,25 @@ export function SavingsView() {
   const tTypes = useTranslations("oppTypes");
   const tc = useTranslations("common");
   const fmt = useFormatter();
+  const { toast } = useToast();
   const s = getSavings();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [, bump] = useState(0); // força re-render após o store mutar
+
+  // Conciliação server-confirmed (08 §7): só reflete no store do cliente DEPOIS que o
+  // servidor aceitar (manager+). Em 403/429/erro, nada muda e o usuário é avisado.
+  async function reconcile(r: SavingsRecord) {
+    setBusyId(r.id);
+    const res = await writeJson("/api/savings/reconcile", { id: r.id }, "POST");
+    setBusyId(null);
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
+    reconcileSaving(r.id);
+    bump((v) => v + 1);
+    toast({ title: t("reconciledToast"), description: r.playTitle, tone: "success" });
+  }
 
   return (
     <ViewScroll>
@@ -113,7 +132,10 @@ export function SavingsView() {
                       {r.reconciled ? (
                         <Chip tone="positive"><BadgeCheck size={12} />{t("reconciled")}</Chip>
                       ) : (
-                        <Chip tone="warning"><Clock size={12} />{t("pendingReconcile")}</Chip>
+                        <Button variant="secondary" size="sm" onClick={() => reconcile(r)} disabled={busyId === r.id} aria-label={t("reconcileAction")}>
+                          {busyId === r.id ? <Loader2 size={13} className="animate-spin" /> : <Clock size={13} />}
+                          {t("reconcileAction")}
+                        </Button>
                       )}
                     </td>
                   </tr>
