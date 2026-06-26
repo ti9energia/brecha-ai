@@ -9,7 +9,7 @@ import { aiChat, invokeTool } from "@/server/ai-core";
 import { agentRun } from "@/server/ai-core/agent";
 import type { CopilotReply } from "@/server/ai/brain";
 import { userById } from "@/server/auth/users";
-import { recordAiAction, listOpportunities, orgEntitlements } from "@/server/domain/store";
+import { recordAiAction, listOpportunities, orgEntitlements, isModuleEntitled } from "@/server/domain/store";
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 
@@ -99,6 +99,7 @@ export interface InboundMessage {
   from: string;
   text: string;
   locale?: string;
+  media?: { kind: "audio" | "image" | "document"; filename?: string };
 }
 export interface WhatsappReply {
   text: string;
@@ -140,6 +141,18 @@ export async function handleWhatsappMessage(input: InboundMessage): Promise<What
     WA_LOG.push({ at: new Date().toISOString(), from: numKey, userId: user.sub, text });
     return { ok: true, bound: true, user: who, reply: { text: replyText, quickReplies, sources } };
   };
+
+  // ── 0B §8(h): o canal WhatsApp pode ser desligado pelo PLANO do tenant ──
+  if (!isModuleEntitled("whatsapp", orgEntitlements(user.orgId))) {
+    return done(tw("channelNotInPlan"));
+  }
+
+  // ── 0B §4: mídia (áudio/imagem/PDF). Sem caption, a transcrição automática é um
+  // passo de produção (SWAP) — reconhece e orienta; com caption, segue como comando ──
+  if (input.media && !text.trim()) {
+    recordAiAction({ actor: `${user.name} (WhatsApp)`, action: "Mídia recebida", detail: input.media.kind });
+    return done(tw("mediaReceived", { kind: input.media.kind }));
+  }
 
   // ── 0B §8(c): há uma ação aguardando confirmação? SIM executa, NÃO cancela ──
   const pending = PENDING[numKey];
@@ -213,19 +226,27 @@ export async function verifyWhatsappSignature(body: string, header: string, secr
   return diff === 0;
 }
 
-// Extrai { from, text } tanto do shape simples do demo quanto do WhatsApp Cloud API.
+// Extrai { from, text, media } do shape simples do demo OU do WhatsApp Cloud API
+// (texto + mídia: áudio/imagem/documento — 0B §4). Caption vira o texto.
 export function extractInbound(body: unknown): InboundMessage | null {
   if (!body || typeof body !== "object") return null;
   const b = body as {
     from?: unknown; text?: unknown; locale?: unknown;
-    entry?: Array<{ changes?: Array<{ value?: { messages?: Array<{ from?: unknown; text?: { body?: unknown } }> } }> }>;
+    entry?: Array<{ changes?: Array<{ value?: { messages?: Array<Record<string, unknown>> } }> }>;
   };
   if (typeof b.from === "string" && typeof b.text === "string") {
     return { from: b.from, text: b.text, locale: typeof b.locale === "string" ? b.locale : undefined };
   }
-  const msg = b.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-  if (msg && typeof msg.from === "string" && typeof msg.text?.body === "string") {
-    return { from: "+" + msg.from.replace(/[^0-9]/g, ""), text: msg.text.body };
+  const msg = b.entry?.[0]?.changes?.[0]?.value?.messages?.[0] as
+    | { from?: unknown; type?: unknown; text?: { body?: unknown }; image?: { caption?: unknown }; document?: { caption?: unknown; filename?: unknown } }
+    | undefined;
+  if (!msg || typeof msg.from !== "string") return null;
+  const from = "+" + msg.from.replace(/[^0-9]/g, "");
+  if (typeof msg.text?.body === "string") return { from, text: msg.text.body };
+  if (msg.type === "audio") return { from, text: "", media: { kind: "audio" } };
+  if (msg.type === "image") return { from, text: typeof msg.image?.caption === "string" ? msg.image.caption : "", media: { kind: "image" } };
+  if (msg.type === "document") {
+    return { from, text: typeof msg.document?.caption === "string" ? msg.document.caption : "", media: { kind: "document", filename: typeof msg.document?.filename === "string" ? msg.document.filename : undefined } };
   }
   return null;
 }

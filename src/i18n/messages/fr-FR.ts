@@ -593,6 +593,8 @@ const messages: Deep<Messages> = {
     cancelled: "Ok, annulé — rien n'a été exécuté.",
     nothingPending: "Aucun coup en attente d'approbation pour le moment.",
     optinConfirmed: "✅ Numéro lié à votre compte Brecha.ai. Vous pouvez maintenant utiliser le copilote ici.",
+    channelNotInPlan: "Le canal WhatsApp n'est pas inclus dans le plan de votre tenant. Contactez votre admin.",
+    mediaReceived: "J'ai reçu votre {kind}. La transcription automatique est une étape de production — pour l'instant, envoyez la commande en texte.",
   },
 
   units: {

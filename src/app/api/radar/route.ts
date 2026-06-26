@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { getRepository } from "@/server/db/repository";
-import { ok } from "@/server/http";
+import { ok, paginate } from "@/server/http";
 
 const LEVELS = ["federal", "state", "municipal"];
 
@@ -14,5 +14,6 @@ export async function GET(req: NextRequest) {
     level: LEVELS.includes(levelP ?? "") ? levelP! : undefined,
     sector: sp.get("sector")?.slice(0, 40) ?? undefined,
   });
-  return ok(rows, { total: rows.length });
+  const { page, nextCursor } = paginate(rows, sp.get("cursor"), Number(sp.get("limit")) || undefined);
+  return ok(page, { total: rows.length, nextCursor });
 }

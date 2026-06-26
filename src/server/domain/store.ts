@@ -18,6 +18,7 @@ import type {
   Norm, Opportunity, ScenarioParams, ScenarioResult, Level, OpportunityType, ClientStructure,
   Tenant, Plan, SectorId,
 } from "./types";
+import { emit } from "@/server/events/bus";
 
 const DAY = 1000 * 60 * 60 * 24;
 
@@ -237,6 +238,7 @@ export function approveExecution(opportunityId: string, approver: string) {
     plan.approvedBy = approver;
     plan.status = "approved";
   }
+  emit("execution.approved", { opportunityId, title: opp?.title ?? opportunityId, approver });
   return getExecutionPlan(opportunityId);
 }
 
@@ -345,6 +347,7 @@ export function createTenant(input: { name?: string; plan?: string; locale?: str
   };
   TENANTS.unshift(t);
   recordAiAction({ actor: "platform_owner", action: "Tenant criado", detail: t.name });
+  emit("tenant.created", { id: t.id, name: t.name });
   return t;
 }
 
@@ -354,6 +357,7 @@ export function setTenantStatus(id: string, status: string): Tenant | null {
   if (!t || !TENANT_STATUSES.has(status as Tenant["status"])) return null;
   t.status = status as Tenant["status"];
   recordAiAction({ actor: "platform_owner", action: "Tenant atualizado", detail: `${t.name} → ${status}` });
+  emit("tenant.status_changed", { id: t.id, status: t.status });
   return t;
 }
 
@@ -367,6 +371,7 @@ export function updatePlan(id: string, patch: Record<string, unknown>): Plan | n
     p.entitlements = [...new Set(patch.entitlements.filter((e): e is string => typeof e === "string"))].slice(0, 50);
   }
   recordAiAction({ actor: "platform_owner", action: "Plano atualizado", detail: p.name });
+  emit("plan.updated", { id: p.id, name: p.name });
   return p;
 }
 

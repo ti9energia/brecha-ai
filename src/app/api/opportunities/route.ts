@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import type { OpportunityType } from "@/server/domain/types";
 import type { OppSort } from "@/server/domain/store";
 import { getRepository } from "@/server/db/repository";
-import { ok } from "@/server/http";
+import { ok, paginate } from "@/server/http";
 
 const SORTS: OppSort[] = ["gain", "deadline", "confidence"];
 const TYPES: OpportunityType[] = ["regime", "incentive", "jurisdiction", "classification", "credit"];
@@ -20,5 +20,6 @@ export async function GET(req: NextRequest) {
     sort: SORTS.includes(sortP as OppSort) ? (sortP as OppSort) : undefined,
     status: sp.get("status") === "all" ? "all" : undefined,
   });
-  return ok(rows, { total: rows.length, summary: await repo.opportunitiesSummary() });
+  const { page, nextCursor } = paginate(rows, sp.get("cursor"), Number(sp.get("limit")) || undefined);
+  return ok(page, { total: rows.length, nextCursor, summary: await repo.opportunitiesSummary() });
 }
