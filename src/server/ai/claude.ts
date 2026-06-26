@@ -89,3 +89,25 @@ export async function askClaude(
     return null;
   }
 }
+
+// Chamada de turno único que devolve o TEXTO BRUTO do modelo — para saídas
+// ESTRUTURADAS (ex.: o detector pedindo a jogada da brecha em JSON). Sem system
+// prompt do copiloto: o chamador monta o prompt. Null sem chave / erro / vazio.
+export async function askClaudeText(prompt: string, maxTokens = 600): Promise<string | null> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+  const model = process.env.AI_CORE_MODEL || "claude-opus-4-8";
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { content?: { type: string; text?: string }[] };
+    const text = (json.content ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join("\n").trim();
+    return text || null;
+  } catch {
+    return null;
+  }
+}
