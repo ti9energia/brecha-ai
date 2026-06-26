@@ -46,7 +46,7 @@ Sem a chave, o Copiloto continua funcionando (cérebro local). Com a chave, o Cl
 | Área | Entregue |
 |---|---|
 | **Landing page** | Herói "surreal" com radar/aurora animados, instrumento de radar com blips das oportunidades reais, ticker de "dinheiro na mesa" ao vivo, como-funciona, setores, success fee, planos (do CMS), FAQ, CTA. |
-| **Login** | Split-screen premium (painel de marca + formulário): e-mail/senha, Google, link mágico. Demo — qualquer credencial entra. |
+| **Login** | Split-screen premium (painel de marca + formulário): e-mail/senha, Google, link mágico. Demo: `marina.alves@acme.com.br` · senha `demo1234` (4 usuários seedados com papéis distintos; comparação de hash em tempo constante). |
 | **Workspace (estilo Chrome)** | **Abas** abríveis/fecháveis por painel + **split view** (vertical/horizontal). Nav rail, command palette (`⌘/Ctrl+K`), status bar ao vivo, atalhos (`⌘K`, `⌘J`, `⌘\`). |
 | **8 telas do produto** | Oportunidades · Detalhe (norma-gatilho + simulação antes/depois + jogada + Abertura) · Radar normativo · Minha estrutura · Simulador · Execução (aprovação + trilha) · Economia capturada · Configurações. |
 | **Inteligência** | Copiloto **Vega** em toda tela (`⌘J`) + Agente autônomo (fila de recomendações) + feedback 👍/👎 que alimenta o dataset de treino do AI Core. |
