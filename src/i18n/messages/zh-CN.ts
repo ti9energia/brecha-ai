@@ -72,6 +72,7 @@ const messages: Deep<Messages> = {
     soon: "即将上线",
     open: "打开",
     close: "关闭",
+    clearFilter: "清除筛选",
     learnMore: "了解更多",
     getStarted: "开始使用",
     days: "天",
@@ -106,6 +107,8 @@ const messages: Deep<Messages> = {
     emptyOpportunitiesHint: "智能体正在扫描各类官方公报。一旦机会窗口开启，我们会第一时间通知你。",
     errorTitle: "雷达出现故障",
     errorHint: "暂时无法加载。审计日志已记录此事件。",
+    openRadarCta: "打开法规雷达",
+    seeAllLevels: "查看所有层级",
   },
 
   status: {
@@ -425,6 +428,7 @@ const messages: Deep<Messages> = {
     emptyHint: "批准一个机会，即可在此搭建执行计划。",
     advanceStep: "推进步骤状态",
     stepHint: "点击步骤以推进：待办 → 进行中 → 完成。",
+    seeOpportunities: "查看机会",
   },
 
   savings: {
@@ -495,6 +499,25 @@ const messages: Deep<Messages> = {
     youAsked: "你",
     actionsTaken: "操作",
     errorReply: "我现在无法回答，请稍后再试。",
+    greetingRich: "{name}，你好。我是 Vega — 我看到你的结构有 **{open}** 个开启的窗口（{gain} 在博弈中）。我可以解释收益最高的那个、模拟方案，或打开雷达。我们从哪开始？",
+  },
+
+  onboarding: {
+    title: "欢迎，{name}",
+    subtitle: "你的法规终端 — 从开启窗口到捕获节省，四步搞定。",
+    step1Title: "查看窗口",
+    step1Body: "为你的结构开启的机会，按潜在收益排序。",
+    step2Title: "模拟方案",
+    step2Body: "打开一个机会，在确定性引擎中预测税负、风险与收益。",
+    step3Title: "审批并执行",
+    step3Body: "税务顾问审批、带截止日期的清单，以及每一步的审计留痕。",
+    step4Title: "捕获节省",
+    step4Body: "跟踪已实现收益与成功费基数。",
+    tipCommand: "用 {kbd} 打开任意界面。",
+    tipCopilot: "随时用 {kbd} 询问 Vega。",
+    start: "立即开始",
+    skip: "跳过",
+    reopen: "欢迎引导",
   },
 
   agent: {

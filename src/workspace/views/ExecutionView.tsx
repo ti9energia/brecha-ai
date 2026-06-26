@@ -8,6 +8,7 @@ import {
 import { listExecutionPlans, approveExecution, listOpportunities, advanceExecutionStep } from "@/server/domain/store";
 import type { ExecutionStep, AuditEntry, StepStatus } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
+import { useWorkspace } from "@/workspace/store";
 import { Button, Chip, Meter, EmptyState } from "@/ui/primitives";
 import { ViewScroll, ViewHeader, UpdatedAt } from "./shared";
 import { cn } from "@/ui/cn";
@@ -31,6 +32,7 @@ export function ExecutionView({ params }: { params?: Record<string, string> }) {
   const tc = useTranslations("common");
   const ts = useTranslations("oppStatus");
   const fmt = useFormatter();
+  const ws = useWorkspace();
   const focus = params?.focus;
 
   // bump para forçar releitura do store em memória após mutação
@@ -68,7 +70,12 @@ export function ExecutionView({ params }: { params?: Record<string, string> }) {
 
       {isEmpty ? (
         <div className="panel hairline">
-          <EmptyState icon={<ListChecks size={22} />} title={t("emptyTitle")} hint={t("emptyHint")} />
+          <EmptyState
+            icon={<ListChecks size={22} />}
+            title={t("emptyTitle")}
+            hint={t("emptyHint")}
+            action={<Button variant="primary" onClick={() => ws.open("opportunities")}>{t("seeOpportunities")}</Button>}
+          />
         </div>
       ) : (
         <div className="space-y-5">

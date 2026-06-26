@@ -72,6 +72,7 @@ const messages = {
     soon: "Em breve",
     open: "Abrir",
     close: "Fechar",
+    clearFilter: "Limpar filtro",
     learnMore: "Saiba mais",
     getStarted: "Começar",
     days: "dias",
@@ -106,6 +107,8 @@ const messages = {
     emptyOpportunitiesHint: "O agente está varrendo os diários oficiais. Você é avisado no instante em que uma brecha abrir.",
     errorTitle: "Algo travou no radar",
     errorHint: "Não foi possível carregar agora. A trilha de auditoria registrou o evento.",
+    openRadarCta: "Abrir radar normativo",
+    seeAllLevels: "Ver todas as esferas",
   },
 
   status: {
@@ -425,6 +428,7 @@ const messages = {
     emptyHint: "Aprove uma oportunidade para montar o plano de execução aqui.",
     advanceStep: "Avançar status do passo",
     stepHint: "Toque num passo para avançar: a fazer → em andamento → concluído.",
+    seeOpportunities: "Ver oportunidades",
   },
 
   savings: {
@@ -495,6 +499,25 @@ const messages = {
     youAsked: "Você",
     actionsTaken: "Ações",
     errorReply: "Não consegui responder agora. Tente novamente em instantes.",
+    greetingRich: "Olá, {name}. Sou a Vega — vejo **{open}** janelas abertas ({gain} em jogo) para a sua estrutura. Posso explicar a de maior ganho, simular a jogada ou abrir o radar. Por onde começamos?",
+  },
+
+  onboarding: {
+    title: "Bem-vindo, {name}",
+    subtitle: "Seu terminal regulatório — da janela aberta à economia capturada, em 4 passos.",
+    step1Title: "Veja as janelas",
+    step1Body: "Oportunidades abertas para a sua estrutura, ranqueadas por ganho potencial.",
+    step2Title: "Simule a jogada",
+    step2Body: "Abra uma oportunidade e projete carga, risco e ganho no motor fiscal determinístico.",
+    step3Title: "Aprove e execute",
+    step3Body: "Aprovação do tributarista, checklist com prazos e trilha auditável a cada passo.",
+    step4Title: "Capture a economia",
+    step4Body: "Acompanhe o ganho realizado e a base do success fee.",
+    tipCommand: "Abra qualquer tela com {kbd}.",
+    tipCopilot: "Pergunte à Vega quando quiser com {kbd}.",
+    start: "Começar agora",
+    skip: "Pular",
+    reopen: "Guia de boas-vindas",
   },
 
   agent: {

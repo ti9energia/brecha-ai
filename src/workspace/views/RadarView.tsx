@@ -31,6 +31,7 @@ function bucketOf(daysSince: number): BucketId {
 export function RadarView() {
   const t = useTranslations("radar");
   const tc = useTranslations("common");
+  const tStates = useTranslations("states");
   const fmt = useFormatter();
   const ws = useWorkspace();
 
@@ -95,7 +96,17 @@ export function RadarView() {
 
       {items.length === 0 ? (
         <div className="panel hairline">
-          <EmptyState icon={<Radar size={22} />} title={t("feedEmpty")} />
+          <EmptyState
+            icon={<Radar size={22} />}
+            title={t("feedEmpty")}
+            action={
+              level !== "all" ? (
+                <button onClick={() => setLevel("all")} className={buttonClass("secondary", "md")}>
+                  {tStates("seeAllLevels")}
+                </button>
+              ) : undefined
+            }
+          />
         </div>
       ) : (
         <div className="space-y-9">

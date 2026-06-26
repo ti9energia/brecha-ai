@@ -14,6 +14,7 @@ import { PaneView } from "./Pane";
 import { CommandPalette } from "./CommandPalette";
 import { ToastProvider } from "@/ui/Toast";
 import { ShortcutsHelp } from "./ShortcutsHelp";
+import { Onboarding } from "./Onboarding";
 import { cn } from "@/ui/cn";
 
 export function Workspace({ user }: { user: WorkspaceUser }) {
@@ -39,6 +40,8 @@ function Shell() {
   const copilot = useCopilot();
   const [palette, setPalette] = useState<{ open: boolean; pane?: string }>({ open: false });
   const [help, setHelp] = useState(false);
+  // Contador que reabre o onboarding sob demanda (botão "guia de boas-vindas").
+  const [welcomeSignal, setWelcomeSignal] = useState(0);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -64,7 +67,7 @@ function Shell() {
     <div className="h-dvh flex bg-canvas text-ink overflow-hidden">
       <NavRail />
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar onCommand={() => setPalette({ open: true })} />
+        <TopBar onCommand={() => setPalette({ open: true })} onHelp={() => setHelp(true)} />
         <div className={cn("flex-1 min-h-0 flex", stacked ? "flex-col" : "flex-row")}>
           {panes.map((p, i) => (
             <Fragment key={p.id}>
@@ -81,7 +84,8 @@ function Shell() {
         <StatusBar />
       </div>
       <CommandPalette open={palette.open} onClose={() => setPalette({ open: false })} targetPaneId={palette.pane} />
-      <ShortcutsHelp open={help} onClose={() => setHelp(false)} />
+      <ShortcutsHelp open={help} onClose={() => setHelp(false)} onWelcome={() => { setHelp(false); setWelcomeSignal((n) => n + 1); }} />
+      <Onboarding openSignal={welcomeSignal} />
     </div>
   );
 }

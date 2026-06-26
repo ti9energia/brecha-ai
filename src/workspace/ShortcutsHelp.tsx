@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Keyboard, X } from "lucide-react";
+import { Keyboard, X, Sparkles } from "lucide-react";
 import { useTranslations } from "@/i18n/provider";
 import { useFocusTrap } from "@/ui/useFocusTrap";
 
@@ -13,8 +13,9 @@ function Kbd({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function ShortcutsHelp({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ShortcutsHelp({ open, onClose, onWelcome }: { open: boolean; onClose: () => void; onWelcome: () => void }) {
   const t = useTranslations("nav");
+  const tOnb = useTranslations("onboarding");
   const [mod, setMod] = useState("Ctrl");
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, open);
@@ -81,6 +82,13 @@ export function ShortcutsHelp({ open, onClose }: { open: boolean; onClose: () =>
               <span className="flex items-center gap-1">{r.keys}</span>
             </div>
           ))}
+          <div className="my-3 h-px bg-[color:var(--border)]" />
+          <button
+            onClick={onWelcome}
+            className="w-full flex items-center justify-center gap-2 h-9 rounded-[var(--radius-sm)] text-sm text-ink-3 hover:text-brand hover:bg-surface-2 transition-colors"
+          >
+            <Sparkles size={14} /> {tOnb("reopen")}
+          </button>
         </div>
       </div>
     </div>
