@@ -7,7 +7,7 @@ import { useTranslations } from "@/i18n/provider";
 import { locales, localeMeta } from "@/i18n/config";
 import { Button, Chip } from "@/ui/primitives";
 import { useToast } from "@/ui/Toast";
-import { ViewScroll, ViewHeader, Section } from "./shared";
+import { ViewScroll, ViewHeader, Section, writeJson, writeErrorKey } from "./shared";
 import { cn } from "@/ui/cn";
 
 // Fusos oferecidos (rótulo amigável + valor IANA implícito no próprio texto).
@@ -48,6 +48,7 @@ export function SettingsView() {
   const [sectorSel, setSectorSel] = useState<Set<string>>(() => new Set(settings.sectors));
   const [ufSel, setUfSel] = useState<Set<string>>(() => new Set(settings.jurisdictions));
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const savedTimer = useRef<number | undefined>(undefined);
 
   function toggle(set: Set<string>, value: string, apply: (next: Set<string>) => void) {
@@ -57,17 +58,21 @@ export function SettingsView() {
     apply(next);
   }
 
-  function handleSave() {
+  async function handleSave() {
     const payload = {
       orgName, defaultLocale, timezone, aiPersona, aiTone, whatsapp,
       sectors: [...sectorSel], jurisdictions: [...ufSel],
     };
+    setSaving(true);
+    // Server-confirmed: só anuncia "Salvo" e reflete no store após o servidor aceitar.
+    // 403 (papel < manager) / 429 → toast de erro, sem confirmação falsa.
+    const res = await writeJson("/api/settings", payload, "PUT");
+    setSaving(false);
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
     updateSettings(payload); // store isomórfico — reflete na hora
-    fetch("/api/settings", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    }).catch(() => {});
     setSaved(true);
     if (savedTimer.current) clearTimeout(savedTimer.current);
     savedTimer.current = window.setTimeout(() => setSaved(false), 2000);
@@ -103,7 +108,7 @@ export function SettingsView() {
               </span>
               {t("saved")}
             </span>
-            <Button onClick={handleSave}>
+            <Button onClick={handleSave} disabled={saving}>
               <Save size={16} />
               {tc("save")}
             </Button>

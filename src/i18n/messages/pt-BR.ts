@@ -84,6 +84,10 @@ const messages = {
     realized: "Realizado",
     perYear: "/ano",
     copyright: "Todos os direitos reservados.",
+    saveErrorTitle: "Não foi possível salvar",
+    saveErrorBody: "O servidor recusou a alteração. Tente novamente.",
+    saveForbidden: "Você não tem permissão para esta ação.",
+    rateLimited: "Muitas ações em sequência. Aguarde um instante.",
   },
 
   errorPages: {
@@ -163,6 +167,9 @@ const messages = {
     trustLine: "Conectado às fontes oficiais — federal, estadual e municipal",
     tickerLabel: "Dinheiro deixado na mesa por brasileiros este ano",
     tickerNote: "incentivos, regimes e enquadramentos que expiraram sem ninguém capturar",
+
+    liveOpenA: "Janelas abertas agora —",
+    liveOpenB: "em jogo.",
 
     statWindows: "janelas regulatórias mapeadas",
     statSpeed: "da norma ao alerta",
@@ -416,6 +423,8 @@ const messages = {
     auditTrail: "Trilha de auditoria",
     emptyTitle: "Nenhuma execução em curso",
     emptyHint: "Aprove uma oportunidade para montar o plano de execução aqui.",
+    advanceStep: "Avançar status do passo",
+    stepHint: "Toque num passo para avançar: a fazer → em andamento → concluído.",
   },
 
   savings: {
@@ -485,6 +494,7 @@ const messages = {
     feedbackThanks: "Obrigado pelo retorno",
     youAsked: "Você",
     actionsTaken: "Ações",
+    errorReply: "Não consegui responder agora. Tente novamente em instantes.",
   },
 
   agent: {
@@ -499,6 +509,13 @@ const messages = {
     impact: "Impacto estimado",
     confidence: "Confiança",
     why: "Justificativa",
+    run: "Rodar agente",
+    running: "Analisando…",
+    ranTitle: "Agente executado",
+    ranBody: "{n} recomendação(ões) na fila",
+    ranEmpty: "Nenhuma ação nova — tudo sob controle.",
+    runError: "Não foi possível rodar o agente agora.",
+    dismissed: "Recomendação dispensada",
   },
 
   owner: {

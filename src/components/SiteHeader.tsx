@@ -22,10 +22,12 @@ export function SiteHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Âncoras absolutas por locale: o header também é exibido fora da home (ex.: página
+  // legal), onde "#how" não existe — "/{locale}#how" navega para a home e rola.
   const links = [
-    { href: "#how", label: t("how") },
-    { href: "#sectors", label: t("sectors") },
-    { href: "#pricing", label: t("pricing") },
+    { href: `/${locale}#how`, label: t("how") },
+    { href: `/${locale}#sectors`, label: t("sectors") },
+    { href: `/${locale}#pricing`, label: t("pricing") },
   ];
 
   return (

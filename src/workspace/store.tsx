@@ -175,16 +175,32 @@ export function reducer(state: WorkspaceState, action: Action): WorkspaceState {
 
     case "MOVE_TAB": {
       if (action.fromPaneId === action.toPaneId) return state;
+      const from = state.panes.find((p) => p.id === action.fromPaneId);
+      const to = state.panes.find((p) => p.id === action.toPaneId);
+      if (!from || !to || !from.tabIds.includes(action.tabId)) return state;
+      const remaining = from.tabIds.filter((id) => id !== action.tabId);
+      const toTabIds = to.tabIds.includes(action.tabId) ? to.tabIds : [...to.tabIds, action.tabId];
+
+      // A aba movida vira a ativa do destino; o foco segue para lá.
+      // Se a origem ficou sem abas, colapsa de volta para painel único (igual ao CLOSE_TAB).
+      if (remaining.length === 0) {
+        return {
+          ...state,
+          panes: [{ id: to.id, tabIds: toTabIds, activeTabId: action.tabId }],
+          layout: "single",
+          focusedPaneId: to.id,
+        };
+      }
+
       return {
         ...state,
+        focusedPaneId: to.id,
         panes: state.panes.map((p) => {
-          if (p.id === action.fromPaneId) {
-            const remaining = p.tabIds.filter((id) => id !== action.tabId);
-            return { ...p, tabIds: remaining, activeTabId: remaining[0] ?? p.activeTabId };
+          if (p.id === from.id) {
+            const activeTabId = p.activeTabId === action.tabId ? remaining[remaining.length - 1] : p.activeTabId;
+            return { ...p, tabIds: remaining, activeTabId };
           }
-          if (p.id === action.toPaneId) {
-            return { ...p, tabIds: [...p.tabIds, action.tabId], activeTabId: action.tabId };
-          }
+          if (p.id === to.id) return { ...p, tabIds: toTabIds, activeTabId: action.tabId };
           return p;
         }),
       };

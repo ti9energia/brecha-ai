@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, Timer, Sparkles, AlertTriangle, Wallet, ArrowRight, X, Radar } from "lucide-react";
+import { Bot, Timer, Sparkles, AlertTriangle, Wallet, ArrowRight, X, Radar, Play, Loader2 } from "lucide-react";
 import { listAgentRecs } from "@/server/domain/store";
+import type { AgentRecommendation } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
-import { Meter, buttonClass, Chip } from "@/ui/primitives";
-import { ViewScroll, ViewHeader } from "./shared";
+import { useToast } from "@/ui/Toast";
+import { Meter, buttonClass } from "@/ui/primitives";
+import { ViewScroll, ViewHeader, writeJson } from "./shared";
 
 const KIND_ICON: Record<string, React.ReactNode> = {
   window_closing: <Timer size={16} />,
@@ -28,9 +30,37 @@ export function AgentView() {
   const ts = useTranslations("status");
   const fmt = useFormatter();
   const ws = useWorkspace();
+  const { toast } = useToast();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  // Antes de rodar, a fila vem do seed (listAgentRecs). Após rodar, mostra o que o
+  // Agente Autônomo de fato produziu sobre os dados ao vivo (/api/ai/agent/run).
+  const [liveRecs, setLiveRecs] = useState<AgentRecommendation[] | null>(null);
+  const [running, setRunning] = useState(false);
 
-  const recs = listAgentRecs().filter((r) => !dismissed.has(r.id));
+  const recs = (liveRecs ?? listAgentRecs()).filter((r) => !dismissed.has(r.id));
+
+  async function runAgent() {
+    setRunning(true);
+    const res = await writeJson("/api/ai/agent/run", {}, "POST");
+    setRunning(false);
+    if (!res.ok || !Array.isArray(res.data)) {
+      toast({ title: t("runError"), tone: "error" });
+      return;
+    }
+    const next = res.data as AgentRecommendation[];
+    setLiveRecs(next);
+    setDismissed(new Set());
+    toast({
+      title: t("ranTitle"),
+      description: next.length ? t("ranBody", { n: String(next.length) }) : t("ranEmpty"),
+      tone: "success",
+    });
+  }
+
+  function dismiss(id: string) {
+    setDismissed((s) => new Set(s).add(id));
+    toast({ title: t("dismissed"), tone: "info" });
+  }
 
   return (
     <ViewScroll>
@@ -39,10 +69,16 @@ export function AgentView() {
         title={t("title")}
         subtitle={t("monitoring", { n: "1.247" })}
         actions={
-          <span className="inline-flex items-center gap-2 chip" style={{ borderColor: "var(--border-gold)" }}>
-            <span className="size-1.5 rounded-full bg-positive animate-[pulse-ring_2.4s_ease-out_infinite]" />
-            <span className="text-positive">{ts("online")}</span>
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-2 chip" style={{ borderColor: "var(--border-gold)" }}>
+              <span className="size-1.5 rounded-full bg-positive animate-[pulse-ring_2.4s_ease-out_infinite]" />
+              <span className="text-positive">{ts("online")}</span>
+            </span>
+            <button onClick={runAgent} disabled={running} className={buttonClass("primary", "sm", "group")}>
+              {running ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+              {running ? t("running") : t("run")}
+            </button>
+          </div>
         }
       />
 
@@ -64,7 +100,7 @@ export function AgentView() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-display font-semibold text-ink text-balance">{rec.title}</h3>
-                    <button onClick={() => setDismissed((s) => new Set(s).add(rec.id))} className="text-ink-4 hover:text-ink transition-colors shrink-0" aria-label={t("dismiss")}>
+                    <button onClick={() => dismiss(rec.id)} className="text-ink-4 hover:text-ink transition-colors shrink-0" aria-label={t("dismiss")}>
                       <X size={15} />
                     </button>
                   </div>

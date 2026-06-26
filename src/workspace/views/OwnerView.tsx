@@ -19,7 +19,7 @@ import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
 import { useSession } from "@/workspace/session";
 import { useFlags } from "@/workspace/flags";
-import { ViewScroll, ViewHeader, StatTiles, StatTile } from "./shared";
+import { ViewScroll, ViewHeader, StatTiles, StatTile, writeJson, writeErrorKey } from "./shared";
 import { SectorIcon } from "@/ui/SectorIcon";
 import { Button, Chip, Meter } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
@@ -248,6 +248,7 @@ const TENANT_STATUS: Record<Tenant["status"], { tone: "positive" | "info" | "war
 };
 function Tenants({ rows, t, fmt, refresh }: { rows: Tenant[]; t: Tr; fmt: Fmt; refresh: () => void }) {
   const { toast } = useToast();
+  const tc = useTranslations("common");
   const router = useRouter();
 
   // Impersonação real (0C §2.2): re-emite o cookie de sessão como o tenant e recarrega
@@ -267,18 +268,27 @@ function Tenants({ rows, t, fmt, refresh }: { rows: Tenant[]; t: Tr; fmt: Fmt; r
   }
 
   // Padrão do demo: muta o store client-side (UI atualiza no refresh) e espelha no
-  // endpoint admin (servidor, com RBAC). 0C §2.2.
-  function setStatus(tn: Tenant) {
+  // endpoint admin (servidor, com RBAC). 0C §2.2. Se o servidor recusar (429/erro),
+  // avisa em vez de fingir sucesso silenciosamente.
+  async function setStatus(tn: Tenant) {
     const status = tn.status === "suspended" ? "active" : "suspended";
     setTenantStatus(tn.id, status);
-    fetch(`/api/owner/tenants/${tn.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }).catch(() => {});
     refresh();
+    const res = await writeJson(`/api/owner/tenants/${tn.id}`, { status }, "PATCH");
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
     toast({ title: tn.name, description: t(`tenantStatus.${status}`), tone: status === "suspended" ? "warning" : "success" });
   }
-  function create() {
+  async function create() {
     const created = createTenant({ name: "Nova Holding S.A.", plan: "plan-structure", sector: "industry" });
-    fetch("/api/owner/tenants", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: created.name, plan: created.plan, sector: created.sector }) }).catch(() => {});
     refresh();
+    const res = await writeJson("/api/owner/tenants", { name: created.name, plan: created.plan, sector: created.sector }, "POST");
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
     toast({ title: t("tenantCreated"), description: created.name, tone: "success" });
   }
 
@@ -354,11 +364,16 @@ const ALL_ENTITLEMENTS = ["radar", "structure", "opportunities", "simulator", "e
 
 function Plans({ rows, t, fmt, refresh }: { rows: Plan[]; t: Tr; fmt: Fmt; refresh: () => void }) {
   const { toast } = useToast();
-  function toggleEnt(p: Plan, mod: string) {
+  const tc = useTranslations("common");
+  async function toggleEnt(p: Plan, mod: string) {
     const next = p.entitlements.includes(mod) ? p.entitlements.filter((e) => e !== mod) : [...p.entitlements, mod];
     updatePlan(p.id, { entitlements: next });
-    fetch(`/api/owner/plans/${p.id}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ entitlements: next }) }).catch(() => {});
     refresh();
+    const res = await writeJson(`/api/owner/plans/${p.id}`, { entitlements: next }, "PUT");
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
     toast({ title: t("planSaved"), description: p.name, tone: "success" });
   }
   return (
@@ -448,9 +463,13 @@ function Config({ t, tenants }: { t: Tr; tenants: Tenant[] }) {
     setTid(id);
     setCfg({ ...getTenantConfig(id) });
   }
-  function save() {
+  async function save() {
     updateTenantConfig(tid, cfg);
-    fetch(`/api/owner/tenants/${tid}/config`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(cfg) }).catch(() => {});
+    const res = await writeJson(`/api/owner/tenants/${tid}/config`, cfg, "PUT");
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
     toast({ title: t("configSaved"), description: tenants.find((x) => x.id === tid)?.name ?? tid, tone: "success" });
   }
 
@@ -512,21 +531,30 @@ function Config({ t, tenants }: { t: Tr; tenants: Tenant[] }) {
 // ── BILLING (0C §2.7) ────────────────────────────────────────────────────────
 function Billing({ t, fmt, refresh, tenants }: { t: Tr; fmt: Fmt; refresh: () => void; tenants: Tenant[] }) {
   const { toast } = useToast();
+  const tc = useTranslations("common");
   const invoices = listInvoices();
   const sum = billingSummary();
 
-  function pay(inv: Invoice) {
+  async function pay(inv: Invoice) {
     markInvoicePaid(inv.id);
-    fetch(`/api/owner/billing/${inv.id}/pay`, { method: "POST" }).catch(() => {});
     refresh();
+    const res = await writeJson(`/api/owner/billing/${inv.id}/pay`, {}, "POST");
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
     toast({ title: t("invoicePaid"), description: `${inv.tenantName} · ${inv.period}`, tone: "success" });
   }
-  function generate() {
+  async function generate() {
     const tn = tenants.find((x) => x.status === "active") ?? tenants[0];
     if (!tn) return;
     const inv = generateInvoice(tn.id);
-    fetch("/api/owner/billing", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tenantId: tn.id }) }).catch(() => {});
     refresh();
+    const res = await writeJson("/api/owner/billing", { tenantId: tn.id }, "POST");
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
     if (inv) toast({ title: t("invoiceGenerated"), description: `${inv.tenantName} · ${inv.period}`, tone: "success" });
   }
   const tone = (s: Invoice["status"]) => (s === "paid" ? "positive" : s === "past_due" ? "danger" : "warning");
@@ -576,6 +604,7 @@ function Billing({ t, fmt, refresh, tenants }: { t: Tr; fmt: Fmt; refresh: () =>
 // ── LANDING CMS (0C §2.5) ────────────────────────────────────────────────────
 function LandingCms({ t }: { t: Tr }) {
   const { toast } = useToast();
+  const tc = useTranslations("common");
   const [loc, setLoc] = useState<Locale>(locales[0]);
   const [vals, setVals] = useState<Record<string, string>>(() => ({ ...getLandingContent(locales[0]) }));
 
@@ -583,13 +612,13 @@ function LandingCms({ t }: { t: Tr }) {
     setLoc(l);
     setVals({ ...getLandingContent(l) });
   }
-  function save() {
+  async function save() {
     updateLandingContent(loc, vals); // store client-side (a landing aplica o override)
-    fetch("/api/owner/landing", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ locale: loc, ...vals }),
-    }).catch(() => {});
+    const res = await writeJson("/api/owner/landing", { locale: loc, ...vals }, "PUT");
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
     toast({ title: t("landingSaved"), description: localeMeta[loc].native, tone: "success" });
   }
 

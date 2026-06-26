@@ -1,10 +1,14 @@
 // Service worker — shell offline mínimo (PWA). network-first p/ navegação,
 // cache-first p/ estáticos. Versão simples e robusta.
-const CACHE = "brecha-v1";
+const CACHE = "brecha-v2";
+// Shell concreto: "/" é um redirect (middleware → /{locale}) e Cache.add() rejeita
+// em respostas redirecionadas, então o shell nunca era cacheado. Pré-cacheamos a
+// rota real do locale padrão.
+const SHELL = "/pt-BR";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then((c) => c.add("/").catch(() => {})));
+  event.waitUntil(caches.open(CACHE).then((c) => c.add(SHELL).catch(() => {})));
 });
 
 self.addEventListener("activate", (event) => {
@@ -28,7 +32,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE).then((c) => c.put(req, copy));
           return res;
         })
-        .catch(() => caches.match(req).then((m) => m || caches.match("/"))),
+        .catch(() => caches.match(req).then((m) => m || caches.match(SHELL))),
     );
     return;
   }

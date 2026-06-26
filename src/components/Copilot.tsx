@@ -13,7 +13,7 @@ import { cn } from "@/ui/cn";
 
 interface Action { label: string; module: string; params?: Record<string, string> }
 interface Source { ref: string; url?: string }
-interface Msg { role: "user" | "assistant"; content: string; sources?: Source[]; actions?: Action[]; model?: string }
+interface Msg { role: "user" | "assistant"; content: string; sources?: Source[]; actions?: Action[]; model?: string; error?: boolean }
 
 interface CopilotApi {
   open: boolean;
@@ -31,6 +31,7 @@ export function useCopilot() {
 
 export function CopilotProvider({ children }: { children: ReactNode }) {
   const locale = useLocale();
+  const t = useTranslations("copilot");
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [sending, setSending] = useState(false);
@@ -48,15 +49,21 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ locale, messages: next.map((m) => ({ role: m.role, content: m.content })) }),
       });
-      const json = await res.json();
-      const r = json.data;
+      const json = await res.json().catch(() => null);
+      const r = json?.data;
+      // Erro (429/400/401/sem corpo) → mensagem clara e localizada, marcada como erro
+      // (sem botões de feedback). Antes virava "—" indistinguível de resposta vazia.
+      if (!res.ok || !r || typeof r.text !== "string") {
+        setMessages((m) => [...m, { role: "assistant", content: t("errorReply"), error: true }]);
+        return;
+      }
       setMessages((m) => [...m, { role: "assistant", content: r.text, sources: r.sources, actions: r.actions, model: r.model }]);
     } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "—" }]);
+      setMessages((m) => [...m, { role: "assistant", content: t("errorReply"), error: true }]);
     } finally {
       setSending(false);
     }
-  }, [messages, sending, locale]);
+  }, [messages, sending, locale, t]);
 
   // `askTrigger` garante que o prompt pendente dispare mesmo se o painel JÁ estiver
   // aberto (antes, o efeito dependia só de [open, send] e o prompt era engolido).
@@ -232,7 +239,7 @@ function CopilotPanel({
                       ))}
                     </div>
                   )}
-                  {m.content !== "—" && (
+                  {!m.error && (
                     <div className="flex items-center gap-1 pt-0.5">
                       {voted[i] ? (
                         <span className="mono text-[0.62rem] text-ink-4">{t("feedbackThanks")}</span>

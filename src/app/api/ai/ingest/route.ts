@@ -1,17 +1,18 @@
-import { cookies } from "next/headers";
 import { ingestDocument } from "@/server/ai-core";
 import { ok, fail } from "@/server/http";
-import { verifySession, SESSION_COOKIE } from "@/server/auth/session";
+import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
 
 // POST /api/ai/ingest (0A §2.9) — ingere um documento no índice de conhecimento
-// (RAG) do tenant. Requer sessão; isolado por orgId. O conteúdo passa a ser
-// recuperável pelo copiloto/agente/WhatsApp daquele tenant.
+// (RAG) do tenant. Escrita no conhecimento = manager+ (espelha connectors/sync):
+// o RAG alimenta copiloto/agente/WhatsApp de TODO o tenant, então um viewer/member
+// não pode injetar conteúdo (evita RAG poisoning). Isolado por orgId.
 export async function POST(req: Request) {
   const limited = rateLimit(req, "ai-ingest", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
-  const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
-  if (!session) return fail("UNAUTHENTICATED", "auth.unauthenticated", 401);
+  const gate = await requireRole("manager", "org_admin", "platform_owner");
+  if (gate.error) return gate.error;
+  const session = gate.session;
 
   let body: { title?: unknown; text?: unknown; ref?: unknown };
   try {

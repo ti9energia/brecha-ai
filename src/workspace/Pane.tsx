@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import { Plus, X, SplitSquareHorizontal, SplitSquareVertical, Columns2, Maximize2 } from "lucide-react";
 import { useWorkspace, type Pane } from "./store";
 import { MODULE_MAP, tabTitle } from "./registry";
@@ -55,7 +55,13 @@ function TabStrip({ pane, split, onNewTab }: { pane: Pane; split: boolean; onNew
 
   return (
     <div className="flex items-stretch h-11 border-b border-line bg-surface shrink-0 select-none">
-      <div className="flex-1 flex items-stretch px-1.5 overflow-x-auto no-scrollbar">
+      <div
+        className="flex-1 flex items-stretch px-1.5 overflow-x-auto no-scrollbar"
+        // Soltar numa área vazia da faixa (fora de uma aba) também aceita abas de
+        // outro painel — move para o fim deste.
+        onDragOver={(e) => { if (e.dataTransfer.types.includes("text/x-brecha-tab")) e.preventDefault(); }}
+        onDrop={(e) => { if (readTabDrop(e, pane.id, ws)) { e.preventDefault(); setOverIdx(null); } }}
+      >
         {/* tablist contém SÓ tabs (o "+" é irmão) — exigência da ARIA + permite
             navegar por índice de filho com as setas. */}
         <div role="tablist" aria-label={tNav("tabs")} aria-orientation="horizontal" className="flex items-stretch gap-1">
@@ -74,9 +80,22 @@ function TabStrip({ pane, split, onNewTab }: { pane: Pane; split: boolean; onNew
                 aria-controls={`panel-${pane.id}`}
                 tabIndex={active ? 0 : -1}
                 draggable
-                onDragStart={(e) => { setDragIdx(index); e.dataTransfer.effectAllowed = "move"; }}
+                onDragStart={(e) => {
+                  setDragIdx(index);
+                  e.dataTransfer.effectAllowed = "move";
+                  // Payload p/ mover entre painéis: o pane de destino lê daqui (seu
+                  // dragIdx local é null, pois o arrasto começou em outro TabStrip).
+                  e.dataTransfer.setData("text/x-brecha-tab", JSON.stringify({ tabId: id, fromPaneId: pane.id }));
+                }}
                 onDragOver={(e) => { e.preventDefault(); if (overIdx !== index) setOverIdx(index); }}
-                onDrop={(e) => { e.preventDefault(); if (dragIdx !== null && dragIdx !== index) ws.reorder(pane.id, dragIdx, index); setDragIdx(null); setOverIdx(null); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const moved = readTabDrop(e, pane.id, ws);
+                  if (!moved && dragIdx !== null && dragIdx !== index) ws.reorder(pane.id, dragIdx, index);
+                  setDragIdx(null);
+                  setOverIdx(null);
+                }}
                 onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
                 onMouseDown={(e) => { e.stopPropagation(); ws.focusTab(pane.id, id); }}
                 onKeyDown={(e) => {
@@ -151,6 +170,23 @@ function TabStrip({ pane, split, onNewTab }: { pane: Pane; split: boolean; onNew
       </div>
     </div>
   );
+}
+
+// Lê o payload de um drop de aba. Se a aba veio de OUTRO painel, move-a para cá e
+// devolve true (o chamador então pula o reorder intra-painel). Senão, devolve false.
+function readTabDrop(e: DragEvent, toPaneId: string, ws: ReturnType<typeof useWorkspace>): boolean {
+  const raw = e.dataTransfer.getData("text/x-brecha-tab");
+  if (!raw) return false;
+  try {
+    const { tabId, fromPaneId } = JSON.parse(raw) as { tabId: string; fromPaneId: string };
+    if (tabId && fromPaneId && fromPaneId !== toPaneId) {
+      ws.moveTab(tabId, fromPaneId, toPaneId);
+      return true;
+    }
+  } catch {
+    /* payload inválido — trata como reorder local */
+  }
+  return false;
 }
 
 function PaneBtn({ onClick, title, children }: { onClick: () => void; title: string; children: React.ReactNode }) {

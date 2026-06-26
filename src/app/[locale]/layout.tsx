@@ -10,7 +10,11 @@ import { ThemeScript } from "@/ui/ThemeScript";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 export const viewport: Viewport = {
-  themeColor: "#07080c",
+  // Acompanha o esquema do SO: tinta no escuro, pergaminho no claro (cores de --canvas).
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#07080c" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f1e9" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
