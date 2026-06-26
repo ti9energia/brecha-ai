@@ -543,6 +543,13 @@ const messages: Deep<Messages> = {
     ranEmpty: "没有新动作 — 一切尽在掌握。",
     runError: "暂时无法运行智能体。",
     dismissed: "已忽略该建议",
+    recWindowTitle: "窗口即将关闭：{title}",
+    recWindowBody: "{days} 天后关闭。预计收益面临风险——由 {ref} 触发。",
+    recNewTitle: "新机会：{title}",
+    recGapTitle: "档案不完整会降低精度",
+    recGapBody: "结构完整度 {pct}%。完善档案以获得更精准的模拟。",
+    recReconcileTitle: "对账 {amount} 以结算 success fee",
+    recReconcileBody: "{count} 条节省记录待银行对账后计入 success fee 基数。",
   },
 
   owner: {

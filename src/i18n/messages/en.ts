@@ -543,6 +543,13 @@ const messages: Deep<Messages> = {
     ranEmpty: "Nothing new — all under control.",
     runError: "Couldn't run the agent right now.",
     dismissed: "Recommendation dismissed",
+    recWindowTitle: "Window closing: {title}",
+    recWindowBody: "Closes in {days} day(s). Estimated gain at risk — triggered by {ref}.",
+    recNewTitle: "New opening: {title}",
+    recGapTitle: "Incomplete profile lowers accuracy",
+    recGapBody: "Structure {pct}% complete. Complete the profile for more accurate simulations.",
+    recReconcileTitle: "Reconcile {amount} to close the success fee",
+    recReconcileBody: "{count} savings record(s) await bank reconciliation to enter the success-fee base.",
   },
 
   owner: {
