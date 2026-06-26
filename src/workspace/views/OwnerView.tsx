@@ -4,13 +4,15 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Crown, Building2, CreditCard, ToggleLeft, ScrollText, TrendingUp,
-  Sparkles, ArrowUpRight, ShieldCheck, Plus, FileText, Wallet,
+  Sparkles, ArrowUpRight, ShieldCheck, Plus, FileText, Wallet, Settings, Check,
 } from "lucide-react";
 import {
   ownerKpis, listTenants, getPlans, listFlags, ownerAudit, aiFeedbackStats,
   createTenant, setTenantStatus, updatePlan, getLandingContent, updateLandingContent, LANDING_FIELDS,
   listInvoices, billingSummary, markInvoicePaid, generateInvoice, type Invoice,
+  getTenantConfig, updateTenantConfig,
 } from "@/server/domain/store";
+import { permissionMatrix, ROLES_ORDER } from "@/server/ai-core/tools";
 import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
 import { locales, localeMeta, type Locale } from "@/i18n/config";
 import { useFormatter, useTranslations } from "@/i18n/provider";
@@ -22,7 +24,7 @@ import { SectorIcon } from "@/ui/SectorIcon";
 import { Button, Chip, Meter } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
 
-type Section = "overview" | "tenants" | "plans" | "billing" | "landing" | "flags" | "audit";
+type Section = "overview" | "tenants" | "plans" | "billing" | "landing" | "config" | "flags" | "audit";
 
 export function OwnerView() {
   const t = useTranslations("owner");
@@ -46,6 +48,7 @@ export function OwnerView() {
     { id: "plans", label: t("plans"), icon: <CreditCard size={14} /> },
     { id: "billing", label: t("billing"), icon: <Wallet size={14} /> },
     { id: "landing", label: t("landing"), icon: <FileText size={14} /> },
+    { id: "config", label: t("config"), icon: <Settings size={14} /> },
     { id: "flags", label: t("flags"), icon: <ToggleLeft size={14} /> },
     { id: "audit", label: t("audit"), icon: <ScrollText size={14} /> },
   ];
@@ -104,6 +107,7 @@ export function OwnerView() {
       {section === "plans" && <Plans rows={plans} t={t} fmt={fmt} refresh={refresh} />}
       {section === "billing" && <Billing t={t} fmt={fmt} refresh={refresh} tenants={tenants} />}
       {section === "landing" && <LandingCms t={t} />}
+      {section === "config" && <Config t={t} tenants={tenants} />}
       {section === "flags" && <Flags rows={flags} t={t} />}
       {section === "audit" && <Audit rows={audit} t={t} fmt={fmt} />}
     </ViewScroll>
@@ -427,6 +431,80 @@ function QuotaRow({ label, value }: { label: string; value: number | string }) {
     <div className="flex items-center justify-between gap-3">
       <dt className="text-ink-3">{label}</dt>
       <dd className="mono tnum text-ink-2">{value}</dd>
+    </div>
+  );
+}
+
+// ── CONFIG por tenant + matriz de permissões (0C §2.8/2.9/2.10) ────────────────
+function Config({ t, tenants }: { t: Tr; tenants: Tenant[] }) {
+  const { toast } = useToast();
+  const ts = useTranslations("settings");
+  const tc = useTranslations("common");
+  const [tid, setTid] = useState<string>(tenants[0]?.id ?? "");
+  const [cfg, setCfg] = useState<Record<string, string>>(() => ({ ...getTenantConfig(tenants[0]?.id ?? "") }));
+  const matrix = permissionMatrix();
+
+  function pick(id: string) {
+    setTid(id);
+    setCfg({ ...getTenantConfig(id) });
+  }
+  function save() {
+    updateTenantConfig(tid, cfg);
+    fetch(`/api/owner/tenants/${tid}/config`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(cfg) }).catch(() => {});
+    toast({ title: t("configSaved"), description: tenants.find((x) => x.id === tid)?.name ?? tid, tone: "success" });
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* IA / WhatsApp por tenant */}
+      <div className="panel hairline p-6 space-y-4 max-w-2xl">
+        <p className="eyebrow">{t("tenantConfig")}</p>
+        <select className="input" value={tid} onChange={(e) => pick(e.target.value)}>
+          {tenants.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+        </select>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <label className="block">
+            <span className="block text-xs font-medium text-ink-2 mb-1.5">{ts("aiPersona")}</span>
+            <input className="input" value={cfg.aiPersona ?? ""} placeholder="Vega" onChange={(e) => setCfg((c) => ({ ...c, aiPersona: e.target.value }))} />
+          </label>
+          <label className="block">
+            <span className="block text-xs font-medium text-ink-2 mb-1.5">{tc("adjust")}</span>
+            <input className="input" value={cfg.aiTone ?? ""} onChange={(e) => setCfg((c) => ({ ...c, aiTone: e.target.value }))} />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="block text-xs font-medium text-ink-2 mb-1.5">{ts("whatsapp")}</span>
+            <input className="input mono" value={cfg.whatsapp ?? ""} placeholder="+55 11 9 …" inputMode="tel" onChange={(e) => setCfg((c) => ({ ...c, whatsapp: e.target.value }))} />
+          </label>
+        </div>
+        <Button variant="primary" onClick={save}>{tc("save")}</Button>
+      </div>
+
+      {/* Matriz de permissões (derivada das tools — fonte da verdade do RBAC) */}
+      <div className="panel hairline overflow-hidden">
+        <div className="px-5 py-3 border-b border-line"><p className="eyebrow">{t("permissions")}</p></div>
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="w-full min-w-[680px] text-sm">
+            <thead>
+              <tr className="border-b border-line text-left">
+                <th className="eyebrow px-4 pl-5 py-3 font-normal">Tool</th>
+                {ROLES_ORDER.map((r) => <th key={r} className="eyebrow px-3 py-3 font-normal text-center">{r}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {matrix.map((row) => (
+                <tr key={row.id} className="border-b border-line last:border-0">
+                  <td className="px-4 pl-5 py-2.5 mono text-xs text-ink-2">{row.id}</td>
+                  {ROLES_ORDER.map((r) => (
+                    <td key={r} className="px-3 py-2.5 text-center">
+                      {row.roles[r] ? <Check size={14} className="inline text-positive" /> : <span className="text-ink-4">—</span>}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

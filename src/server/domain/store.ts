@@ -431,6 +431,25 @@ export function updatePlan(id: string, patch: Record<string, unknown>): Plan | n
   return p;
 }
 
+// ── Config por tenant (0C §2.8/2.9): persona/tom da IA + número de WhatsApp ─────
+export interface TenantConfig {
+  aiPersona?: string;
+  aiTone?: string;
+  whatsapp?: string;
+}
+const TENANT_CONFIG: Record<string, TenantConfig> = {};
+export function getTenantConfig(tenantId: string): TenantConfig {
+  return TENANT_CONFIG[tenantId] ?? {};
+}
+export function updateTenantConfig(tenantId: string, patch: Record<string, unknown>): TenantConfig {
+  const cur = (TENANT_CONFIG[tenantId] ??= {});
+  if (typeof patch.aiPersona === "string") cur.aiPersona = patch.aiPersona.slice(0, 60);
+  if (typeof patch.aiTone === "string") cur.aiTone = patch.aiTone.slice(0, 60);
+  if (typeof patch.whatsapp === "string") cur.whatsapp = patch.whatsapp.slice(0, 40);
+  recordAiAction({ actor: "platform_owner", action: "Config do tenant atualizada", detail: tenantId });
+  return cur;
+}
+
 // ── Billing (0C §2.7): assinaturas/faturas in-memory por tenant ────────────────
 export interface Invoice {
   id: string;
