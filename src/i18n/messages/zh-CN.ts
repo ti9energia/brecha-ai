@@ -597,6 +597,7 @@ const messages: Deep<Messages> = {
     confirmed: "✅ 已批准执行：{title}。该操作已记入审计轨迹。",
     cancelled: "好的，已取消——未执行任何操作。",
     nothingPending: "目前没有待批准的方案。",
+    optinConfirmed: "✅ 号码已关联到你的 Brecha.ai 账户。现在你可以在这里使用副驾了。",
   },
 
   units: {

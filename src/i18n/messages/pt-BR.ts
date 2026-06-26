@@ -597,6 +597,7 @@ const messages = {
     confirmed: "✅ Execução aprovada: {title}. A ação foi registrada na trilha de auditoria.",
     cancelled: "Ok, cancelado — nada foi executado.",
     nothingPending: "Não há nenhuma jogada pendente de aprovação no momento.",
+    optinConfirmed: "✅ Número vinculado à sua conta Brecha.ai. Agora você pode operar o copiloto por aqui.",
   },
 
   units: {

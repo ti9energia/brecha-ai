@@ -13,11 +13,12 @@ import { recordAiAction, listOpportunities, orgEntitlements } from "@/server/dom
 import { getT } from "@/i18n/server";
 import { isLocale, type Locale } from "@/i18n/config";
 
-// Vínculo número↔usuário (seed). Em produção: opt-in com verificação por código.
+// Vínculo número↔usuário. Seed (demo) + vínculos DINÂMICOS confirmados via opt-in.
 const BINDINGS: Record<string, string> = {
   "+5511999990000": "u-marina", // CFO (manager)
   "+5511988887777": "u-helena", // tributarista (manager)
 };
+const DYNAMIC_BINDINGS: Record<string, string> = {}; // número→userId (opt-ins confirmados)
 
 function normalizeNumber(n: string): string {
   const trimmed = n.trim();
@@ -26,8 +27,43 @@ function normalizeNumber(n: string): string {
 }
 
 export function resolveWhatsappUser(from: string) {
-  const id = BINDINGS[normalizeNumber(from)];
+  const numKey = normalizeNumber(from);
+  const id = DYNAMIC_BINDINGS[numKey] ?? BINDINGS[numKey];
   return id ? userById(id) : null;
+}
+
+// ── Opt-in com verificação por código (0B §3 DoD a) ────────────────────────────
+// O usuário (logado no app) pede para vincular um número e recebe um código (em
+// produção, enviado por WhatsApp/SMS). Ao responder o código PELO WhatsApp, o número
+// passa a ser vinculado à conta. Sem opt-in confirmado, nenhum comando é executado.
+interface PendingOptIn {
+  code: string;
+  userId: string;
+}
+const OPTIN: Record<string, PendingOptIn> = {};
+let optInSeq = 481_900;
+function genCode(): string {
+  optInSeq = (optInSeq + 31_337) % 1_000_000;
+  return String(optInSeq).padStart(6, "0");
+}
+
+export function requestWhatsappOptIn(userId: string, number: string): { number: string; code: string } {
+  const numKey = normalizeNumber(number);
+  const code = genCode();
+  OPTIN[numKey] = { code, userId };
+  recordAiAction({ actor: userId, action: "WhatsApp opt-in solicitado", detail: numKey });
+  return { number: numKey, code };
+}
+
+export function confirmWhatsappOptIn(number: string, code: string): { sub: string; name: string; role: string } | null {
+  const numKey = normalizeNumber(number);
+  const pending = OPTIN[numKey];
+  if (!pending || pending.code !== code.trim()) return null;
+  DYNAMIC_BINDINGS[numKey] = pending.userId;
+  delete OPTIN[numKey];
+  recordAiAction({ actor: pending.userId, action: "WhatsApp vinculado (opt-in)", detail: numKey });
+  const u = userById(pending.userId);
+  return u ? { sub: u.sub, name: u.name, role: u.role } : null;
 }
 
 // ── Confirmação de ação sensível (0B §8c: "responda SIM") ──────────────────────
@@ -87,8 +123,13 @@ export async function handleWhatsappMessage(input: InboundMessage): Promise<What
   const user = resolveWhatsappUser(input.from);
   const tw = getT(locale, "whatsapp");
 
-  // 0B §3: nenhum comando é executado para número não vinculado.
+  // 0B §3: número não vinculado. Se a mensagem for o CÓDIGO de um opt-in pendente,
+  // confirma o vínculo (verificação por código); senão, recusa sem executar nada.
   if (!user) {
+    const confirmed = confirmWhatsappOptIn(input.from, (input.text ?? "").trim());
+    if (confirmed) {
+      return { ok: true, bound: true, user: { name: confirmed.name, role: confirmed.role }, reply: { text: tw("optinConfirmed"), quickReplies: [], sources: [] } };
+    }
     return { ok: false, bound: false, user: null, reply: { text: tw("unbound"), quickReplies: [], sources: [] } };
   }
 
