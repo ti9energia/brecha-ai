@@ -592,6 +592,7 @@ const messages: Deep<Messages> = {
     confirmed: "✅ Exécution approuvée : {title}. L'action a été enregistrée dans la piste d'audit.",
     cancelled: "Ok, annulé — rien n'a été exécuté.",
     nothingPending: "Aucun coup en attente d'approbation pour le moment.",
+    optinConfirmed: "✅ Numéro lié à votre compte Brecha.ai. Vous pouvez maintenant utiliser le copilote ici.",
   },
 
   units: {

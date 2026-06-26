@@ -7,6 +7,8 @@ import {
   sendWhatsapp,
   sentWhatsappCount,
   agentProactivePush,
+  requestWhatsappOptIn,
+  confirmWhatsappOptIn,
 } from "./gateway";
 
 describe("WhatsApp gateway (0B)", () => {
@@ -64,6 +66,27 @@ describe("WhatsApp gateway (0B)", () => {
     const r = agentProactivePush("+5511999990000");
     expect(r.pushed).toBeGreaterThanOrEqual(0);
     expect(sentWhatsappCount()).toBe(before + r.pushed);
+  });
+
+  // 0B §3 DoD a: opt-in com verificação por código vincula um número novo.
+  it("opt-in: código certo vincula o número; código errado não", () => {
+    const num = "+5511970001234";
+    expect(resolveWhatsappUser(num)).toBeNull();
+    const { code } = requestWhatsappOptIn("u-rafael", num);
+    expect(confirmWhatsappOptIn(num, "000000")).toBeNull();
+    expect(resolveWhatsappUser(num)).toBeNull();
+    expect(confirmWhatsappOptIn(num, code)?.name).toBeTruthy();
+    expect(resolveWhatsappUser(num)?.sub).toBe("u-rafael");
+  });
+
+  it("número vinculado por opt-in (respondendo o código pelo WhatsApp) passa a operar o copiloto", async () => {
+    const num = "+5511970005678";
+    const { code } = requestWhatsappOptIn("u-marina", num);
+    const conf = await handleWhatsappMessage({ from: num, text: code, locale: "pt-BR" });
+    expect(conf.bound).toBe(true);
+    const r = await handleWhatsappMessage({ from: num, text: "quais janelas abrem?", locale: "pt-BR" });
+    expect(r.ok).toBe(true);
+    expect(r.bound).toBe(true);
   });
 
   // 0B §8(c): ação sensível NUNCA executa direto — exige confirmação SIM/NÃO.

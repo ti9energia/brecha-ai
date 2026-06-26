@@ -597,6 +597,7 @@ const messages: Deep<Messages> = {
     confirmed: "✅ Execution approved: {title}. The action was recorded in the audit trail.",
     cancelled: "Ok, cancelled — nothing was executed.",
     nothingPending: "There's no play pending approval right now.",
+    optinConfirmed: "✅ Number linked to your Brecha.ai account. You can now operate the copilot from here.",
   },
 
   units: {
