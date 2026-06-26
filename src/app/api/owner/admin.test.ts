@@ -13,7 +13,9 @@ import { PATCH as patchTenant } from "./tenants/[id]/route";
 import { PUT as putPlan } from "./plans/[id]/route";
 import { POST as impersonate } from "./tenants/[id]/impersonate/route";
 import { PUT as putLanding } from "./landing/route";
-import { listTenants, getLandingContent } from "@/server/domain/store";
+import { GET as getBilling } from "./billing/route";
+import { POST as payInvoice } from "./billing/[id]/pay/route";
+import { listTenants, getLandingContent, listInvoices } from "@/server/domain/store";
 
 const owner: Omit<SessionUser, "exp"> = {
   sub: "u-owner", email: "owner@brecha.ai", name: "Dono", role: "platform_owner", orgId: "org-acme",
@@ -93,5 +95,19 @@ describe("/api/owner/* — admin CRUD", () => {
     const res = await putLanding(req("landing", "PUT", { locale: "pt-BR", heroTitleA: "Capture já a brecha" }));
     expect(res.status).toBe(200);
     expect(getLandingContent("pt-BR").heroTitleA).toBe("Capture já a brecha");
+  });
+
+  it("billing (0C §2.7): 403 para member; owner lista (com sumário) e concilia uma fatura", async () => {
+    h.token = await signSession({ ...owner, role: "member" });
+    expect((await getBilling()).status).toBe(403);
+    h.token = await signSession(owner);
+    const list = await getBilling();
+    expect(list.status).toBe(200);
+    expect((await list.json()).meta.summary).toBeTruthy();
+    const open = listInvoices().find((i) => i.status !== "paid");
+    expect(open).toBeTruthy();
+    const res = await payInvoice(req(`billing/${open!.id}/pay`, "POST"), { params: Promise.resolve({ id: open!.id }) });
+    expect(res.status).toBe(200);
+    expect((await res.json()).data.status).toBe("paid");
   });
 });

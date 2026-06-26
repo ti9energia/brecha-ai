@@ -4,11 +4,12 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Crown, Building2, CreditCard, ToggleLeft, ScrollText, TrendingUp,
-  Sparkles, ArrowUpRight, ShieldCheck, Plus, FileText,
+  Sparkles, ArrowUpRight, ShieldCheck, Plus, FileText, Wallet,
 } from "lucide-react";
 import {
   ownerKpis, listTenants, getPlans, listFlags, ownerAudit, aiFeedbackStats,
   createTenant, setTenantStatus, updatePlan, getLandingContent, updateLandingContent, LANDING_FIELDS,
+  listInvoices, billingSummary, markInvoicePaid, generateInvoice, type Invoice,
 } from "@/server/domain/store";
 import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
 import { locales, localeMeta, type Locale } from "@/i18n/config";
@@ -21,7 +22,7 @@ import { SectorIcon } from "@/ui/SectorIcon";
 import { Button, Chip, Meter } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
 
-type Section = "overview" | "tenants" | "plans" | "landing" | "flags" | "audit";
+type Section = "overview" | "tenants" | "plans" | "billing" | "landing" | "flags" | "audit";
 
 export function OwnerView() {
   const t = useTranslations("owner");
@@ -43,6 +44,7 @@ export function OwnerView() {
     { id: "overview", label: t("overview"), icon: <TrendingUp size={14} /> },
     { id: "tenants", label: t("tenants"), icon: <Building2 size={14} /> },
     { id: "plans", label: t("plans"), icon: <CreditCard size={14} /> },
+    { id: "billing", label: t("billing"), icon: <Wallet size={14} /> },
     { id: "landing", label: t("landing"), icon: <FileText size={14} /> },
     { id: "flags", label: t("flags"), icon: <ToggleLeft size={14} /> },
     { id: "audit", label: t("audit"), icon: <ScrollText size={14} /> },
@@ -100,6 +102,7 @@ export function OwnerView() {
       {section === "overview" && <Overview k={k} t={t} tc={tc} fmt={fmt} />}
       {section === "tenants" && <Tenants rows={tenants} t={t} fmt={fmt} refresh={refresh} />}
       {section === "plans" && <Plans rows={plans} t={t} fmt={fmt} refresh={refresh} />}
+      {section === "billing" && <Billing t={t} fmt={fmt} refresh={refresh} tenants={tenants} />}
       {section === "landing" && <LandingCms t={t} />}
       {section === "flags" && <Flags rows={flags} t={t} />}
       {section === "audit" && <Audit rows={audit} t={t} fmt={fmt} />}
@@ -424,6 +427,70 @@ function QuotaRow({ label, value }: { label: string; value: number | string }) {
     <div className="flex items-center justify-between gap-3">
       <dt className="text-ink-3">{label}</dt>
       <dd className="mono tnum text-ink-2">{value}</dd>
+    </div>
+  );
+}
+
+// ── BILLING (0C §2.7) ────────────────────────────────────────────────────────
+function Billing({ t, fmt, refresh, tenants }: { t: Tr; fmt: Fmt; refresh: () => void; tenants: Tenant[] }) {
+  const { toast } = useToast();
+  const invoices = listInvoices();
+  const sum = billingSummary();
+
+  function pay(inv: Invoice) {
+    markInvoicePaid(inv.id);
+    fetch(`/api/owner/billing/${inv.id}/pay`, { method: "POST" }).catch(() => {});
+    refresh();
+    toast({ title: t("invoicePaid"), description: `${inv.tenantName} · ${inv.period}`, tone: "success" });
+  }
+  function generate() {
+    const tn = tenants.find((x) => x.status === "active") ?? tenants[0];
+    if (!tn) return;
+    const inv = generateInvoice(tn.id);
+    fetch("/api/owner/billing", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tenantId: tn.id }) }).catch(() => {});
+    refresh();
+    if (inv) toast({ title: t("invoiceGenerated"), description: `${inv.tenantName} · ${inv.period}`, tone: "success" });
+  }
+  const tone = (s: Invoice["status"]) => (s === "paid" ? "positive" : s === "past_due" ? "danger" : "warning");
+
+  return (
+    <div className="space-y-4">
+      <StatTiles cols={3}>
+        <StatTile label={t("mrr")} value={fmt.moneyCompact(sum.mrr)} accent="gold" />
+        <StatTile label={t("outstanding")} value={fmt.moneyCompact(sum.outstanding)} accent="danger" />
+        <StatTile label={t("collected")} value={fmt.moneyCompact(sum.collected)} accent="positive" />
+      </StatTiles>
+      <div className="flex justify-end">
+        <Button variant="secondary" size="sm" onClick={generate}><Plus size={14} />{t("generateInvoice")}</Button>
+      </div>
+      <div className="panel hairline overflow-hidden">
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-line text-left">
+                {[t("tenants"), t("period"), t("amount"), t("system"), ""].map((h, i) => (
+                  <th key={i} className={cn("eyebrow px-4 py-3 font-normal", i > 1 && "text-right", i === 0 && "pl-5")}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map((inv) => (
+                <tr key={inv.id} className="border-b border-line last:border-0 hover:bg-surface-2/60 transition-colors">
+                  <td className="px-4 pl-5 py-3 text-ink font-medium">{inv.tenantName}</td>
+                  <td className="px-4 py-3 mono text-ink-3">{inv.period}</td>
+                  <td className="px-4 py-3 text-right tnum text-ink-2">{fmt.money(inv.amount)}</td>
+                  <td className="px-4 py-3 text-right"><Chip tone={tone(inv.status)}>{t(`invoiceStatus.${inv.status}`)}</Chip></td>
+                  <td className="px-4 pr-5 py-3 text-right">
+                    {inv.status !== "paid" && (
+                      <Button variant="ghost" size="sm" onClick={() => pay(inv)}>{t("markPaid")}</Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
