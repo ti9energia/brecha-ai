@@ -1,0 +1,186 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Brecha.ai — schema Postgres (modelo de registro). Espelha src/server/domain/types.ts.
+// v1 pragmático: value-objects ricos (source, recommendedMove, simulation, steps,
+// audit, quotas, activities, entities) ficam em colunas Json; tags/jurisdições/
+// features/entitlements em arrays nativos do Postgres. IDs preservam os do seed
+// (ex.: "norm-cbs-transicao"). Pronto para multi-tenant via orgId.
+//
+// Habilitar: defina DATABASE_URL, rode `npm run db:generate && npm run db:migrate
+// && npm run db:seed`. Sem DATABASE_URL o app usa o repositório in-memory (demo).
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id         String           @id
+  name       String
+  users      User[]
+  structures ClientStructure[]
+  feedback   AiFeedback[]
+  createdAt  DateTime         @default(now())
+}
+
+model User {
+  id           String       @id
+  email        String       @unique
+  name         String
+  role         String // platform_owner | org_admin | manager | member | viewer
+  passwordHash String
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+}
+
+model Norm {
+  id            String        @id
+  level         String // federal | state | municipal
+  jurisdiction  String
+  title         String
+  summary       String
+  body          String
+  source        Json // SourceRef { name, ref, url }
+  publishedAt   DateTime
+  effectiveDate DateTime
+  relevance     Float
+  sector        String
+  tags          String[]
+  matched       Boolean
+  opportunities Opportunity[]
+}
+
+model Opportunity {
+  id              String           @id
+  normId          String
+  norm            Norm             @relation(fields: [normId], references: [id])
+  type            String // regime | incentive | jurisdiction | classification | credit
+  title           String
+  summary         String
+  sector          String
+  estimatedGain   Float
+  windowStart     DateTime
+  windowEnd       DateTime
+  effort          String // low | medium | high
+  confidence      Float
+  status          String // open | simulating | pending_approval | approved | executing | captured | expired
+  correlatedNorms Int
+  recommendedMove Json // RecommendedMove
+  simulation      Json // ImpactSimulation
+  createdAt       DateTime
+
+  @@index([normId])
+  @@index([status])
+}
+
+model ClientStructure {
+  id            String       @id @default(cuid())
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id])
+  legalName    String
+  taxId        String
+  regime       String
+  mainActivity String
+  mainCnae     String
+  activities   Json // { code, label }[]
+  jurisdictions String[]
+  headquarters String
+  annualRevenue Float
+  headcount    Int
+  entities     Json // GroupEntity[]
+  completeness Float
+  lastReview   String
+
+  @@index([orgId])
+}
+
+model ExecutionPlan {
+  id            String  @id
+  opportunityId String  @unique // ref. lógica a Opportunity (sem FK rígida — v1)
+  title         String
+  approver      String
+  approved      Boolean
+  approvedBy    String?
+  status        String
+  progress      Float
+  steps         Json // ExecutionStep[]
+  audit         Json // AuditEntry[]
+}
+
+model SavingsRecord {
+  id            String @id
+  opportunityId String // ref. lógica a Opportunity (sem FK rígida — v1)
+  playTitle     String
+  type          String
+  realizedGain  Float
+  quarter       String
+  reconciled    Boolean
+  capturedAt    DateTime
+
+  @@index([opportunityId])
+}
+
+// ── Painel do Dono (0C) ──────────────────────────────────────────────────────
+model Tenant {
+  id          String @id
+  name        String
+  plan        String
+  status      String // active | trial | suspended | past_due
+  mrr         Float
+  users       Int
+  capturedNet Float
+  aiSpend     Float
+  locale      String
+  sector      String
+}
+
+model Plan {
+  id           String   @id
+  name         String
+  tagline      String
+  price        Float
+  period       String // "month"
+  popular      Boolean  @default(false)
+  feeRate      Float
+  features     String[]
+  entitlements String[]
+  quotas       Json // { users, jurisdictions, aiCredits }
+}
+
+model FeatureFlag {
+  module  String  @id
+  label   String
+  scope   String // global | plan | tenant
+  enabled Boolean
+  rollout Int
+}
+
+model AuditLog {
+  id     String   @id @default(cuid())
+  at     DateTime
+  actor  String
+  tenant String?
+  action String
+  detail String
+
+  @@index([at])
+}
+
+model AiFeedback {
+  id      String       @id @default(cuid())
+  rating  String // up | down
+  message String
+  locale  String
+  userId  String
+  orgId   String
+  org     Organization @relation(fields: [orgId], references: [id])
+  at      DateTime
+
+  @@index([orgId])
+}
