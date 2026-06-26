@@ -9,12 +9,13 @@ import { listExecutionPlans, approveExecution, listOpportunities, advanceExecuti
 import type { ExecutionStep, AuditEntry, StepStatus } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
+import { useSession } from "@/workspace/session";
+import { useToast } from "@/ui/Toast";
 import { Button, Chip, Meter, EmptyState } from "@/ui/primitives";
-import { ViewScroll, ViewHeader, UpdatedAt } from "./shared";
+import { ViewScroll, ViewHeader, UpdatedAt, writeJson, writeErrorKey } from "./shared";
 import { cn } from "@/ui/cn";
 
 const APPROVER = "Helena Vasconcelos — Tributarista";
-const APPROVER_SHORT = "Helena Vasconcelos";
 
 // chip tone por status da jogada (reaproveita rótulos de oppStatus)
 const STATUS_TONE: Record<string, "gold" | "positive" | "warning" | "info" | "neutral"> = {
@@ -33,6 +34,8 @@ export function ExecutionView({ params }: { params?: Record<string, string> }) {
   const ts = useTranslations("oppStatus");
   const fmt = useFormatter();
   const ws = useWorkspace();
+  const user = useSession();
+  const { toast } = useToast();
   const focus = params?.focus;
 
   // bump para forçar releitura do store em memória após mutação
@@ -48,8 +51,15 @@ export function ExecutionView({ params }: { params?: Record<string, string> }) {
     setTick((n) => n + 1);
   }
 
-  function approve(opportunityId: string) {
-    approveExecution(opportunityId, APPROVER_SHORT);
+  // Server-confirmed (governança real): a rota exige manager+, atribui o aprovador
+  // pela sessão e audita; só então reflete no store client.
+  async function approve(opportunityId: string) {
+    const res = await writeJson(`/api/opportunities/${opportunityId}/execute`, {}, "POST");
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
+    approveExecution(opportunityId, user.name);
     refresh();
   }
   function advanceStep(planId: string, stepId: string) {
