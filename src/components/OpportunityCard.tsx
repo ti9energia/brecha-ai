@@ -8,6 +8,7 @@ import { useWorkspaceOptional } from "@/workspace/store";
 import { ApertureRing } from "@/ui/ApertureRing";
 import { Chip, Meter } from "@/ui/primitives";
 import { SectorIcon } from "@/ui/SectorIcon";
+import { apertureFraction, EFFORT_VALUE } from "@/ui/opp";
 import { cn } from "@/ui/cn";
 
 const STATUS_TONE = {
@@ -15,15 +16,13 @@ const STATUS_TONE = {
   approved: "positive", executing: "info", captured: "positive", expired: "neutral",
 } as const;
 
-const EFFORT_VALUE = { low: 0.33, medium: 0.66, high: 1 };
-
 export function windowTone(state: string): "gold" | "warning" | "danger" {
   if (state === "urgent") return "danger";
   if (state === "closing") return "warning";
   return "gold";
 }
 
-export function OpportunityCard({ opp, index = 0 }: { opp: OpportunityView; index?: number }) {
+export function OpportunityCard({ opp }: { opp: OpportunityView }) {
   const fmt = useFormatter();
   const t = useTranslations("opportunities");
   const tt = useTranslations("oppTypes");
@@ -32,8 +31,7 @@ export function OpportunityCard({ opp, index = 0 }: { opp: OpportunityView; inde
   const locale = useLocale();
   const ws = useWorkspaceOptional();
 
-  const maxWindow = 120;
-  const ringValue = Math.min(1, Math.max(0.05, opp.daysRemaining / maxWindow));
+  const ringValue = apertureFraction(opp.daysRemaining);
   const tone = windowTone(opp.windowState);
 
   const inner = (

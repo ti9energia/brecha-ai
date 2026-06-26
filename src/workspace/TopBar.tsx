@@ -59,12 +59,13 @@ export function TopBar({ onCommand }: { onCommand: () => void }) {
       <div className="ml-auto flex items-center gap-1.5">
         <button
           onClick={copilot.toggle}
+          aria-pressed={copilot.open}
           className={cn(
             "hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] text-sm transition-all",
             "border border-line-gold bg-[var(--brand-soft)] text-brand hover:brightness-110",
           )}
         >
-          ✦ Vega
+          <span aria-hidden>✦</span> Vega
         </button>
         <LanguageSwitcher />
         <ThemeToggle />

@@ -7,7 +7,7 @@ import type { SavingsRecord } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { CountUp } from "@/ui/CountUp";
 import { Chip } from "@/ui/primitives";
-import { ViewScroll, ViewHeader, StatTiles, StatTile, Section } from "./shared";
+import { ViewScroll, ViewHeader, StatTiles, StatTile, Section, UpdatedAt } from "./shared";
 import { cn } from "@/ui/cn";
 
 export function SavingsView() {
@@ -21,7 +21,7 @@ export function SavingsView() {
     <ViewScroll>
       <ViewHeader
         icon={<Coins size={20} />}
-        eyebrow={tc("updatedAt") + " · " + fmt.date(new Date(), { day: "2-digit", month: "long" })}
+        eyebrow={<UpdatedAt />}
         title={t("title")}
         subtitle={t("subtitle")}
       />
@@ -57,7 +57,7 @@ export function SavingsView() {
         {/* esquerda: gráfico trimestral */}
         <Section title={t("byQuarter")} className="lg:col-span-2 mb-0">
           <div className="panel hairline p-5 sm:p-6">
-            <QuarterChart data={s.byQuarter} fmt={fmt} currency={s.currency} labels={{ realized: tc("realized"), projected: tc("estimated") }} />
+            <QuarterChart data={s.byQuarter} fmt={fmt} currency={s.currency} labels={{ realized: tc("realized"), projected: tc("estimated"), aria: t("chartAria") }} />
           </div>
         </Section>
 
@@ -151,7 +151,7 @@ function QuarterChart({
   data: QuarterDatum[];
   fmt: ReturnType<typeof useFormatter>;
   currency: string;
-  labels: { realized: string; projected: string };
+  labels: { realized: string; projected: string; aria: string };
 }) {
   // Geometria do viewBox — coordenadas internas, escala via SVG (responsivo por CSS).
   const W = 720;
@@ -178,7 +178,7 @@ function QuarterChart({
 
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" role="img" aria-label={labels.realized}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" role="img" aria-label={labels.aria}>
         <defs>
           {/* Gradiente da barra "realizado" — o ouro é o herói. */}
           <linearGradient id="savBarGold" x1="0" y1="1" x2="0" y2="0">

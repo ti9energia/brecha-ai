@@ -3,10 +3,11 @@
 import { useMemo, useState } from "react";
 import {
   Crown, Building2, CreditCard, ToggleLeft, ScrollText, TrendingUp,
-  Sparkles, ArrowUpRight, ShieldCheck,
+  Sparkles, ArrowUpRight, ShieldCheck, Plus,
 } from "lucide-react";
 import {
   ownerKpis, listTenants, getPlans, listFlags, ownerAudit, aiFeedbackStats,
+  createTenant, setTenantStatus, updatePlan,
 } from "@/server/domain/store";
 import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
@@ -26,12 +27,15 @@ export function OwnerView() {
   const fmt = useFormatter();
   const user = useSession();
   const [section, setSection] = useState<Section>("overview");
+  // Mutações do CRUD bumpam o tick → re-lê o store in-memory (mesmo padrão da Execução).
+  const [tick, setTick] = useState(0);
+  const refresh = () => setTick((n) => n + 1);
 
   const k = useMemo(() => ownerKpis(), []);
-  const tenants = useMemo(() => listTenants(), []);
-  const plans = useMemo(() => getPlans(), []);
+  const tenants = useMemo(() => [...listTenants()], [tick]);
+  const plans = useMemo(() => [...getPlans()], [tick]);
   const flags = useMemo(() => listFlags(), []);
-  const audit = useMemo(() => ownerAudit(), []);
+  const audit = useMemo(() => [...ownerAudit()], [tick]);
 
   const tabs: { id: Section; label: string; icon: React.ReactNode }[] = [
     { id: "overview", label: t("overview"), icon: <TrendingUp size={14} /> },
@@ -91,8 +95,8 @@ export function OwnerView() {
       </div>
 
       {section === "overview" && <Overview k={k} t={t} tc={tc} fmt={fmt} />}
-      {section === "tenants" && <Tenants rows={tenants} t={t} fmt={fmt} />}
-      {section === "plans" && <Plans rows={plans} t={t} fmt={fmt} />}
+      {section === "tenants" && <Tenants rows={tenants} t={t} fmt={fmt} refresh={refresh} />}
+      {section === "plans" && <Plans rows={plans} t={t} fmt={fmt} refresh={refresh} />}
       {section === "flags" && <Flags rows={flags} t={t} />}
       {section === "audit" && <Audit rows={audit} t={t} fmt={fmt} />}
     </ViewScroll>
@@ -231,9 +235,30 @@ const TENANT_STATUS: Record<Tenant["status"], { tone: "positive" | "info" | "war
   past_due: { tone: "warning", key: "past_due" },
   suspended: { tone: "danger", key: "suspended" },
 };
-function Tenants({ rows, t, fmt }: { rows: Tenant[]; t: Tr; fmt: Fmt }) {
+function Tenants({ rows, t, fmt, refresh }: { rows: Tenant[]; t: Tr; fmt: Fmt; refresh: () => void }) {
   const { toast } = useToast();
+
+  // Padrão do demo: muta o store client-side (UI atualiza no refresh) e espelha no
+  // endpoint admin (servidor, com RBAC). 0C §2.2.
+  function setStatus(tn: Tenant) {
+    const status = tn.status === "suspended" ? "active" : "suspended";
+    setTenantStatus(tn.id, status);
+    fetch(`/api/owner/tenants/${tn.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }).catch(() => {});
+    refresh();
+    toast({ title: tn.name, description: t(`tenantStatus.${status}`), tone: status === "suspended" ? "warning" : "success" });
+  }
+  function create() {
+    const created = createTenant({ name: "Nova Holding S.A.", plan: "plan-structure", sector: "industry" });
+    fetch("/api/owner/tenants", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: created.name, plan: created.plan, sector: created.sector }) }).catch(() => {});
+    refresh();
+    toast({ title: t("tenantCreated"), description: created.name, tone: "success" });
+  }
+
   return (
+   <div className="space-y-3">
+    <div className="flex justify-end">
+      <Button variant="secondary" size="sm" onClick={create}><Plus size={14} />{t("newTenant")}</Button>
+    </div>
     <div className="panel hairline overflow-hidden">
       <div className="overflow-x-auto no-scrollbar">
         <table className="w-full min-w-[820px] text-sm border-collapse">
@@ -275,9 +300,14 @@ function Tenants({ rows, t, fmt }: { rows: Tenant[]; t: Tr; fmt: Fmt }) {
                   <td className="px-4 py-3.5 text-right tnum text-ink-3">{fmt.number(tn.users)}</td>
                   <td className="px-4 py-3.5 text-right tnum text-positive">{fmt.moneyCompact(tn.capturedNet)}</td>
                   <td className="px-4 pr-5 py-3.5 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => toast({ title: t("impersonateBanner", { tenant: tn.name }), description: `${tn.plan} · ${fmt.number(tn.users)} ${t("users").toLowerCase()}`, tone: "info" })}>
-                      {t("impersonate")}
-                    </Button>
+                    <div className="inline-flex items-center gap-1 justify-end">
+                      <Button variant="ghost" size="sm" onClick={() => setStatus(tn)}>
+                        {tn.status === "suspended" ? t("reactivate") : t("suspend")}
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => toast({ title: t("impersonateBanner", { tenant: tn.name }), description: `${tn.plan} · ${fmt.number(tn.users)} ${t("users").toLowerCase()}`, tone: "info" })}>
+                        {t("impersonate")}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -286,11 +316,23 @@ function Tenants({ rows, t, fmt }: { rows: Tenant[]; t: Tr; fmt: Fmt }) {
         </table>
       </div>
     </div>
+   </div>
   );
 }
 
 // ── PLANS ────────────────────────────────────────────────────────────────────
-function Plans({ rows, t, fmt }: { rows: Plan[]; t: Tr; fmt: Fmt }) {
+// Módulos que um plano pode liberar (0C §2.4 — casa com isModuleEntitled no store).
+const ALL_ENTITLEMENTS = ["radar", "structure", "opportunities", "simulator", "execution", "savings", "agent", "copilot", "whatsapp", "connectors"];
+
+function Plans({ rows, t, fmt, refresh }: { rows: Plan[]; t: Tr; fmt: Fmt; refresh: () => void }) {
+  const { toast } = useToast();
+  function toggleEnt(p: Plan, mod: string) {
+    const next = p.entitlements.includes(mod) ? p.entitlements.filter((e) => e !== mod) : [...p.entitlements, mod];
+    updatePlan(p.id, { entitlements: next });
+    fetch(`/api/owner/plans/${p.id}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ entitlements: next }) }).catch(() => {});
+    refresh();
+    toast({ title: t("planSaved"), description: p.name, tone: "success" });
+  }
   return (
     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
       {rows.map((p) => (
@@ -320,11 +362,25 @@ function Plans({ rows, t, fmt }: { rows: Plan[]; t: Tr; fmt: Fmt }) {
           )}
 
           <div className="mt-5 pt-5 border-t border-line">
-            <p className="eyebrow mb-2.5">{t("entitlements")}</p>
+            <p className="eyebrow mb-1">{t("entitlements")}</p>
+            <p className="text-[0.68rem] text-ink-4 mb-2.5">{t("editEntitlements")}</p>
             <div className="flex flex-wrap gap-1.5">
-              {p.entitlements.map((e) => (
-                <span key={e} className="chip text-ink-2 border-line bg-surface-2 mono text-[0.68rem]">{e}</span>
-              ))}
+              {ALL_ENTITLEMENTS.map((e) => {
+                const on = p.entitlements.includes(e);
+                return (
+                  <button
+                    key={e}
+                    onClick={() => toggleEnt(p, e)}
+                    aria-pressed={on}
+                    className={cn(
+                      "chip mono text-[0.68rem] transition-colors",
+                      on ? "text-brand border-[color:var(--border-gold)] bg-[var(--brand-soft)]" : "text-ink-4 border-line bg-surface-2 hover:text-ink-2",
+                    )}
+                  >
+                    {e}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

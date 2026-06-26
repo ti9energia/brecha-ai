@@ -23,10 +23,12 @@
   --border-gold: rgba(202, 138, 4, 0.28);
 
   /* — Tinta (texto) — */
+  /* ink-3/ink-4 calibrados p/ WCAG AA sobre --surface (#0d0f16):
+     ink-3 ≈ 5.1:1 (texto), ink-4 ≈ 4.1:1 (meta/labels). Antes: 3.97:1 e 2.3:1. */
   --ink: #edeef3;
   --ink-2: #a7adbb;
-  --ink-3: #6b7280;
-  --ink-4: #474d5a;
+  --ink-3: #7d8492;
+  --ink-4: #6e7484;
   --on-brand: #1a1303;
 
   /* — Ouro (marca) — */
@@ -77,7 +79,8 @@
   --ink: #14161d;
   --ink-2: #4b5160;
   --ink-3: #6f7585;
-  --ink-4: #9aa0ae;
+  /* ink-4 escurecido p/ AA sobre o tema claro (#fffefb): ~4.1:1. Antes: 2.6:1. */
+  --ink-4: #777d8c;
   --on-brand: #fffdf6;
 
   --brand: #a87404;

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Sparkles, CornerDownLeft, SplitSquareHorizontal, Maximize2, ArrowRight } from "lucide-react";
 import { useWorkspace, type ModuleId } from "./store";
 import { useSession } from "./session";
+import { useEntitlements } from "./entitlements";
 import { useFlags } from "./flags";
 import { MODULES } from "./registry";
 import { useCopilot } from "@/components/Copilot";
@@ -34,11 +35,13 @@ export function CommandPalette({
   const copilot = useCopilot();
   const tNav = useTranslations("nav");
   const { isModuleEnabled } = useFlags();
+  const { isEntitled } = useEntitlements();
   const canOwner = user.role === "platform_owner";
   const [query, setQuery] = useState("");
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, open);
 
   useEffect(() => {
@@ -50,7 +53,7 @@ export function CommandPalette({
   }, [open]);
 
   const base: Cmd[] = useMemo(() => {
-    const mods: Cmd[] = MODULES.filter((m) => !m.railHidden && (m.id !== "owner" || canOwner) && isModuleEnabled(m.id)).map((m) => {
+    const mods: Cmd[] = MODULES.filter((m) => !m.railHidden && (m.id !== "owner" || canOwner) && isModuleEnabled(m.id) && isEntitled(m.id)).map((m) => {
       const Icon = m.icon;
       return {
         id: `open-${m.id}`,
@@ -66,7 +69,7 @@ export function CommandPalette({
       { id: "single", label: tNav("single"), icon: <Maximize2 size={15} />, kind: "action", run: () => { ws.unsplit(); onClose(); } },
     ];
     return [...mods, ...actions];
-  }, [tNav, ws, targetPaneId, onClose, canOwner, isModuleEnabled]);
+  }, [tNav, ws, targetPaneId, onClose, canOwner, isModuleEnabled, isEntitled]);
 
   const items: Cmd[] = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -84,6 +87,11 @@ export function CommandPalette({
   }, [query, base, copilot, onClose, tNav]);
 
   useEffect(() => { setSel(0); }, [query]);
+
+  // Mantém a opção selecionada (teclado) visível — sem isto a seleção pode sair da viewport.
+  useEffect(() => {
+    listRef.current?.querySelector<HTMLElement>(`[data-idx="${sel}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [sel]);
 
   if (!open) return null;
 
@@ -115,15 +123,26 @@ export function CommandPalette({
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`${tNav("askCopilot")} ${tNav("commandHint")}…`}
             className="flex-1 bg-transparent outline-none text-ink placeholder:text-ink-4"
+            role="combobox"
+            aria-expanded={items.length > 0}
+            aria-controls="cmdpalette-listbox"
+            aria-autocomplete="list"
+            aria-activedescendant={items[sel] ? `cmd-${items[sel].id}` : undefined}
+            aria-label={tNav("askCopilot")}
           />
           <kbd className="mono text-[0.65rem] text-ink-4 border border-line rounded px-1.5 py-0.5">ESC</kbd>
         </div>
 
-        <div className="max-h-[50vh] overflow-y-auto p-2">
+        <div ref={listRef} id="cmdpalette-listbox" role="listbox" aria-label={tNav("askCopilot")} className="max-h-[50vh] overflow-y-auto p-2">
           {items.length === 0 && <p className="px-3 py-8 text-center text-sm text-ink-4">—</p>}
           {items.map((c, i) => (
             <button
               key={c.id}
+              id={`cmd-${c.id}`}
+              data-idx={i}
+              role="option"
+              aria-selected={i === sel}
+              tabIndex={-1}
               onMouseEnter={() => setSel(i)}
               onClick={c.run}
               className={cn(

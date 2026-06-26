@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  createContext, useContext, useState, useRef, useEffect, useCallback,
+  createContext, useContext, useState, useRef, useEffect, useCallback, useMemo,
   type ReactNode, type KeyboardEvent,
 } from "react";
 import { Send, X, Sparkles, ArrowUpRight, ExternalLink, Cpu, ThumbsUp, ThumbsDown } from "lucide-react";
@@ -58,24 +58,30 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
     }
   }, [messages, sending, locale]);
 
+  // `askTrigger` garante que o prompt pendente dispare mesmo se o painel JÁ estiver
+  // aberto (antes, o efeito dependia só de [open, send] e o prompt era engolido).
+  const [askTrigger, setAskTrigger] = useState(0);
   const ask = useCallback((prompt: string) => {
-    setOpen(true);
     pending.current = prompt;
+    setOpen(true);
+    setAskTrigger((n) => n + 1);
   }, []);
 
-  // dispara o prompt pendente quando o painel abre
+  // dispara o prompt pendente quando o painel abre (ou a cada novo ask)
   useEffect(() => {
     if (open && pending.current) {
       const p = pending.current;
       pending.current = null;
       send(p);
     }
-  }, [open, send]);
+  }, [open, askTrigger, send]);
 
   const toggle = useCallback(() => setOpen((o) => !o), []);
 
+  const api = useMemo<CopilotApi>(() => ({ open, setOpen, toggle, ask, messages }), [open, toggle, ask, messages]);
+
   return (
-    <Ctx.Provider value={{ open, setOpen, toggle, ask, messages }}>
+    <Ctx.Provider value={api}>
       {children}
       <CopilotPanel open={open} setOpen={setOpen} messages={messages} sending={sending} onSend={send} />
     </Ctx.Provider>

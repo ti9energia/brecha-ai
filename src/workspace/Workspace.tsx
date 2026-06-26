@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { WorkspaceProvider, useWorkspace } from "./store";
 import { SessionProvider, type WorkspaceUser } from "./session";
+import { EntitlementsProvider } from "./entitlements";
 import { FlagsProvider } from "./flags";
 import { useIsNarrow } from "./useIsNarrow";
 import { CopilotProvider, useCopilot } from "@/components/Copilot";
@@ -18,15 +19,17 @@ import { cn } from "@/ui/cn";
 export function Workspace({ user }: { user: WorkspaceUser }) {
   return (
     <SessionProvider user={user}>
-      <WorkspaceProvider>
-        <FlagsProvider>
-          <CopilotProvider>
-            <ToastProvider>
-              <Shell />
-            </ToastProvider>
-          </CopilotProvider>
-        </FlagsProvider>
-      </WorkspaceProvider>
+      <EntitlementsProvider>
+        <WorkspaceProvider>
+          <FlagsProvider>
+            <CopilotProvider>
+              <ToastProvider>
+                <Shell />
+              </ToastProvider>
+            </CopilotProvider>
+          </FlagsProvider>
+        </WorkspaceProvider>
+      </EntitlementsProvider>
     </SessionProvider>
   );
 }

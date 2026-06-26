@@ -5,8 +5,8 @@ import { Radar, FileText, ArrowUpRight, ExternalLink, Dot } from "lucide-react";
 import { listRadar, opportunityForNorm, type RadarItem } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
-import { Chip, Meter, buttonClass } from "@/ui/primitives";
-import { ViewScroll, ViewHeader } from "./shared";
+import { Chip, Meter, buttonClass, EmptyState } from "@/ui/primitives";
+import { ViewScroll, ViewHeader, UpdatedAt } from "./shared";
 import { cn } from "@/ui/cn";
 
 type LevelFilter = "all" | "federal" | "state" | "municipal";
@@ -58,7 +58,7 @@ export function RadarView() {
     <ViewScroll>
       <ViewHeader
         icon={<Radar size={20} />}
-        eyebrow={tc("updatedAt") + " · " + fmt.date(new Date(), { day: "2-digit", month: "long" })}
+        eyebrow={<UpdatedAt />}
         title={t("title")}
         subtitle={t("subtitle")}
       />
@@ -95,12 +95,7 @@ export function RadarView() {
 
       {items.length === 0 ? (
         <div className="panel hairline">
-          <div className="flex flex-col items-center justify-center text-center py-16 px-6">
-            <div className="mb-5 grid place-items-center size-16 rounded-full border border-line bg-surface-2 text-brand">
-              <Radar size={22} />
-            </div>
-            <h3 className="text-lg font-semibold text-ink">{t("feedEmpty")}</h3>
-          </div>
+          <EmptyState icon={<Radar size={22} />} title={t("feedEmpty")} />
         </div>
       ) : (
         <div className="space-y-9">

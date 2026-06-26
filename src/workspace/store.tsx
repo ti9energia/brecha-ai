@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useReducer, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useReducer, useCallback, useMemo, type ReactNode } from "react";
 
 export type ModuleId =
   | "opportunities"
@@ -238,11 +238,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const reorder = useCallback((paneId: string, from: number, to: number) => dispatch({ type: "REORDER", paneId, from, to }), []);
   const setLayout = useCallback((direction: "split-v" | "split-h") => dispatch({ type: "SPLIT", direction }), []);
 
-  return (
-    <Ctx.Provider value={{ state, open, closeTab, focusTab, focusPane, split, unsplit, moveTab, reorder, setLayout }}>
-      {children}
-    </Ctx.Provider>
+  // Memoizado: o objeto-fachada só muda quando `state` muda (os dispatchers são
+  // estáveis via useCallback). Sem isto, NavRail/TopBar/CommandPalette re-renderizam
+  // a cada render do provider.
+  const api = useMemo<WorkspaceApi>(
+    () => ({ state, open, closeTab, focusTab, focusPane, split, unsplit, moveTab, reorder, setLayout }),
+    [state, open, closeTab, focusTab, focusPane, split, unsplit, moveTab, reorder, setLayout],
   );
+
+  return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
 
 export function useWorkspace(): WorkspaceApi {

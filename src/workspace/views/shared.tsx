@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useFormatter, useTranslations } from "@/i18n/provider";
 import { cn } from "@/ui/cn";
 
 // Container rolável padrão de cada módulo.
@@ -43,6 +44,18 @@ export function ViewHeader({
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </div>
   );
+}
+
+// Eyebrow "Atualizado · 25 de junho". A data só entra APÓS a montagem no cliente:
+// `new Date()` formatado no SSR (UTC) diverge do cliente perto da virada do dia e
+// causaria hydration mismatch. Mesmo padrão do relógio do StatusBar. Centralizado
+// aqui (era duplicado em 4 views).
+export function UpdatedAt() {
+  const tc = useTranslations("common");
+  const fmt = useFormatter();
+  const [today, setToday] = useState<Date | null>(null);
+  useEffect(() => setToday(new Date()), []);
+  return <>{tc("updatedAt")}{today ? ` · ${fmt.date(today, { day: "2-digit", month: "long" })}` : ""}</>;
 }
 
 // Grade de KPIs no topo do módulo.
