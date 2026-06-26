@@ -14,6 +14,7 @@ export default async function AppPage() {
     email: session?.email ?? "",
     role: session?.role ?? "viewer",
     orgId: session?.orgId ?? "",
+    accountType: session?.accountType ?? "company",
     imp: session?.imp,
   };
   return <Workspace user={user} />;

@@ -2,12 +2,20 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Loader2, Mail, Lock, KeyRound, ShieldCheck, AlertCircle } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Lock, KeyRound, ShieldCheck, AlertCircle, Building2, Briefcase, Crown } from "lucide-react";
 import { useTranslations, useLocale } from "@/i18n/provider";
 import { buttonClass } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
 
-const DEMO = { email: "marina.alves@acme.com.br", password: "demo1234" };
+// Os 3 perfis (00 §0C + perfis de produto). Cada um é uma conta-demo distinta — o
+// accountType vem do usuário no servidor (não do cliente), então é a fonte da verdade.
+const DEMOS = {
+  company: { email: "marina.alves@acme.com.br", password: "demo1234" },
+  firm: { email: "dra.silva@silvaadvogados.com.br", password: "demo1234" },
+  owner: { email: "owner@brecha.ai", password: "demo1234" },
+} as const;
+type Persona = keyof typeof DEMOS;
+const DEMO = DEMOS.company; // retrocompat (default = autônomo)
 
 function GoogleGlyph() {
   return (
@@ -30,11 +38,25 @@ export function LoginForm() {
   const rawNext = params.get("next");
   const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : `/${locale}/app`;
 
-  const [email, setEmail] = useState(DEMO.email);
-  const [password, setPassword] = useState(DEMO.password);
+  const [persona, setPersona] = useState<Persona>("company");
+  const [email, setEmail] = useState<string>(DEMO.email);
+  const [password, setPassword] = useState<string>(DEMO.password);
   const [loading, setLoading] = useState<null | "form" | "google" | "magic">(null);
   const [forgot, setForgot] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Escolher um perfil pré-preenche a conta-demo e entra direto (um clique).
+  function pick(p: Persona) {
+    setPersona(p);
+    setEmail(DEMOS[p].email);
+    setPassword(DEMOS[p].password);
+    login(DEMOS[p].email, DEMOS[p].password, "form");
+  }
+  const PERSONAS: { id: Persona; icon: typeof Building2; label: string; desc: string }[] = [
+    { id: "company", icon: Building2, label: t("personaCompany"), desc: t("personaCompanyDesc") },
+    { id: "firm", icon: Briefcase, label: t("personaFirm"), desc: t("personaFirmDesc") },
+    { id: "owner", icon: Crown, label: t("personaOwner"), desc: t("personaOwnerDesc") },
+  ];
 
   async function login(em: string, pw: string, kind: NonNullable<typeof loading>) {
     setError(null);
@@ -65,6 +87,30 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-sm">
+      {/* Seletor de perfil — entra direto no contexto certo (autônomo/escritório/dono). */}
+      <div className="mb-5">
+        <p className="text-xs font-medium text-ink-2 mb-2">{t("chooseProfile")}</p>
+        <div className="grid grid-cols-3 gap-2">
+          {PERSONAS.map(({ id, icon: Icon, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => pick(id)}
+              disabled={!!loading}
+              aria-pressed={persona === id}
+              className={cn(
+                "flex flex-col items-center gap-1.5 rounded-[var(--radius-md)] border px-2 py-3 text-center transition-colors disabled:opacity-60",
+                persona === id ? "border-line-gold bg-[var(--brand-soft)] text-brand" : "border-line bg-surface-2 text-ink-3 hover:text-ink hover:border-line-strong",
+              )}
+            >
+              <Icon size={18} />
+              <span className="text-[0.7rem] font-medium leading-tight text-pretty">{label}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-[0.7rem] text-ink-4 text-center">{PERSONAS.find((p) => p.id === persona)?.desc}</p>
+      </div>
+
       <form onSubmit={onSubmit} className="space-y-4">
         <Field icon={<Mail size={15} />} label={t("email")}>
           <input
@@ -140,11 +186,11 @@ export function LoginForm() {
       </div>
 
       <div className="space-y-2.5">
-        <button onClick={() => login(DEMO.email, DEMO.password, "google")} disabled={!!loading} className={buttonClass("secondary", "md", "w-full")}>
+        <button onClick={() => login(DEMOS[persona].email, DEMOS[persona].password, "google")} disabled={!!loading} className={buttonClass("secondary", "md", "w-full")}>
           {loading === "google" ? <Loader2 size={16} className="animate-spin" /> : <GoogleGlyph />}
           {t("google")}
         </button>
-        <button onClick={() => login(DEMO.email, DEMO.password, "magic")} disabled={!!loading} className={buttonClass("ghost", "md", "w-full")}>
+        <button onClick={() => login(DEMOS[persona].email, DEMOS[persona].password, "magic")} disabled={!!loading} className={buttonClass("ghost", "md", "w-full")}>
           {loading === "magic" ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} className="text-brand" />}
           {t("magic")}
         </button>

@@ -6,12 +6,18 @@
 export const SESSION_COOKIE = "brecha_session";
 const SESSION_TTL = 60 * 60 * 8; // 8h
 
+// Tipo de CONTA / perfil de produto (acima do papel RBAC, que é o que se faz DENTRO
+// do produto). Define qual experiência o usuário recebe: empresa que se autoavalia
+// (autônomo), escritório/advogado que gere uma carteira de clientes, ou o dono do SaaS.
+export type AccountType = "company" | "firm" | "owner";
+
 export interface SessionUser {
   sub: string; // user id
   email: string;
   name: string;
   role: "platform_owner" | "org_admin" | "manager" | "member" | "viewer";
   orgId: string;
+  accountType?: AccountType; // perfil do produto; ausente = "company" (retrocompat)
   imp?: string; // sub do dono original quando esta sessão é uma IMPERSONAÇÃO (0C §2.2)
   exp: number;
 }
