@@ -1,7 +1,7 @@
 # Auditoria & Evolução — Brecha.ai
 
 > **Data:** 2026-06-25 · **Escopo:** revisão completa (arquitetura, código, segurança, API, banco, front-end, i18n, infra) + execução das correções de alta prioridade.
-> **Baseline na entrada:** typecheck limpo · 77 testes · build OK. **Na saída:** typecheck limpo · **111 testes** · build OK (41 páginas).
+> **Baseline na entrada:** typecheck limpo · 77 testes · build OK. **Na saída:** typecheck limpo · **113 testes** · build OK (41 páginas).
 >
 > **Conformidade com os specs (0A/0B/0C/0D/08/00-PADRÃO):** ver [`CONFORMIDADE-SPECS.md`](CONFORMIDADE-SPECS.md) — matriz entregue/parcial/ausente por spec + as 10 lacunas reais.
 
@@ -125,12 +125,12 @@ Banco real + migrações; ingestão real de normas; motor fiscal real validado; 
 |---|---|---|
 | G1 | **Entitlements em runtime (acesso = papel E plano)**: `orgEntitlements`/`isModuleEntitled` no store; rail/command palette escondem módulos fora do plano; `listTools`/`invokeTool` filtram e **negam** tools por plano no servidor. +4 testes. | 0C §4.4, §9 DoD c; 0D §3 |
 | G2 | **Cérebro local em 4 idiomas**: respostas vêm do catálogo (`brain.*`, 24 chaves × 4 locais) no locale do usuário; **detecção de intenção por palavras-chave pt/en/zh/fr**. Antes só pt/en. +1 teste (zh/fr). | 00-PADRÃO §6.7e; 0A §6 DoD b; 0B DoD f |
-| G3 | **Confirmação "responda SIM" no WhatsApp**: ação sensível (aprovar execução) guarda a intenção por número e **só executa após SIM** (NÃO cancela), via tool governada + auditoria. +1 teste. | 0B §8 DoD c |
+| G3 | **WhatsApp — confirmação "responda SIM"** (ação sensível só executa após SIM, NÃO cancela; tool governada + auditoria) **+ opt-in por código** (`POST /api/whatsapp/optin` envia o código; o número responde pelo WhatsApp e fica vinculado dinamicamente). +3 testes. | 0B §3 DoD a, §8 DoD c |
 
 > **Ainda aberto** (precisa de infra ou é o maior bloco): write-side da persistência, multi-tenant real, integrações/jobs/billing, opt-in/mídia do WhatsApp. Ver `CONFORMIDADE-SPECS.md`.
 
 ### 🟧 Sexta onda — CRUD do Painel do Dono (0C §2.2/§2.3/§2.4/§8)
-> Verificadas: **typecheck limpo · 111 testes · build OK**.
+> Verificadas: **typecheck limpo · 113 testes · build OK**.
 
 | # | O quê | Spec |
 |---|---|---|
