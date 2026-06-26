@@ -88,6 +88,7 @@ model ClientStructure {
   regime       String
   mainActivity String
   mainCnae     String
+  businessProfile String @default("") // texto livre: o que a empresa é (alimenta o detector de brechas)
   activities   Json // { code, label }[]
   jurisdictions String[]
   headquarters String

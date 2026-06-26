@@ -18,6 +18,7 @@ function synth(orgId: string): ClientStructure {
     regime: "Lucro Real",
     mainActivity: t?.sector ?? "industry",
     mainCnae: "00.00-0-00",
+    businessProfile: "",
     activities: [],
     jurisdictions: ["SP"],
     headquarters: "São Paulo / SP",
@@ -40,6 +41,7 @@ export function updateStructureForOrg(orgId: string, patch: Record<string, unkno
   if (typeof patch.legalName === "string") cur.legalName = patch.legalName.slice(0, 200);
   if (typeof patch.regime === "string") cur.regime = patch.regime.slice(0, 120);
   if (typeof patch.mainActivity === "string") cur.mainActivity = patch.mainActivity.slice(0, 200);
+  if (typeof patch.businessProfile === "string") cur.businessProfile = patch.businessProfile.slice(0, 2000);
   if (typeof patch.headquarters === "string") cur.headquarters = patch.headquarters.slice(0, 120);
   const rev = Number(patch.annualRevenue);
   if (Number.isFinite(rev) && rev >= 0) cur.annualRevenue = Math.min(rev, 1e15);

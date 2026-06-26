@@ -378,6 +378,10 @@ const messages: Deep<Messages> = {
     addJurisdiction: "Add jurisdiction",
     entities: "Group entities",
     lastReview: "Last review",
+    businessProfile: "What the company is",
+    businessProfilePlaceholder: "Describe the business: sectors, activities, exports, projects, liabilities, appetite for restructuring…",
+    businessProfileEmpty: "No description yet — add one so the AI finds more openings.",
+    businessProfileHint: "Free text the detector crosses with regulations to find openings for your company. The more specific it is, the more opportunities the AI finds.",
   },
 
   simulator: {

@@ -19,6 +19,7 @@ import type {
   Tenant, Plan, SectorId, Scenario, StepStatus,
 } from "./types";
 import { emit } from "@/server/events/bus";
+import { detectOpportunities } from "@/server/ai/detector";
 
 const DAY = 1000 * 60 * 60 * 24;
 
@@ -138,6 +139,9 @@ export function updateStructure(patch: Record<string, unknown>): ClientStructure
   if (typeof patch.legalName === "string") STRUCTURE.legalName = patch.legalName.slice(0, 200);
   if (typeof patch.regime === "string") STRUCTURE.regime = patch.regime.slice(0, 120);
   if (typeof patch.mainActivity === "string") STRUCTURE.mainActivity = patch.mainActivity.slice(0, 200);
+  // O texto livre que o detector de brechas lê (a "explicação do usuário do que é a
+  // empresa"): editá-lo muda quais oportunidades a IA passa a achar no próximo run.
+  if (typeof patch.businessProfile === "string") STRUCTURE.businessProfile = patch.businessProfile.slice(0, 2000);
   if (typeof patch.headquarters === "string") STRUCTURE.headquarters = patch.headquarters.slice(0, 120);
 
   const rev = Number(patch.annualRevenue);
@@ -213,6 +217,26 @@ export function createOpportunityFromScenario(params: ScenarioParams, result: Sc
   recordAiAction({ actor: "Simulador", action: "Oportunidade criada", detail: opp.title });
   emit("opportunity.simulated", { id: opp.id, gain: opp.estimatedGain });
   return opp;
+}
+
+// ── Detector de brechas (o núcleo: server/ai/detector.ts) ─────────────────────
+// Cruza a estrutura do cliente — INCLUSIVE o texto livre `businessProfile` (a
+// explicação do usuário do que é a empresa) — com as normas do radar e ABRE as
+// oportunidades relevantes que ainda não existem (08 §6/§12: "o agente abre
+// oportunidades relevantes para a estrutura do cliente"). Idempotente: id
+// determinístico `opp-auto-<normId>`, então rodar de novo não duplica. Pula normas
+// que já têm oportunidade manual/seed (só preenche o que falta). Retorna SEMPRE o
+// conjunto detectado (para o Agente exibir), tendo inserido as que faltavam. NÃO
+// audita por brecha — quem chama (agentRun) já registra o run uma vez.
+export function openDetectedOpportunities(): Opportunity[] {
+  const manualNormIds = new Set(
+    OPPORTUNITIES.filter((o) => !o.id.startsWith("opp-auto-")).map((o) => o.normId),
+  );
+  const detected = detectOpportunities(STRUCTURE, NORMS, { skipNormIds: manualNormIds });
+  for (const opp of detected) {
+    if (!OPPORTUNITIES.some((o) => o.id === opp.id)) OPPORTUNITIES.unshift(opp);
+  }
+  return detected;
 }
 
 // ── Motor fiscal determinístico (mock plausível) ─────────────────────────────

@@ -378,6 +378,10 @@ const messages: Deep<Messages> = {
     addJurisdiction: "添加管辖地",
     entities: "集团实体",
     lastReview: "上次审阅",
+    businessProfile: "企业是做什么的",
+    businessProfilePlaceholder: "描述业务：行业、经营活动、出口、项目、负债、重组意愿……",
+    businessProfileEmpty: "尚无描述——填写后 AI 能发现更多机会。",
+    businessProfileHint: "检测器将这段自由文本与法规交叉比对，为您的企业找出机会。描述越具体，AI 找到的机会越多。",
   },
 
   simulator: {

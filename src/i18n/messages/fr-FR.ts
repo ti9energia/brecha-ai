@@ -373,6 +373,10 @@ const messages: Deep<Messages> = {
     addJurisdiction: "Ajouter une juridiction",
     entities: "Entités du groupe",
     lastReview: "Dernière révision",
+    businessProfile: "Ce qu'est l'entreprise",
+    businessProfilePlaceholder: "Décrivez l'activité : secteurs, activités, exportation, projets, passifs, appétit pour une réorganisation…",
+    businessProfileEmpty: "Pas encore de description — ajoutez-en une pour que l'IA trouve plus d'opportunités.",
+    businessProfileHint: "Texte libre que le détecteur croise avec les normes pour trouver des brèches pour votre entreprise. Plus c'est précis, plus l'IA trouve d'opportunités.",
   },
 
   simulator: {

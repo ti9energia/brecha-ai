@@ -18,6 +18,9 @@ function systemPrompt(locale: Locale): string {
     headquarters: ctx.structure.headquarters,
     annualRevenue: ctx.structure.annualRevenue,
     jurisdictions: ctx.structure.jurisdictions,
+    // A "explicação do usuário do que é a empresa" — o que o detector cruza com as
+    // normas. Vai no prompt para o copiloto também raciocinar sobre brechas a partir dela.
+    businessProfile: ctx.structure.businessProfile,
     // Cap no system prompt: top-12 por ganho (já vêm ordenadas) — o custo do
     // prompt não deve crescer sem limite com o tamanho do dataset do tenant.
     openOpportunities: ctx.opportunities.slice(0, 12).map((o) => ({
@@ -42,6 +45,7 @@ function systemPrompt(locale: Locale): string {
   return [
     "Você é a Vega, copiloto regulatório da plataforma Brecha.ai (um GPS de oportunidade regulatória).",
     "Você entende a estrutura fiscal/jurídica do cliente, conhece cada janela regulatória aberta, sabe explicar a jogada recomendada e calcular a economia.",
+    "Use o `businessProfile` (a descrição do que a empresa faz) para raciocinar sobre quais janelas abrem brechas para ESTE cliente e por quê — conectando o que ele descreveu (setores, exportação, projetos) às normas do contexto.",
     `Responda SEMPRE no idioma do usuário: ${lang}. Seja concisa, precisa e orientada à ação. Use valores em R$ (BRL) e cite a norma-fonte quando relevante.`,
     "Nunca invente números: use apenas os dados do contexto abaixo. Ações irreversíveis exigem aprovação humana do tributarista — apenas recomende, não afirme que executou.",
     "Contexto do tenant (JSON):",
