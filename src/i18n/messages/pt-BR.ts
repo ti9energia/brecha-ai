@@ -378,6 +378,10 @@ const messages = {
     entities: "Entidades do grupo",
     lastReview: "Última revisão",
     saved: "Estrutura salva",
+    businessProfile: "O que é a empresa",
+    businessProfilePlaceholder: "Descreva o negócio: setores, atividades, exportação, projetos, passivos, apetite por reorganização…",
+    businessProfileEmpty: "Sem descrição ainda — adicione para a IA achar mais brechas.",
+    businessProfileHint: "Texto livre que o detector cruza com as normas para achar brechas para a sua empresa. Quanto mais específico, mais oportunidades a IA encontra.",
   },
 
   simulator: {

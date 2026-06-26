@@ -72,6 +72,7 @@ function mapStructure(s: PStructure): ClientStructure {
     regime: s.regime,
     mainActivity: s.mainActivity,
     mainCnae: s.mainCnae,
+    businessProfile: s.businessProfile,
     activities: s.activities as unknown as ClientStructure["activities"],
     jurisdictions: s.jurisdictions,
     headquarters: s.headquarters,
@@ -146,6 +147,7 @@ export class PrismaRepository implements Repository {
     if (typeof patch.legalName === "string") data.legalName = patch.legalName.slice(0, 200);
     if (typeof patch.regime === "string") data.regime = patch.regime.slice(0, 120);
     if (typeof patch.mainActivity === "string") data.mainActivity = patch.mainActivity.slice(0, 200);
+    if (typeof patch.businessProfile === "string") data.businessProfile = patch.businessProfile.slice(0, 2000);
     if (typeof patch.headquarters === "string") data.headquarters = patch.headquarters.slice(0, 120);
     const rev = Number(patch.annualRevenue);
     if (Number.isFinite(rev) && rev >= 0) data.annualRevenue = Math.min(rev, 1e15);

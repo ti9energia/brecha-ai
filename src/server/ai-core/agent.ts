@@ -6,7 +6,7 @@
 // SWAP (produção): rodar como job agendado (modo "agendado") sobre eventos do
 // barramento; modo "semiautônomo" executa o que está na alçada via tools.
 // ─────────────────────────────────────────────────────────────────────────────
-import { listOpportunities, getStructure, recordAiAction } from "@/server/domain/store";
+import { listOpportunities, getStructure, recordAiAction, openDetectedOpportunities } from "@/server/domain/store";
 import type { AgentRecommendation } from "@/server/domain/types";
 
 export function agentRun(now = new Date()): AgentRecommendation[] {
@@ -28,7 +28,25 @@ export function agentRun(now = new Date()): AgentRecommendation[] {
     });
   }
 
-  // 2) Lacuna de estrutura → perfil incompleto reduz a precisão da simulação.
+  // 2) NOVAS BRECHAS (o núcleo): cruza o perfil do cliente — inclusive o texto livre
+  //    `businessProfile` (a explicação do usuário do que é a empresa) — com as normas
+  //    do radar e ABRE as oportunidades relevantes ainda não exploradas (08 §6/§12).
+  //    A justificativa cita POR QUE casa com esta empresa (os sinais do cruzamento).
+  const detected = openDetectedOpportunities();
+  for (const o of detected.slice(0, 3)) {
+    recs.push({
+      id: `agent-new-${o.id}`,
+      kind: "new_opportunity",
+      title: `Nova brecha: ${o.title}`,
+      body: o.recommendedMove.rationale.slice(0, 2).join(" · "),
+      impact: o.estimatedGain,
+      confidence: o.confidence,
+      opportunityId: o.id,
+      createdAt: at,
+    });
+  }
+
+  // 3) Lacuna de estrutura → perfil incompleto reduz a precisão da simulação.
   const st = getStructure();
   if (st.completeness < 0.85) {
     recs.push({

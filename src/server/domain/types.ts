@@ -99,6 +99,11 @@ export interface ClientStructure {
   regime: string;
   mainActivity: string;
   mainCnae: string;
+  // Texto livre: a "explicação do usuário do que é a empresa". É o que o detector de
+  // brechas (server/ai/detector.ts) lê para cruzar o negócio com as normas e ABRIR
+  // oportunidades relevantes — e o que o copiloto recebe no contexto. Quanto mais rico
+  // (setores, exportação, projetos), mais brechas a IA consegue achar.
+  businessProfile: string;
   activities: { code: string; label: string }[];
   jurisdictions: string[]; // UFs
   headquarters: string;

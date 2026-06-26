@@ -52,6 +52,7 @@ async function main() {
     create: {
       id: "struct-acme", orgId, legalName: STRUCTURE.legalName, taxId: STRUCTURE.taxId,
       regime: STRUCTURE.regime, mainActivity: STRUCTURE.mainActivity, mainCnae: STRUCTURE.mainCnae,
+      businessProfile: STRUCTURE.businessProfile,
       activities: json(STRUCTURE.activities), jurisdictions: STRUCTURE.jurisdictions,
       headquarters: STRUCTURE.headquarters, annualRevenue: STRUCTURE.annualRevenue,
       headcount: STRUCTURE.headcount, entities: json(STRUCTURE.entities),

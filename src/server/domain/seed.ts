@@ -646,6 +646,8 @@ export const STRUCTURE: ClientStructure = {
   regime: "Lucro Real",
   mainActivity: "Holding de instituições não-financeiras + indústria metalúrgica",
   mainCnae: "64.62-0/00",
+  businessProfile:
+    "Grupo industrial controlado por holding em São Paulo. Núcleo metalúrgico (semiacabados e estruturas de aço) com forte pauta de exportação; braço próprio de desenvolvimento de software (AcmeTech); subsidiária de logística rodoviária de carga (Acme Log) com passivo tributário a negociar; e projeto em curso de autoprodução de energia com usina solar cativa para abastecer as plantas industriais. Apetite por reorganização tributária, sempre com aprovação do tributarista.",
   activities: [
     { code: "24.21-1/00", label: "Produção de semiacabados de aço" },
     { code: "25.11-0/00", label: "Fabricação de estruturas metálicas" },

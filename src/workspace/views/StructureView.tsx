@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import {
-  Building2, Pencil, MapPin, Users, Receipt, Landmark, CalendarClock, Check, X, Plus,
+  Building2, Pencil, MapPin, Users, Receipt, Landmark, CalendarClock, Check, X, Plus, Sparkles,
 } from "lucide-react";
 import { getStructure, updateStructure } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
@@ -27,6 +27,7 @@ export function StructureView() {
     legalName: base.legalName,
     regime: base.regime,
     headquarters: base.headquarters,
+    businessProfile: base.businessProfile,
     annualRevenue: base.annualRevenue,
     headcount: base.headcount,
     jurisdictions: [...base.jurisdictions],
@@ -36,6 +37,7 @@ export function StructureView() {
   function cancel() {
     setDraft({
       legalName: base.legalName, regime: base.regime, headquarters: base.headquarters,
+      businessProfile: base.businessProfile,
       annualRevenue: base.annualRevenue, headcount: base.headcount, jurisdictions: [...base.jurisdictions],
     });
     setEditing(false);
@@ -45,6 +47,7 @@ export function StructureView() {
     setSaving(true);
     const payload = {
       legalName: draft.legalName, regime: draft.regime, headquarters: draft.headquarters,
+      businessProfile: draft.businessProfile,
       annualRevenue: draft.annualRevenue, headcount: draft.headcount, jurisdictions: draft.jurisdictions,
     };
     // Server-confirmed: só reflete no store isomórfico (a UI lê dele) DEPOIS que o
@@ -160,6 +163,28 @@ export function StructureView() {
           </div>
         </div>
       </div>
+
+      <Section title={t("businessProfile")}>
+        <div className="panel hairline p-6">
+          {editing ? (
+            <textarea
+              className="input min-h-[7rem] resize-y leading-relaxed"
+              value={draft.businessProfile}
+              maxLength={2000}
+              placeholder={t("businessProfilePlaceholder")}
+              onChange={(e) => setDraft((d) => ({ ...d, businessProfile: e.target.value }))}
+            />
+          ) : draft.businessProfile ? (
+            <p className="text-sm text-ink-2 text-pretty leading-relaxed whitespace-pre-wrap">{draft.businessProfile}</p>
+          ) : (
+            <p className="text-sm text-ink-4 italic">{t("businessProfileEmpty")}</p>
+          )}
+          <p className="mt-3 pt-3 border-t border-line flex items-start gap-2 text-xs text-ink-4">
+            <Sparkles size={13} className="text-brand shrink-0 mt-0.5" />
+            <span className="text-pretty">{t("businessProfileHint")}</span>
+          </p>
+        </div>
+      </Section>
 
       <Section title={t("activities")}>
         <div className="panel hairline overflow-hidden">
