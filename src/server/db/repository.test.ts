@@ -50,4 +50,15 @@ describe("repository seam (persistência trocável)", () => {
       expect(plan).toBeTruthy();
     }
   });
+
+  it("multi-tenant: getStructure/updateStructure isolam por orgId", async () => {
+    const repo = new InMemoryRepository();
+    const acmeName = (await repo.getStructure("org-acme")).legalName;
+    const otherId = "tenant-mt-x";
+    expect((await repo.getStructure(otherId)).legalName).not.toBe(acmeName);
+    await repo.updateStructure({ regime: "Simples Nacional" }, otherId);
+    expect((await repo.getStructure(otherId)).regime).toBe("Simples Nacional");
+    // o tenant default (acme) permanece intacto — isolamento por orgId
+    expect((await repo.getStructure("org-acme")).regime).not.toBe("Simples Nacional");
+  });
 });

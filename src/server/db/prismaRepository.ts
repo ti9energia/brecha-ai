@@ -133,14 +133,14 @@ export class PrismaRepository implements Repository {
     }));
   }
 
-  async getStructure(): Promise<ClientStructure> {
-    const s = await getPrisma().clientStructure.findFirst();
+  async getStructure(orgId = "org-acme"): Promise<ClientStructure> {
+    const s = await getPrisma().clientStructure.findFirst({ where: { orgId } });
     if (!s) throw new Error("ClientStructure não encontrada — rode `npm run db:seed`.");
     return mapStructure(s);
   }
 
-  async updateStructure(patch: Record<string, unknown>): Promise<ClientStructure> {
-    const cur = await getPrisma().clientStructure.findFirst();
+  async updateStructure(patch: Record<string, unknown>, orgId = "org-acme"): Promise<ClientStructure> {
+    const cur = await getPrisma().clientStructure.findFirst({ where: { orgId } });
     if (!cur) throw new Error("ClientStructure não encontrada — rode `npm run db:seed`.");
     const data: Prisma.ClientStructureUpdateInput = {};
     if (typeof patch.legalName === "string") data.legalName = patch.legalName.slice(0, 200);

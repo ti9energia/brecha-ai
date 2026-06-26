@@ -27,7 +27,8 @@ function putReq(path: string, body: unknown) {
 beforeEach(() => { h.token = undefined; });
 
 describe("PUT /api/structure — RBAC", () => {
-  it("GET é aberto (gateado por sessão no middleware) e devolve o perfil", async () => {
+  it("GET (com sessão) devolve o perfil do tenant", async () => {
+    h.token = await signSession(base);
     const res = await getStructure();
     const json = await res.json();
     expect(json.data).toBeTruthy();
