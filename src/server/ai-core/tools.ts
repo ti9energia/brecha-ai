@@ -11,7 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import {
   listOpportunities, listRadar, getStructure, updateStructure, runScenario, approveExecution, getSavings,
-  recordAiAction, isModuleEntitled,
+  openDetectedOpportunities, reconcileSaving, recordAiAction, isModuleEntitled,
 } from "@/server/domain/store";
 import type { SessionUser } from "@/server/auth/session";
 
@@ -37,12 +37,14 @@ export interface Tool {
 // Tools da plataforma Brecha.ai (08 §12).
 export const TOOLS: Tool[] = [
   { id: "opportunities:read", module: "opportunities", description: "Lista as oportunidades abertas ranqueadas por ganho.", permission: ALL, input: {}, run: () => listOpportunities({ sort: "gain" }) },
+  { id: "detector:run", module: "opportunities", description: "Roda o detector: cruza o perfil da empresa (incl. o texto livre) com as normas e ABRE as brechas relevantes.", permission: ALL, input: {}, run: () => openDetectedOpportunities() },
   { id: "radar:read", module: "radar", description: "Lê o fluxo de mudanças normativas relevantes.", permission: ALL, input: {}, run: () => listRadar() },
   { id: "structure:read", module: "structure", description: "Lê o perfil fiscal/jurídico do cliente.", permission: ALL, input: {}, run: () => getStructure() },
   { id: "structure:update", module: "structure", description: "Atualiza campos do perfil fiscal/jurídico.", permission: WRITERS, input: { legalName: "string", regime: "string", headquarters: "string", annualRevenue: "number" }, run: (input) => updateStructure(input) },
   { id: "simulator:run", module: "simulator", description: "Roda o motor fiscal sobre um cenário (regime, jurisdição, enquadramento, faturamento).", permission: ALL, input: { regime: "string", jurisdiction: "string", classification: "string", revenue: "number" }, run: (input) => runScenario({ regime: String(input.regime ?? "Lucro Real"), jurisdiction: String(input.jurisdiction ?? "SP"), classification: String(input.classification ?? "Indústria metalúrgica"), revenue: Number(input.revenue ?? 0) }) },
   { id: "execution:start", module: "execution", description: "Aprova a execução de uma oportunidade (aprovação humana do tributarista).", permission: WRITERS, input: { opportunityId: "string" }, run: (input, ctx) => approveExecution(String(input.opportunityId ?? ""), ctx.userName) },
   { id: "savings:read", module: "savings", description: "Lê a economia capturada e a base do success fee.", permission: ALL, input: {}, run: () => getSavings() },
+  { id: "savings:reconcile", module: "savings", description: "Concilia um registro de economia para entrar na base do success fee (ação financeira).", permission: WRITERS, input: { id: "string" }, run: (input) => reconcileSaving(String(input.id ?? "")) },
 ];
 
 // Ordem dos papéis (do menor ao maior privilégio) para a matriz de permissões (0C §2.10).

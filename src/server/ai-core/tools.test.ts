@@ -32,6 +32,22 @@ describe("AI Core — tools registry (0A §2.4 / RBAC 0C)", () => {
     if (!r.ok) expect(r.error).toBe("NOT_FOUND");
   });
 
+  it("registra as novas capacidades como tools com a alçada certa (0A §2.4)", () => {
+    const viewer = listTools("viewer").map((t) => t.id);
+    expect(viewer).toContain("detector:run"); // rodar o agente/detector: todos os papéis
+    expect(viewer).not.toContain("savings:reconcile"); // ação financeira: só writers
+    expect(listTools("manager").map((t) => t.id)).toContain("savings:reconcile");
+
+    // detector:run executa e devolve as brechas abertas (cruzamento perfil × normas)
+    const r = invokeTool("detector:run", {}, { role: "viewer", userName: "V" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(Array.isArray(r.data)).toBe(true);
+
+    // savings:reconcile negada para viewer
+    const denied = invokeTool("savings:reconcile", { id: "sav-5" }, { role: "viewer", userName: "V" });
+    expect(denied.ok).toBe(false);
+  });
+
   it("audita toda invocação — concedida e negada (0A §2.8)", () => {
     const before = ownerAudit().length;
     invokeTool("opportunities:read", {}, { role: "manager", userName: "Marina" });
