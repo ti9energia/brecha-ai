@@ -39,4 +39,15 @@ describe("repository seam (persistência trocável)", () => {
     expect(sum.capturedYtd).toBeGreaterThanOrEqual(0);
     expect((await repo.getStructure()).legalName).toBeTruthy();
   });
+
+  it("write-side: updateStructure persiste e approveExecution devolve o plano", async () => {
+    const repo = new InMemoryRepository();
+    const st = await repo.updateStructure({ regime: "Lucro Presumido" });
+    expect(st.regime).toBe("Lucro Presumido");
+    const pending = (await repo.listOpportunities({ status: "all" })).find((o) => o.status === "pending_approval");
+    if (pending) {
+      const plan = await repo.approveExecution(pending.id, "Tester");
+      expect(plan).toBeTruthy();
+    }
+  });
 });

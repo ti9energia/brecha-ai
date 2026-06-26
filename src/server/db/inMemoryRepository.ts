@@ -3,7 +3,7 @@
 // antes. Mantém o contrato idêntico ao PrismaRepository.
 import {
   listOpportunities, getOpportunity, opportunitiesSummary, listRadar,
-  opportunityForNorm, getStructure,
+  opportunityForNorm, getStructure, updateStructure, approveExecution,
 } from "@/server/domain/store";
 import type { Repository, ListOpportunitiesOpts, OpportunitiesSummary, RadarRow } from "./repository";
 import type { OpportunityView } from "@/server/domain/store";
@@ -24,5 +24,11 @@ export class InMemoryRepository implements Repository {
   }
   async getStructure(): Promise<ClientStructure> {
     return getStructure();
+  }
+  async updateStructure(patch: Record<string, unknown>): Promise<ClientStructure> {
+    return updateStructure(patch);
+  }
+  async approveExecution(opportunityId: string, approver: string): Promise<unknown> {
+    return approveExecution(opportunityId, approver);
   }
 }

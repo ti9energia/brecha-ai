@@ -1,4 +1,4 @@
-import { approveExecution, getOpportunity } from "@/server/domain/store";
+import { getRepository } from "@/server/db/repository";
 import { ok, fail } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -23,10 +23,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (cached) return ok(cached.data, { ...cached.meta, idempotent: true });
   }
 
-  const opp = getOpportunity(id);
+  const repo = getRepository();
+  const opp = await repo.getOpportunity(id);
   if (!opp) return fail("OPPORTUNITY_NOT_FOUND", "errors.not_found", 404);
 
-  const plan = approveExecution(id, session.name);
+  const plan = await repo.approveExecution(id, session.name);
   const data = { plan };
   const meta: Record<string, unknown> = { approvedBy: session.name };
   if (idem) setIdempotent(idem, data, meta);

@@ -14,6 +14,7 @@ import type {
   Norm, NormLevel, SourceRef, SectorId, OpportunityType, Level,
   OpportunityStatus, RecommendedMove, ImpactSimulation, ClientStructure,
 } from "@/server/domain/types";
+import { Prisma } from "@prisma/client";
 import type {
   Norm as PNorm, Opportunity as POpp, ClientStructure as PStructure,
 } from "@prisma/client";
@@ -136,5 +137,53 @@ export class PrismaRepository implements Repository {
     const s = await getPrisma().clientStructure.findFirst();
     if (!s) throw new Error("ClientStructure não encontrada — rode `npm run db:seed`.");
     return mapStructure(s);
+  }
+
+  async updateStructure(patch: Record<string, unknown>): Promise<ClientStructure> {
+    const cur = await getPrisma().clientStructure.findFirst();
+    if (!cur) throw new Error("ClientStructure não encontrada — rode `npm run db:seed`.");
+    const data: Prisma.ClientStructureUpdateInput = {};
+    if (typeof patch.legalName === "string") data.legalName = patch.legalName.slice(0, 200);
+    if (typeof patch.regime === "string") data.regime = patch.regime.slice(0, 120);
+    if (typeof patch.mainActivity === "string") data.mainActivity = patch.mainActivity.slice(0, 200);
+    if (typeof patch.headquarters === "string") data.headquarters = patch.headquarters.slice(0, 120);
+    const rev = Number(patch.annualRevenue);
+    if (Number.isFinite(rev) && rev >= 0) data.annualRevenue = Math.min(rev, 1e15);
+    const hc = Number(patch.headcount);
+    if (Number.isFinite(hc) && hc >= 0) data.headcount = Math.min(Math.round(hc), 1e9);
+    if (Array.isArray(patch.jurisdictions)) {
+      data.jurisdictions = [
+        ...new Set(
+          (patch.jurisdictions as unknown[])
+            .filter((j): j is string => typeof j === "string")
+            .map((j) => j.trim().toUpperCase().slice(0, 4))
+            .filter(Boolean),
+        ),
+      ].slice(0, 27);
+    }
+    return mapStructure(await getPrisma().clientStructure.update({ where: { id: cur.id }, data }));
+  }
+
+  async approveExecution(opportunityId: string, approver: string): Promise<unknown> {
+    await getPrisma().opportunity.updateMany({
+      where: { id: opportunityId, status: "pending_approval" },
+      data: { status: "approved" },
+    });
+    return getPrisma().executionPlan.upsert({
+      where: { opportunityId },
+      update: { approved: true, approvedBy: approver, status: "approved" },
+      create: {
+        id: `exec-${opportunityId}`,
+        opportunityId,
+        title: "",
+        approver,
+        approved: true,
+        approvedBy: approver,
+        status: "approved",
+        progress: 0,
+        steps: [] as unknown as Prisma.InputJsonValue,
+        audit: [] as unknown as Prisma.InputJsonValue,
+      },
+    });
   }
 }
