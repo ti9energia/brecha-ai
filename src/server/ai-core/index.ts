@@ -13,12 +13,14 @@
 import { domainBrain, type CopilotReply, type CopilotSource } from "@/server/ai/brain";
 import { resolveProvider, type LLMMessage, type LLMProvider } from "./provider";
 import { inMemoryKnowledge } from "./knowledge";
+import { remember, recall } from "./memory";
 import type { Locale } from "@/i18n/config";
 
 export type { LLMMessage, LLMProvider } from "./provider";
 export { resolveProvider, anthropicProvider, localProvider } from "./provider";
 export { listTools, invokeTool, TOOLS, type Tool, type ToolResult } from "./tools";
-export { inMemoryKnowledge, type KnowledgeStore, type Retrieved } from "./knowledge";
+export { inMemoryKnowledge, ingestDocument, ingestedCount, type KnowledgeStore, type Retrieved } from "./knowledge";
+export { remember, recall, memorySize, type MemoryTurn } from "./memory";
 export { listConnectors, getConnector, type Connector } from "./connectors";
 export { trainingSnapshot, type TrainingSnapshot } from "./training";
 export { agentRun } from "./agent";
@@ -37,6 +39,7 @@ export async function aiChat(
   locale: Locale,
   provider: LLMProvider = resolveProvider(),
   orgId = "org-acme",
+  userId?: string,
 ): Promise<CopilotReply> {
   const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
 
@@ -48,13 +51,20 @@ export async function aiChat(
     .filter((r) => r.ref)
     .map((r) => ({ ref: r.ref as string }));
   const sources = dedupeSources([...grounding.sources, ...retrieved]);
+  // Memória por usuário (0A §2.3): dá continuidade — o provider vê o histórico.
+  const history: LLMMessage[] = userId ? recall(userId).map((m) => ({ role: m.role, content: m.content })) : [];
   // Camada de modelo: refina o texto (ou null → usa o texto determinístico).
-  const refined = await provider.refine(messages, locale);
+  const refined = await provider.refine([...history, ...messages], locale);
 
-  return {
+  const reply: CopilotReply = {
     text: refined?.text ?? grounding.text,
     model: refined?.model ?? grounding.model,
     sources,
     actions: grounding.actions,
   };
+  if (userId) {
+    remember(userId, { role: "user", content: lastUser });
+    remember(userId, { role: "assistant", content: reply.text });
+  }
+  return reply;
 }

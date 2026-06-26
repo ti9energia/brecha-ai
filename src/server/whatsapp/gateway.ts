@@ -180,7 +180,7 @@ export async function handleWhatsappMessage(input: InboundMessage): Promise<What
   }
 
   // ── Fluxo normal: mesmo cérebro/tools/RAG do copiloto, isolado pelo tenant (0B §2) ──
-  const reply = await aiChat([{ role: "user", content: text }], locale, undefined, user.orgId);
+  const reply = await aiChat([{ role: "user", content: text }], locale, undefined, user.orgId, user.sub);
   recordAiAction({ actor: `${user.name} (WhatsApp)`, action: "Comando WhatsApp", detail: text }); // 0B §3
   return done(reply.text, reply.actions.map((a) => a.label), reply.sources);
 }
