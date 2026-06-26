@@ -1,6 +1,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Store — repositórios em memória sobre o seed. Espelha o contrato que seria
 // servido por Prisma/Postgres. Mutações persistem no processo (suficiente p/ demo).
+//
+// FRONTEIRA cliente↔servidor (dívida técnica consciente do demo): as views client
+// importam estas funções e as executam NO NAVEGADOR (sem round-trip de API). Por
+// isso este módulo NÃO leva `import "server-only"` — levaria a quebrar o build.
+// Nada sensível vaza: só dados de seed + o motor fiscal (sem segredos; senhas/JWT
+// ficam em auth/*, importados só pelo servidor). Caminho de produção: trocar o
+// store por Postgres/Prisma e as views passarem a consumir as rotas `/api/*` (que
+// já existem) ou Server Actions — aí o `server-only` entra. Ver AUDITORIA §3/§7.
 // ─────────────────────────────────────────────────────────────────────────────
 import {
   NORMS, OPPORTUNITIES, STRUCTURE, SCENARIOS, EXECUTION_PLANS, SAVINGS,
@@ -8,6 +16,7 @@ import {
 } from "./seed";
 import type {
   Norm, Opportunity, ScenarioParams, ScenarioResult, Level, OpportunityType, ClientStructure,
+  Tenant, Plan, SectorId,
 } from "./types";
 
 const DAY = 1000 * 60 * 60 * 24;
@@ -287,6 +296,24 @@ export function getPlans() {
   return PLANS;
 }
 
+// ── Entitlements (0C §4.4 / 0D §3): acesso = papel E PLANO ──────────────────────
+// O plano do tenant libera um conjunto de módulos; o papel decide o que fazer dentro.
+// Em produção, o plano vem do billing por orgId; no demo, mapeado.
+const ORG_PLAN: Record<string, string> = { "org-acme": "plan-execution" };
+// Só estes módulos dependem de plano (aparecem em algum `entitlements`). Governança
+// (settings/owner) e o detalhe são gateados por PAPEL, não por plano.
+const PLAN_GATED_MODULES = new Set([
+  "radar", "structure", "simulator", "opportunities", "execution", "agent", "savings",
+]);
+export function orgEntitlements(orgId: string): string[] {
+  const planId = ORG_PLAN[orgId] ?? "plan-execution";
+  return PLANS.find((p) => p.id === planId)?.entitlements ?? [];
+}
+export function isModuleEntitled(moduleId: string, entitlements: string[]): boolean {
+  if (!PLAN_GATED_MODULES.has(moduleId)) return true; // núcleo/governança: independe de plano
+  return entitlements.includes(moduleId);
+}
+
 // ── Painel do Dono ───────────────────────────────────────────────────────────
 export function ownerKpis() {
   return OWNER_KPIS;
@@ -299,6 +326,48 @@ export function listFlags() {
 }
 export function ownerAudit() {
   return AUDIT_LOG;
+}
+
+// ── Painel do Dono — CRUD (0C §2.2/§2.4/§8). Muta o store in-memory + audita. ───
+let tenantSeq = 0;
+export function createTenant(input: { name?: string; plan?: string; locale?: string; sector?: SectorId }): Tenant {
+  const t: Tenant = {
+    id: `tenant-${TENANTS.length}-${++tenantSeq}`,
+    name: (typeof input.name === "string" && input.name.trim() ? input.name : "Novo tenant").slice(0, 120),
+    plan: typeof input.plan === "string" ? input.plan : "plan-structure",
+    status: "trial",
+    mrr: 0,
+    users: 1,
+    capturedNet: 0,
+    aiSpend: 0,
+    locale: typeof input.locale === "string" ? input.locale : "pt-BR",
+    sector: input.sector ?? "industry",
+  };
+  TENANTS.unshift(t);
+  recordAiAction({ actor: "platform_owner", action: "Tenant criado", detail: t.name });
+  return t;
+}
+
+const TENANT_STATUSES = new Set<Tenant["status"]>(["active", "trial", "suspended", "past_due"]);
+export function setTenantStatus(id: string, status: string): Tenant | null {
+  const t = TENANTS.find((x) => x.id === id);
+  if (!t || !TENANT_STATUSES.has(status as Tenant["status"])) return null;
+  t.status = status as Tenant["status"];
+  recordAiAction({ actor: "platform_owner", action: "Tenant atualizado", detail: `${t.name} → ${status}` });
+  return t;
+}
+
+export function updatePlan(id: string, patch: Record<string, unknown>): Plan | null {
+  const p = PLANS.find((x) => x.id === id);
+  if (!p) return null;
+  if (typeof patch.price === "number" && Number.isFinite(patch.price) && patch.price >= 0) p.price = Math.min(patch.price, 1e9);
+  if (typeof patch.feeRate === "number" && patch.feeRate >= 0 && patch.feeRate <= 1) p.feeRate = patch.feeRate;
+  if (typeof patch.tagline === "string") p.tagline = patch.tagline.slice(0, 160);
+  if (Array.isArray(patch.entitlements)) {
+    p.entitlements = [...new Set(patch.entitlements.filter((e): e is string => typeof e === "string"))].slice(0, 50);
+  }
+  recordAiAction({ actor: "platform_owner", action: "Plano atualizado", detail: p.name });
+  return p;
 }
 
 // Governança (0A §2.8 / 0B §3): toda ação da IA (tool invocada, comando de

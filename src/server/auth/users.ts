@@ -32,6 +32,11 @@ export function userById(id: string): Omit<SessionUser, "exp"> | null {
   return u ? { sub: u.id, email: u.email, name: u.name, role: u.role, orgId: u.orgId } : null;
 }
 
+// Lista global de usuários para o Painel do Dono (0C §2.3) — NUNCA expõe o hash.
+export function listUsers(): { id: string; email: string; name: string; role: string; orgId: string }[] {
+  return USERS.map((u) => ({ id: u.id, email: u.email, name: u.name, role: u.role, orgId: u.orgId }));
+}
+
 export async function authenticate(email: string, password: string): Promise<Omit<SessionUser, "exp"> | null> {
   const user = USERS.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
   if (!user) return null;
