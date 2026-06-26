@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { orgEntitlements, isModuleEntitled } from "@/server/domain/store";
-import { listTools, invokeTool } from "./tools";
+import { listTools, invokeTool, permissionMatrix, ROLES_ORDER } from "./tools";
 
 // 0C §4.4 / 0D §3 — acesso = papel E plano.
 const RADAR_PLAN = ["radar", "structure", "copilot", "whatsapp"]; // plan-radar (sem oportunidades/execução)
@@ -32,5 +32,15 @@ describe("entitlements (acesso = papel E plano)", () => {
     expect(denied.ok).toBe(false);
     const allowed = invokeTool("radar:read", {}, { role: "manager", userName: "Ana", entitlements: RADAR_PLAN });
     expect(allowed.ok).toBe(true);
+  });
+
+  it("permissionMatrix (0C §2.10) reflete o RBAC das tools", () => {
+    const m = permissionMatrix();
+    expect(m.length).toBeGreaterThan(0);
+    const exec = m.find((r) => r.id === "execution:start")!;
+    expect(exec.roles.manager).toBe(true);
+    expect(exec.roles.viewer).toBe(false);
+    expect(m.find((r) => r.id === "opportunities:read")!.roles.viewer).toBe(true);
+    expect(ROLES_ORDER).toContain("platform_owner");
   });
 });

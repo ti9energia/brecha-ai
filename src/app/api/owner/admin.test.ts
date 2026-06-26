@@ -15,7 +15,8 @@ import { POST as impersonate } from "./tenants/[id]/impersonate/route";
 import { PUT as putLanding } from "./landing/route";
 import { GET as getBilling } from "./billing/route";
 import { POST as payInvoice } from "./billing/[id]/pay/route";
-import { listTenants, getLandingContent, listInvoices } from "@/server/domain/store";
+import { PUT as putConfig } from "./tenants/[id]/config/route";
+import { listTenants, getLandingContent, listInvoices, getTenantConfig } from "@/server/domain/store";
 
 const owner: Omit<SessionUser, "exp"> = {
   sub: "u-owner", email: "owner@brecha.ai", name: "Dono", role: "platform_owner", orgId: "org-acme",
@@ -109,5 +110,15 @@ describe("/api/owner/* — admin CRUD", () => {
     const res = await payInvoice(req(`billing/${open!.id}/pay`, "POST"), { params: Promise.resolve({ id: open!.id }) });
     expect(res.status).toBe(200);
     expect((await res.json()).data.status).toBe("paid");
+  });
+
+  it("config por tenant (0C §2.8/2.9): 403 para member; owner edita persona/WhatsApp", async () => {
+    const id = listTenants()[0].id;
+    h.token = await signSession({ ...owner, role: "member" });
+    expect((await putConfig(req(`tenants/${id}/config`, "PUT", { aiPersona: "X" }), { params: Promise.resolve({ id }) })).status).toBe(403);
+    h.token = await signSession(owner);
+    const res = await putConfig(req(`tenants/${id}/config`, "PUT", { aiPersona: "Nova", whatsapp: "+5511" }), { params: Promise.resolve({ id }) });
+    expect(res.status).toBe(200);
+    expect(getTenantConfig(id).aiPersona).toBe("Nova");
   });
 });

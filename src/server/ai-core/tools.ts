@@ -45,6 +45,19 @@ export const TOOLS: Tool[] = [
   { id: "savings:read", module: "savings", description: "Lê a economia capturada e a base do success fee.", permission: ALL, input: {}, run: () => getSavings() },
 ];
 
+// Ordem dos papéis (do menor ao maior privilégio) para a matriz de permissões (0C §2.10).
+export const ROLES_ORDER: Role[] = ["viewer", "member", "manager", "org_admin", "platform_owner"];
+
+/** Matriz de permissões (0C §2.10): por tool (recurso:ação), quais papéis podem
+ *  invocar. Derivada da fonte da verdade (TOOLS) — o que a UI/API/IA/WhatsApp usam. */
+export function permissionMatrix(): { id: string; module: string; roles: Record<Role, boolean> }[] {
+  return TOOLS.map((t) => ({
+    id: t.id,
+    module: t.module,
+    roles: Object.fromEntries(ROLES_ORDER.map((r) => [r, t.permission.includes(r)])) as Record<Role, boolean>,
+  }));
+}
+
 /** Tools que um papel pode ver/usar (0A §2.8 — permissão-aware) e que o PLANO libera
  *  (0C §4.4: acesso = papel E plano). Sem `entitlements`, filtra só por papel. */
 export function listTools(role: Role, entitlements?: string[]): Tool[] {
