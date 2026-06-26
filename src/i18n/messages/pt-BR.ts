@@ -543,6 +543,13 @@ const messages = {
     ranEmpty: "Nenhuma ação nova — tudo sob controle.",
     runError: "Não foi possível rodar o agente agora.",
     dismissed: "Recomendação dispensada",
+    recWindowTitle: "Janela fechando: {title}",
+    recWindowBody: "Fecha em {days} dia(s). Ganho estimado em risco — disparada por {ref}.",
+    recNewTitle: "Nova brecha: {title}",
+    recGapTitle: "Perfil incompleto reduz a precisão",
+    recGapBody: "Estrutura {pct}% completa. Complete o perfil para simulações mais precisas.",
+    recReconcileTitle: "Conciliar {amount} para fechar o success fee",
+    recReconcileBody: "{count} registro(s) de economia aguardam conciliação bancária para entrar na base do success fee.",
   },
 
   owner: {

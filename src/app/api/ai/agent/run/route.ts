@@ -18,15 +18,16 @@ export async function POST(req: Request) {
   const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!session) return fail("UNAUTHENTICATED", "auth.unauthenticated", 401);
 
-  const recs = agentRun();
+  // Locale do usuário (corpo do POST) → recomendações nos 4 idiomas (00-PADRÃO §6).
+  const body = (await req.json().catch(() => ({}))) as { locale?: string };
+  const locale = resolveLocale(body?.locale);
+  const recs = agentRun(new Date(), locale);
 
   // Refino OPCIONAL pelo Claude estruturado (0A §2.1): sem ANTHROPIC_API_KEY, a fila já
   // está pronta (determinística). Com chave, o modelo reescreve a jogada de cada brecha
   // nova (linguagem/justificativa) no idioma do usuário — os NÚMEROS da simulação ficam
   // intactos (não inventa valores). Falha por brecha cai na versão determinística.
   if (anthropicProvider.available()) {
-    const body = (await req.json().catch(() => ({}))) as { locale?: string };
-    const locale = resolveLocale(body?.locale);
     const st = getStructure();
     for (const r of recs) {
       if (r.kind !== "new_opportunity" || !r.opportunityId) continue;

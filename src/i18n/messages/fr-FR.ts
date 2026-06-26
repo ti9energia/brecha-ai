@@ -538,6 +538,13 @@ const messages: Deep<Messages> = {
     ranEmpty: "Rien de nouveau — tout est sous contrôle.",
     runError: "Impossible de lancer l'agent pour le moment.",
     dismissed: "Recommandation ignorée",
+    recWindowTitle: "Fenêtre qui se ferme : {title}",
+    recWindowBody: "Se ferme dans {days} jour(s). Gain estimé en jeu — déclenchée par {ref}.",
+    recNewTitle: "Nouvelle brèche : {title}",
+    recGapTitle: "Un profil incomplet réduit la précision",
+    recGapBody: "Structure complète à {pct}%. Complétez le profil pour des simulations plus précises.",
+    recReconcileTitle: "Rapprocher {amount} pour clôturer le success fee",
+    recReconcileBody: "{count} enregistrement(s) d'économie en attente de rapprochement bancaire pour entrer dans la base du success fee.",
   },
 
   owner: {
