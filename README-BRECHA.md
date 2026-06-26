@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/ti9energia/brecha-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ti9energia/brecha-ai/actions/workflows/ci.yml)
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fti9energia%2Fbrecha-ai&project-name=brecha-ai&repository-name=brecha-ai)
-&nbsp;`Next.js 15` · `TypeScript` · `Tailwind v4` · `77 testes` · `4 idiomas` · `PWA`
+&nbsp;`Next.js 15` · `TypeScript` · `Tailwind v4` · `Prisma` · `140 testes` · `4 idiomas` · `PWA`
 
 > **Detecta a janela. Simula a jogada. Executa antes de fechar.**
 > Plataforma SaaS premium construída de ponta a ponta a partir das specs (`08-Brecha-ai.md` + arquitetura transversal `0A`/`0B`/`0C`/`0D`).
