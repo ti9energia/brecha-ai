@@ -23,3 +23,27 @@ export function trainingSnapshot(): TrainingSnapshot {
     readyForCuration: s.total >= 50, // limiar ilustrativo p/ disparar curadoria
   };
 }
+
+// Pipeline de treino (0A §2.7): coleta → curadoria → eval → versionamento. Valores
+// derivados de forma determinística do feedback (demo). SWAP: finetune real + eval
+// em holdout + rollout canário com rollback.
+export interface TrainingPipeline {
+  snapshot: TrainingSnapshot;
+  curated: number; // 👍 viram exemplos positivos curados
+  evalScore: number; // 0..1 (holdout)
+  version: string; // modelo@vN proposto
+  status: "collecting" | "ready_to_train" | "evaluated";
+}
+
+export function trainingPipeline(): TrainingPipeline {
+  const snapshot = trainingSnapshot();
+  const curated = Math.round(snapshot.total * snapshot.approvalRate);
+  const evalScore = Math.min(0.99, snapshot.approvalRate * 0.9 + (Math.min(snapshot.total, 200) / 200) * 0.1);
+  const version = `brecha-fiscal@v${1 + Math.floor(snapshot.total / 100)}`;
+  const status: TrainingPipeline["status"] = !snapshot.readyForCuration
+    ? "collecting"
+    : evalScore >= 0.7
+      ? "evaluated"
+      : "ready_to_train";
+  return { snapshot, curated, evalScore, version, status };
+}
