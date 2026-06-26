@@ -2,9 +2,14 @@
 // Cérebro de domínio (fallback determinístico do AI Core). Sem chamada externa:
 // consulta os DADOS REAIS do tenant e responde com números corretos + ações.
 // É o que roda quando não há ANTHROPIC_API_KEY — instantâneo e útil.
+//
+// 4 IDIOMAS (00-PADRÃO §6.7e / 0A DoD b / 0B DoD f): as respostas vêm do catálogo
+// i18n (namespace `brain`) no locale do usuário; a detecção de intenção usa palavras-
+// chave nos 4 idiomas (pt/en/zh/fr).
 // ─────────────────────────────────────────────────────────────────────────────
 import { copilotContext, listOpportunities, opportunitiesSummary, daysUntil } from "../domain/store";
 import { localeMeta, type Locale } from "@/i18n/config";
+import { getT } from "@/i18n/server";
 
 export interface CopilotAction {
   label: string;
@@ -31,7 +36,17 @@ function money(value: number, locale: Locale, compact = true) {
   }).format(value);
 }
 
-const PT = (l: Locale) => l === "pt-BR";
+// Palavras-chave por intenção, nos 4 idiomas (match em substring lowercase). Assim
+// um usuário em zh/fr é entendido — não só pt/en.
+const KW = {
+  savings: ["economi", "captur", "saving", "fee", "quanto", "经济", "节省", "已实现", "费用", "多少", "économ", "capté", "réalisé", "combien", "frais"],
+  closing: ["fech", "urgent", "prazo", "closing", "expir", "关闭", "紧急", "截止", "即将", "ferme", "échéance", "expire", "délai"],
+  biggest: ["maior", "melhor", "biggest", "best", "ganho", "jogada", "play", "最大", "最佳", "收益", "方案", "plus grand", "meilleur", "gain", "coup"],
+  simulate: ["simul", "cenário", "scenario", "regime", "lucro real", "presumido", "模拟", "情景", "税制", "scénario", "régime"],
+  structure: ["estrutura", "structure", "regime atual", "cnpj", "perfil", "结构", "架构", "档案", "profil"],
+  list: ["oportunidad", "abert", "opportunit", "open", "janela", "window", "lista", "quais", "what", "机会", "窗口", "列表", "哪些", "fenêtre", "ouvert", "liste", "quel"],
+};
+const matches = (m: string, kws: string[]) => kws.some((k) => m.includes(k));
 
 export function domainBrain(message: string, locale: Locale): CopilotReply {
   const m = message.toLowerCase();
@@ -39,86 +54,87 @@ export function domainBrain(message: string, locale: Locale): CopilotReply {
   const summary = opportunitiesSummary();
   const top = listOpportunities({ sort: "gain" });
   const urgent = listOpportunities({ sort: "deadline" }).filter((o) => daysUntil(o.windowEnd) <= 21);
-  const pt = PT(locale);
-
-  const has = (...kw: string[]) => kw.some((k) => m.includes(k));
+  const t = getT(locale, "brain");
+  const pct = (v: number) => (v * 100).toFixed(0);
+  const model = "Cérebro local";
 
   // ── economia capturada / success fee ──
-  if (has("economi", "captur", "saving", "fee", "quanto")) {
+  if (matches(m, KW.savings)) {
     const s = ctx.savings;
-    const text = pt
-      ? `Até agora você capturou **${money(s.realizedYtd, locale)}** em economia realizada no ano. Há **${money(s.inExecution, locale)}** ainda em execução e o projetado para 12 meses é **${money(s.projected12m, locale)}**. O success fee sobre a base conciliada é de **${money(s.feeDue, locale, false)}** (${(s.feeRate * 100).toFixed(0)}%).`
-      : `So far you've captured **${money(s.realizedYtd, locale)}** in realized savings this year, with **${money(s.inExecution, locale)}** still in execution and **${money(s.projected12m, locale)}** projected over 12 months. The success fee on the reconciled base is **${money(s.feeDue, locale, false)}** (${(s.feeRate * 100).toFixed(0)}%).`;
-    return { text, sources: [{ ref: "SavingsRecord · conciliação" }], actions: [{ label: pt ? "Abrir economia capturada" : "Open captured savings", module: "savings" }], model: "Cérebro local" };
+    return {
+      text: t("savings", {
+        realized: money(s.realizedYtd, locale), inExec: money(s.inExecution, locale),
+        projected: money(s.projected12m, locale), feeDue: money(s.feeDue, locale, false), feeRate: pct(s.feeRate),
+      }),
+      sources: [{ ref: "SavingsRecord · conciliação" }],
+      actions: [{ label: t("savingsAction"), module: "savings" }],
+      model,
+    };
   }
 
   // ── janelas fechando / urgência ──
-  if (has("fech", "urgent", "prazo", "closing", "expir")) {
+  if (matches(m, KW.closing)) {
     const u = urgent[0];
     if (!u) {
-      const text = pt
-        ? `Nenhuma janela fechando nos próximos 21 dias. Você tem **${summary.openWindows}** janela(s) aberta(s) com mais folga — quer ver as de maior ganho?`
-        : `No windows closing within the next 21 days. You have **${summary.openWindows}** open window(s) with more runway — want to see the highest-gain ones?`;
-      return { text, sources: [], actions: [{ label: pt ? "Ver oportunidades" : "View opportunities", module: "opportunities" }], model: "Cérebro local" };
+      return { text: t("closingNone", { open: String(summary.openWindows) }), sources: [], actions: [{ label: t("closingNoneAction"), module: "opportunities" }], model };
     }
-    const text = pt
-      ? `Há **${urgent.length}** janela(s) fechando em até 21 dias. A mais urgente é **${u.title}** — fecha em **${u.daysRemaining} dias**, com ganho estimado de **${money(u.estimatedGain, locale)}/ano**. Disparada por ${u.norm.source.ref}.`
-      : `There are **${urgent.length}** window(s) closing within 21 days. The most urgent is **${u.title}** — closes in **${u.daysRemaining} days**, estimated gain **${money(u.estimatedGain, locale)}/yr**. Triggered by ${u.norm.source.ref}.`;
-    return { text, sources: [{ ref: u.norm.source.ref, url: u.norm.source.url }], actions: [{ label: pt ? "Ver a jogada" : "View the play", module: "opportunity", params: { id: u.id } }, { label: pt ? "Ver todas" : "View all", module: "opportunities" }], model: "Cérebro local" };
+    return {
+      text: t("closingSome", { count: String(urgent.length), title: u.title, days: String(u.daysRemaining), gain: money(u.estimatedGain, locale), source: u.norm.source.ref }),
+      sources: [{ ref: u.norm.source.ref, url: u.norm.source.url }],
+      actions: [{ label: t("viewPlay"), module: "opportunity", params: { id: u.id } }, { label: t("viewAll"), module: "opportunities" }],
+      model,
+    };
   }
 
   // ── maior ganho / melhor jogada ──
-  if (has("maior", "melhor", "biggest", "best", "ganho", "jogada", "play")) {
+  if (matches(m, KW.biggest)) {
     const o = top[0];
     if (!o) {
-      const text = pt
-        ? `No momento não há nenhuma janela aberta. O radar segue varrendo os diários oficiais — você é avisado assim que uma brecha abrir.`
-        : `There are no open windows right now. The radar keeps sweeping the official gazettes — you'll be alerted the moment one opens.`;
-      return { text, sources: [], actions: [{ label: pt ? "Ver radar normativo" : "View regulatory radar", module: "radar" }], model: "Cérebro local" };
+      return { text: t("biggestNone"), sources: [], actions: [{ label: t("viewRadar"), module: "radar" }], model };
     }
-    const text = pt
-      ? `A jogada de maior ganho aberta é **${o.title}**, com **${money(o.estimatedGain, locale)}/ano**. Recomendação: ${o.recommendedMove.headline}. Confiança de ${(o.confidence * 100).toFixed(0)}% sobre ${o.correlatedNorms} normas correlatas.`
-      : `The highest-gain open play is **${o.title}**, at **${money(o.estimatedGain, locale)}/yr**. Recommendation: ${o.recommendedMove.headline}. Confidence ${(o.confidence * 100).toFixed(0)}% across ${o.correlatedNorms} correlated norms.`;
-    return { text, sources: [{ ref: o.norm.source.ref, url: o.norm.source.url }], actions: [{ label: pt ? "Abrir detalhe" : "Open detail", module: "opportunity", params: { id: o.id } }, { label: pt ? "Simular variações" : "Simulate variations", module: "simulator", params: { from: o.id } }], model: "Cérebro local" };
+    return {
+      text: t("biggestSome", { title: o.title, gain: money(o.estimatedGain, locale), headline: o.recommendedMove.headline, confidence: pct(o.confidence), norms: String(o.correlatedNorms) }),
+      sources: [{ ref: o.norm.source.ref, url: o.norm.source.url }],
+      actions: [{ label: t("openDetail"), module: "opportunity", params: { id: o.id } }, { label: t("simulateVariations"), module: "simulator", params: { from: o.id } }],
+      model,
+    };
   }
 
   // ── simular ──
-  if (has("simul", "cenário", "scenario", "regime", "lucro real", "presumido")) {
-    const text = pt
-      ? `Posso simular a reorganização no motor fiscal. Abra o simulador e ajuste regime, jurisdição e enquadramento — o cálculo do antes/depois é determinístico. Quer que eu já abra com o cenário SUDENE (maior economia projetada)?`
-      : `I can simulate the restructuring in the fiscal engine. Open the simulator and adjust regime, jurisdiction and classification — the before/after is deterministic. Want me to open it with the SUDENE scenario (largest projected saving)?`;
-    return { text, sources: [], actions: [{ label: pt ? "Abrir simulador" : "Open simulator", module: "simulator" }], model: "Cérebro local" };
+  if (matches(m, KW.simulate)) {
+    return { text: t("simulate"), sources: [], actions: [{ label: t("openSimulator"), module: "simulator" }], model };
   }
 
   // ── estrutura ──
-  if (has("estrutura", "structure", "regime atual", "cnpj", "perfil")) {
+  if (matches(m, KW.structure)) {
     const st = ctx.structure;
-    const text = pt
-      ? `A ${st.legalName} está no **${st.regime}**, com sede em ${st.headquarters}, faturamento de **${money(st.annualRevenue, locale)}/ano** e atuação em ${st.jurisdictions.join(", ")}. O perfil está ${(st.completeness * 100).toFixed(0)}% completo — quanto mais completo, mais precisa a simulação.`
-      : `${st.legalName} is on **${st.regime}**, HQ in ${st.headquarters}, revenue **${money(st.annualRevenue, locale)}/yr**, operating across ${st.jurisdictions.join(", ")}. The profile is ${(st.completeness * 100).toFixed(0)}% complete — the more complete, the sharper the simulation.`;
-    return { text, sources: [], actions: [{ label: pt ? "Abrir minha estrutura" : "Open my structure", module: "structure" }], model: "Cérebro local" };
+    return {
+      text: t("structure", { legalName: st.legalName, regime: st.regime, hq: st.headquarters, revenue: money(st.annualRevenue, locale), jurisdictions: st.jurisdictions.join(", "), completeness: pct(st.completeness) }),
+      sources: [],
+      actions: [{ label: t("openStructure"), module: "structure" }],
+      model,
+    };
   }
 
   // ── oportunidades abertas (e fallback de "lista") ──
-  if (has("oportunidad", "abert", "opportunit", "open", "janela", "window", "lista", "quais", "what")) {
-    const list = top.slice(0, 3).map((o, i) => `${i + 1}. **${o.title}** — ${money(o.estimatedGain, locale)}/ano · fecha em ${o.daysRemaining}d`).join("\n");
-    const text = pt
-      ? `Você tem **${summary.openWindows}** janelas abertas, somando **${money(summary.openGain, locale)}** em ganho potencial. As maiores:\n\n${list}`
-      : `You have **${summary.openWindows}** open windows totaling **${money(summary.openGain, locale)}** in potential gain. The largest:\n\n${list}`;
-    return { text, sources: top.slice(0, 3).map((o) => ({ ref: o.norm.source.ref, url: o.norm.source.url })), actions: [{ label: pt ? "Abrir oportunidades" : "Open opportunities", module: "opportunities" }], model: "Cérebro local" };
+  if (matches(m, KW.list)) {
+    const list = top.slice(0, 3).map((o, i) => t("listItem", { n: String(i + 1), title: o.title, gain: money(o.estimatedGain, locale), days: String(o.daysRemaining) })).join("\n");
+    return {
+      text: `${t("listIntro", { open: String(summary.openWindows), gain: money(summary.openGain, locale) })}\n\n${list}`,
+      sources: top.slice(0, 3).map((o) => ({ ref: o.norm.source.ref, url: o.norm.source.url })),
+      actions: [{ label: t("openOpportunities"), module: "opportunities" }],
+      model,
+    };
   }
 
   // ── saudação / ajuda / fallback ──
-  const text = pt
-    ? `Sou a Vega, seu copiloto regulatório. Conheço cada janela aberta para a ${ctx.structure.legalName}, sei simular a jogada e calcular a economia. Você tem **${summary.openWindows}** oportunidades abertas (${money(summary.openGain, locale)}). Pergunte, por exemplo: "qual a jogada de maior ganho?" ou "quais janelas estão fechando?".`
-    : `I'm Vega, your regulatory copilot. I know every open window for ${ctx.structure.legalName}, can simulate the play and compute the savings. You have **${summary.openWindows}** open opportunities (${money(summary.openGain, locale)}). Try: "what's the highest-gain play?" or "which windows are closing?".`;
   return {
-    text,
+    text: t("greeting", { legalName: ctx.structure.legalName, open: String(summary.openWindows), gain: money(summary.openGain, locale) }),
     sources: [],
     actions: [
-      { label: pt ? "Oportunidades" : "Opportunities", module: "opportunities" },
-      { label: pt ? "Economia" : "Savings", module: "savings" },
+      { label: t("opportunities"), module: "opportunities" },
+      { label: t("savingsShort"), module: "savings" },
     ],
-    model: "Cérebro local",
+    model,
   };
 }

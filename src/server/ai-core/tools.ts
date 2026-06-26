@@ -11,7 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import {
   listOpportunities, listRadar, getStructure, updateStructure, runScenario, approveExecution, getSavings,
-  recordAiAction,
+  recordAiAction, isModuleEntitled,
 } from "@/server/domain/store";
 import type { SessionUser } from "@/server/auth/session";
 
@@ -23,6 +23,7 @@ const WRITERS: Role[] = ["manager", "org_admin", "platform_owner"]; // aprovam/e
 export interface ToolContext {
   role: Role;
   userName: string;
+  entitlements?: string[]; // módulos liberados pelo plano (0C §4.4) — opcional p/ retrocompat
 }
 export interface Tool {
   id: string; // "recurso:ação"
@@ -44,9 +45,10 @@ export const TOOLS: Tool[] = [
   { id: "savings:read", module: "savings", description: "Lê a economia capturada e a base do success fee.", permission: ALL, input: {}, run: () => getSavings() },
 ];
 
-/** Tools que um papel pode ver/usar (0A §2.8 — permissão-aware). */
-export function listTools(role: Role): Tool[] {
-  return TOOLS.filter((t) => t.permission.includes(role));
+/** Tools que um papel pode ver/usar (0A §2.8 — permissão-aware) e que o PLANO libera
+ *  (0C §4.4: acesso = papel E plano). Sem `entitlements`, filtra só por papel. */
+export function listTools(role: Role, entitlements?: string[]): Tool[] {
+  return TOOLS.filter((t) => t.permission.includes(role) && (!entitlements || isModuleEntitled(t.module, entitlements)));
 }
 
 export type ToolResult =
@@ -62,6 +64,10 @@ export function invokeTool(id: string, input: Record<string, unknown>, ctx: Tool
   }
   if (!tool.permission.includes(ctx.role)) {
     recordAiAction({ actor: ctx.userName, action: `tool:${id}`, detail: `negada (papel ${ctx.role})` });
+    return { ok: false, error: "FORBIDDEN" };
+  }
+  if (ctx.entitlements && !isModuleEntitled(tool.module, ctx.entitlements)) {
+    recordAiAction({ actor: ctx.userName, action: `tool:${id}`, detail: `negada (plano não inclui ${tool.module})` });
     return { ok: false, error: "FORBIDDEN" };
   }
   const data = tool.run(input, ctx);
