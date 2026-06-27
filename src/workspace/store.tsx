@@ -13,6 +13,7 @@ export type ModuleId =
   | "settings"
   | "agent"
   | "clients"
+  | "client"
   | "owner";
 
 export interface Tab {
@@ -77,7 +78,7 @@ export function initial(defaultModule: ModuleId = "opportunities"): WorkspaceSta
 const STORAGE_KEY = "brecha-workspace-v1";
 const VALID_MODULES: ReadonlySet<string> = new Set<ModuleId>([
   "opportunities", "opportunity", "radar", "structure", "simulator",
-  "execution", "savings", "settings", "agent", "clients", "owner",
+  "execution", "savings", "settings", "agent", "clients", "client", "owner",
 ]);
 
 function persist(state: WorkspaceState) {

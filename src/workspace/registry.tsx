@@ -6,7 +6,7 @@ import {
 import type { ModuleId, Tab } from "./store";
 import type { AccountType } from "./session";
 import type { Translator } from "@/i18n/translate";
-import { getOpportunity } from "@/server/domain/store";
+import { getOpportunity, getFirmClient } from "@/server/domain/store";
 
 export interface ViewProps {
   params?: Record<string, string>;
@@ -38,6 +38,7 @@ const SettingsView = lazy(() => import("./views/SettingsView").then((m) => ({ de
 const AgentView = lazy(() => import("./views/AgentView").then((m) => ({ default: m.AgentView })));
 const OwnerView = lazy(() => import("./views/OwnerView").then((m) => ({ default: m.OwnerView })));
 const ClientsView = lazy(() => import("./views/ClientsView").then((m) => ({ default: m.ClientsView })));
+const ClientDetailView = lazy(() => import("./views/ClientDetailView").then((m) => ({ default: m.ClientDetailView })));
 
 // Atalhos de perfil (definidos em users.ts/sessão).
 const PRODUCT: AccountType[] = ["company", "firm"]; // abas de produto: autônomo e escritório
@@ -55,6 +56,7 @@ export interface ModuleDef {
 export const MODULES: ModuleDef[] = [
   // Escritório: a carteira de clientes é o hub — primeira aba.
   { id: "clients", navKey: "clients", icon: Briefcase, component: ClientsView, group: "product", personas: ["firm"] },
+  { id: "client", navKey: "clientDetail", icon: Briefcase, component: ClientDetailView, group: "product", railHidden: true, personas: ["firm"] },
   { id: "opportunities", navKey: "opportunities", icon: Crosshair, component: OpportunitiesView, group: "product", personas: PRODUCT },
   { id: "opportunity", navKey: "detail", icon: FileText, component: OpportunityDetailView, group: "product", railHidden: true, personas: PRODUCT },
   { id: "radar", navKey: "radar", icon: Radar, component: RadarView, group: "product", personas: PRODUCT },
@@ -88,6 +90,9 @@ export function tabTitle(tab: Tab, tNav: Translator): string {
   if (tab.title) return tab.title;
   if (tab.module === "opportunity" && tab.params?.id) {
     return getOpportunity(tab.params.id)?.title ?? tNav("detail");
+  }
+  if (tab.module === "client" && tab.params?.id) {
+    return getFirmClient(tab.params.id)?.name ?? tNav("clientDetail");
   }
   return tNav(MODULE_MAP[tab.module].navKey);
 }

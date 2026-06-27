@@ -138,6 +138,7 @@ const messages: Deep<Messages> = {
     owner: "所有者面板",
     agent: "智能体",
     clients: "客户",
+    clientDetail: "客户",
     detail: "详情",
     product: "产品",
     intelligence: "情报",
@@ -575,6 +576,14 @@ const messages: Deep<Messages> = {
     status_active: "活跃",
     status_onboarding: "入驻中",
     status_review: "审核中",
+    openClient: "打开 {name}",
+    notFound: "未找到客户。",
+    backToPortfolio: "返回客户组合",
+    potentialGain: "潜在收益",
+    profile: "企业画像",
+    detectedBrechas: "检测到的机会",
+    noBrechas: "暂未为该客户检测到机会。",
+    confidence: "置信度",
   },
 
   owner: {
