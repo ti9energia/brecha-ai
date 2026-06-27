@@ -681,24 +681,62 @@ export interface FirmClient {
   cnpj: string;
   sector: SectorId;
   regime: string;
-  openBrechas: number;
+  mainActivity: string;
+  businessProfile: string; // o que a empresa é — ALIMENTA o detector POR CLIENTE
+  jurisdictions: string[];
+  annualRevenue: number;
+  headquarters: string;
   capturedYtd: number; // R$
   status: "active" | "onboarding" | "review";
 }
 const FIRM_CLIENTS: FirmClient[] = [
-  { id: "fc-1", name: "Metalúrgica Horizonte S.A.", cnpj: "11.222.333/0001-44", sector: "industry", regime: "Lucro Real", openBrechas: 4, capturedYtd: 3_180_000, status: "active" },
-  { id: "fc-2", name: "AgroVale Cooperativa", cnpj: "22.333.444/0001-55", sector: "agribusiness", regime: "Lucro Real", openBrechas: 3, capturedYtd: 1_920_000, status: "active" },
-  { id: "fc-3", name: "TechNova Software Ltda.", cnpj: "33.444.555/0001-66", sector: "tech", regime: "Lucro Presumido", openBrechas: 2, capturedYtd: 740_000, status: "review" },
-  { id: "fc-4", name: "LogPlus Transportes Ltda.", cnpj: "44.555.666/0001-77", sector: "logistics", regime: "Lucro Real", openBrechas: 5, capturedYtd: 2_410_000, status: "active" },
-  { id: "fc-5", name: "SolarOne Energia S.A.", cnpj: "55.666.777/0001-88", sector: "energy", regime: "Lucro Real", openBrechas: 2, capturedYtd: 0, status: "onboarding" },
+  { id: "fc-1", name: "Metalúrgica Horizonte S.A.", cnpj: "11.222.333/0001-44", sector: "industry", regime: "Lucro Real", mainActivity: "Indústria metalúrgica", businessProfile: "Indústria metalúrgica de aço com forte pauta de exportação; linha de equipamentos e estruturas. Apetite por incentivos regionais e crédito de insumos.", jurisdictions: ["SP", "SC"], annualRevenue: 260_000_000, headquarters: "São Paulo / SP", capturedYtd: 3_180_000, status: "active" },
+  { id: "fc-2", name: "AgroVale Cooperativa", cnpj: "22.333.444/0001-55", sector: "agribusiness", regime: "Lucro Real", mainActivity: "Agroindústria", businessProfile: "Cooperativa agroindustrial de processamento e industrialização de grãos, com exportação. Busca crédito de PIS/COFINS sobre insumos e incentivos.", jurisdictions: ["GO", "MG"], annualRevenue: 180_000_000, headquarters: "Rio Verde / GO", capturedYtd: 1_920_000, status: "active" },
+  { id: "fc-3", name: "TechNova Software Ltda.", cnpj: "33.444.555/0001-66", sector: "tech", regime: "Lucro Presumido", mainActivity: "Desenvolvimento de software", businessProfile: "Desenvolvimento de software sob encomenda e P&D; pleiteia incentivos de inovação (Lei do Bem) e ISS reduzido para o domicílio fiscal.", jurisdictions: ["SP"], annualRevenue: 48_000_000, headquarters: "São José dos Campos / SP", capturedYtd: 740_000, status: "review" },
+  { id: "fc-4", name: "LogPlus Transportes Ltda.", cnpj: "44.555.666/0001-77", sector: "logistics", regime: "Lucro Real", mainActivity: "Transporte rodoviário de carga", businessProfile: "Transporte rodoviário de carga interestadual; possui passivo tributário federal a negociar e crédito de ICMS sobre frete.", jurisdictions: ["MG", "SP"], annualRevenue: 95_000_000, headquarters: "Betim / MG", capturedYtd: 2_410_000, status: "active" },
+  { id: "fc-5", name: "SolarOne Energia S.A.", cnpj: "55.666.777/0001-88", sector: "energy", regime: "Lucro Real", mainActivity: "Geração de energia", businessProfile: "Geração de energia solar e projeto de autoprodução de energia para plantas industriais; infraestrutura elegível a regimes de suspensão.", jurisdictions: ["SP", "MG"], annualRevenue: 120_000_000, headquarters: "Campinas / SP", capturedYtd: 0, status: "onboarding" },
 ];
 export function listFirmClients(): FirmClient[] {
   return FIRM_CLIENTS;
 }
+export function getFirmClient(id: string): FirmClient | undefined {
+  return FIRM_CLIENTS.find((c) => c.id === id);
+}
+
+// Deriva um ClientStructure a partir do FirmClient — base p/ o detector rodar POR CLIENTE.
+export function clientStructure(id: string): ClientStructure | null {
+  const c = getFirmClient(id);
+  if (!c) return null;
+  return {
+    legalName: c.name,
+    taxId: c.cnpj,
+    regime: c.regime,
+    mainActivity: c.mainActivity,
+    mainCnae: "00.00-0/00",
+    businessProfile: c.businessProfile,
+    activities: [],
+    jurisdictions: c.jurisdictions,
+    headquarters: c.headquarters,
+    annualRevenue: c.annualRevenue,
+    headcount: Math.max(10, Math.round(c.annualRevenue / 400_000)),
+    entities: [],
+    completeness: 0.7,
+    lastReview: "2026-06-01",
+  };
+}
+
+// As brechas DESTE cliente: o MESMO detector cruza o perfil do cliente com as normas.
+// É a prova de que o motor serve a carteira do escritório, cliente a cliente.
+export function clientBrechas(id: string): Opportunity[] {
+  const st = clientStructure(id);
+  if (!st) return [];
+  return detectOpportunities(st, NORMS);
+}
+
 export function firmPortfolio() {
   return {
     clients: FIRM_CLIENTS.length,
-    openBrechas: FIRM_CLIENTS.reduce((s, c) => s + c.openBrechas, 0),
+    openBrechas: FIRM_CLIENTS.reduce((s, c) => s + clientBrechas(c.id).length, 0),
     capturedYtd: FIRM_CLIENTS.reduce((s, c) => s + c.capturedYtd, 0),
     activeClients: FIRM_CLIENTS.filter((c) => c.status === "active").length,
   };

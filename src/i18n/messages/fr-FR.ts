@@ -133,6 +133,7 @@ const messages: Deep<Messages> = {
     owner: "Tableau de bord propriétaire",
     agent: "Agent",
     clients: "Clients",
+    clientDetail: "Client",
     detail: "Détail",
     product: "Produit",
     intelligence: "Intelligence",
@@ -570,6 +571,14 @@ const messages: Deep<Messages> = {
     status_active: "Actif",
     status_onboarding: "Intégration",
     status_review: "En revue",
+    openClient: "Ouvrir {name}",
+    notFound: "Client introuvable.",
+    backToPortfolio: "Retour au portefeuille",
+    potentialGain: "Gain potentiel",
+    profile: "Profil de l'entreprise",
+    detectedBrechas: "Brèches détectées",
+    noBrechas: "Aucune brèche détectée pour ce client pour le moment.",
+    confidence: "Confiance",
   },
 
   owner: {

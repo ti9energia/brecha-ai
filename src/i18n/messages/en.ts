@@ -138,6 +138,7 @@ const messages: Deep<Messages> = {
     owner: "Owner console",
     agent: "Agent",
     clients: "Clients",
+    clientDetail: "Client",
     detail: "Detail",
     product: "Product",
     intelligence: "Intelligence",
@@ -575,6 +576,14 @@ const messages: Deep<Messages> = {
     status_active: "Active",
     status_onboarding: "Onboarding",
     status_review: "Under review",
+    openClient: "Open {name}",
+    notFound: "Client not found.",
+    backToPortfolio: "Back to portfolio",
+    potentialGain: "Potential gain",
+    profile: "Company profile",
+    detectedBrechas: "Detected openings",
+    noBrechas: "No openings detected for this client right now.",
+    confidence: "Confidence",
   },
 
   owner: {

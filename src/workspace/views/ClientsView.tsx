@@ -1,9 +1,10 @@
 "use client";
 
-import { Briefcase, Users, Crosshair, Coins } from "lucide-react";
-import { listFirmClients, firmPortfolio, getSectors } from "@/server/domain/store";
+import { Briefcase, Users, Crosshair, Coins, ChevronRight } from "lucide-react";
+import { listFirmClients, firmPortfolio, getSectors, clientBrechas } from "@/server/domain/store";
 import type { FirmClient } from "@/server/domain/store";
 import { useFormatter, useTranslations } from "@/i18n/provider";
+import { useWorkspace } from "@/workspace/store";
 import { Chip } from "@/ui/primitives";
 import { ViewScroll, ViewHeader, StatTiles, StatTile, Section } from "./shared";
 import { cn } from "@/ui/cn";
@@ -20,6 +21,7 @@ export function ClientsView() {
   const t = useTranslations("clients");
   const tc = useTranslations("common");
   const fmt = useFormatter();
+  const ws = useWorkspace();
   const clients = listFirmClients();
   const p = firmPortfolio();
   const sectorLabel = Object.fromEntries(getSectors().map((s) => [s.id, s.label]));
@@ -61,22 +63,35 @@ export function ClientsView() {
                   <th className="eyebrow font-normal px-5 py-3 text-right">{t("colBrechas")}</th>
                   <th className="eyebrow font-normal px-5 py-3 text-right">{t("colCaptured")}</th>
                   <th className="eyebrow font-normal px-5 py-3 text-right">{tc("status")}</th>
+                  <th className="px-3 py-3" aria-hidden></th>
                 </tr>
               </thead>
               <tbody>
-                {clients.map((c, i) => (
-                  <tr key={c.id} className={cn("transition-colors hover:bg-surface-2/60", i > 0 && "border-t border-line")}>
-                    <td className="px-5 py-3.5">
-                      <p className="text-sm text-ink font-medium text-pretty">{c.name}</p>
-                      <p className="mono text-xs text-ink-4 tnum">{c.cnpj}</p>
-                    </td>
-                    <td className="px-5 py-3.5"><Chip tone="neutral">{sectorLabel[c.sector] ?? c.sector}</Chip></td>
-                    <td className="px-5 py-3.5"><Chip tone={c.regime === "Lucro Real" ? "gold" : "neutral"}>{c.regime}</Chip></td>
-                    <td className="px-5 py-3.5 text-right tnum text-brand font-medium">{c.openBrechas}</td>
-                    <td className="px-5 py-3.5 text-right text-sm text-positive tnum whitespace-nowrap font-medium">{fmt.money(c.capturedYtd)}</td>
-                    <td className="px-5 py-3.5 text-right"><Chip tone={STATUS_TONE[c.status]}>{t(`status_${c.status}`)}</Chip></td>
-                  </tr>
-                ))}
+                {clients.map((c, i) => {
+                  const open = () => ws.open("client", { id: c.id });
+                  return (
+                    <tr
+                      key={c.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={open}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }}
+                      aria-label={t("openClient", { name: c.name })}
+                      className={cn("cursor-pointer transition-colors hover:bg-surface-2/60 focus:bg-surface-2 focus:outline-none", i > 0 && "border-t border-line")}
+                    >
+                      <td className="px-5 py-3.5">
+                        <p className="text-sm text-ink font-medium text-pretty">{c.name}</p>
+                        <p className="mono text-xs text-ink-4 tnum">{c.cnpj}</p>
+                      </td>
+                      <td className="px-5 py-3.5"><Chip tone="neutral">{sectorLabel[c.sector] ?? c.sector}</Chip></td>
+                      <td className="px-5 py-3.5"><Chip tone={c.regime === "Lucro Real" ? "gold" : "neutral"}>{c.regime}</Chip></td>
+                      <td className="px-5 py-3.5 text-right tnum text-brand font-medium">{clientBrechas(c.id).length}</td>
+                      <td className="px-5 py-3.5 text-right text-sm text-positive tnum whitespace-nowrap font-medium">{fmt.money(c.capturedYtd)}</td>
+                      <td className="px-5 py-3.5 text-right"><Chip tone={STATUS_TONE[c.status]}>{t(`status_${c.status}`)}</Chip></td>
+                      <td className="px-3 py-3.5 text-right text-ink-4"><ChevronRight size={16} className="inline" /></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

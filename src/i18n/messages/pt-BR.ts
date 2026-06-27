@@ -138,6 +138,7 @@ const messages = {
     owner: "Painel do dono",
     agent: "Agente",
     clients: "Clientes",
+    clientDetail: "Cliente",
     detail: "Detalhe",
     product: "Produto",
     intelligence: "Inteligência",
@@ -575,6 +576,14 @@ const messages = {
     status_active: "Ativo",
     status_onboarding: "Onboarding",
     status_review: "Em revisão",
+    openClient: "Abrir {name}",
+    notFound: "Cliente não encontrado.",
+    backToPortfolio: "Voltar à carteira",
+    potentialGain: "Ganho potencial",
+    profile: "Perfil da empresa",
+    detectedBrechas: "Brechas detectadas",
+    noBrechas: "Nenhuma brecha detectada para este cliente agora.",
+    confidence: "Confiança",
   },
 
   owner: {
