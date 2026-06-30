@@ -53,6 +53,9 @@ model Norm {
   sector        String
   tags          String[]
   matched       Boolean
+  // Placeholder para pgvector (Onda 3): serializado como array de floats até
+  // migrarmos para a extensão `vector`. Nullable — normas sem embedding são válidas.
+  embedding     Float[]
   opportunities Opportunity[]
 }
 
@@ -143,6 +146,7 @@ model Tenant {
 
 model Plan {
   id           String   @id
+  planType     String   @default("autonomo") // "autonomo" | "escritorio"
   name         String
   tagline      String
   price        Float

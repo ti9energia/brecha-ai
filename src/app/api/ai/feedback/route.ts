@@ -1,11 +1,12 @@
 import { cookies } from "next/headers";
-import { recordAiFeedback } from "@/server/domain/store";
+import { getRepository } from "@/server/db/repository";
 import { ok, fail } from "@/server/http";
 import { rateLimit } from "@/server/security/rateLimit";
 import { verifySession, SESSION_COOKIE } from "@/server/auth/session";
 
 // POST /api/ai/feedback — 👍/👎 numa resposta do Copiloto (0A §2.9). Captura o
 // sinal para o dataset de treino do AI Core, isolado por tenant (orgId da sessão).
+// Passado pelo seam do repositório (0D §2) — em produção persiste no Postgres.
 export async function POST(req: Request) {
   const limited = rateLimit(req, "ai-feedback", { max: 60, windowMs: 60_000 });
   if (limited) return limited;
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
   const locale = typeof body?.locale === "string" ? body.locale.slice(0, 10) : "pt-BR";
   const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
 
-  const stats = recordAiFeedback({
+  const stats = await getRepository().recordAiFeedback({
     rating,
     message,
     locale,
