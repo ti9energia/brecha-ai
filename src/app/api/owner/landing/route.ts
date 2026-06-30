@@ -1,4 +1,4 @@
-import { getLandingContent, updateLandingContent } from "@/server/domain/store";
+﻿import { getLandingContent, updateLandingContent } from "@/server/domain/store";
 import { isLocale } from "@/i18n/config";
 import { ok, fail } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const limited = rateLimit(req, "owner-landing", { max: 30, windowMs: 60_000 });
+  const limited = await rateLimit(req, "owner-landing", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
   const gate = await requireRole("platform_owner");
   if (gate.error) return gate.error;

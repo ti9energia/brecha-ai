@@ -1,4 +1,4 @@
-import { listUsers, createUser } from "@/server/auth/users";
+﻿import { listUsers, createUser } from "@/server/auth/users";
 import { ok, fail } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -13,7 +13,7 @@ export async function GET() {
 
 // POST /api/owner/users — criar novo usuário (0C §2.3).
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "owner-users-write", { max: 20, windowMs: 60_000 });
+  const limited = await rateLimit(req, "owner-users-write", { max: 20, windowMs: 60_000 });
   if (limited) return limited;
   const gate = await requireRole("platform_owner");
   if (gate.error) return gate.error;

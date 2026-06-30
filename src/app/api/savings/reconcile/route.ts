@@ -1,4 +1,4 @@
-import { getRepository } from "@/server/db/repository";
+﻿import { getRepository } from "@/server/db/repository";
 import { ok, fail } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -8,7 +8,7 @@ import { rateLimit } from "@/server/security/rateLimit";
 // à aprovação de execução. Idempotente: já conciliado / inexistente → 404.
 // Passado pelo seam do repositório (0D §2) — sem DATABASE_URL usa in-memory.
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "reconcile", { max: 20, windowMs: 60_000 });
+  const limited = await rateLimit(req, "reconcile", { max: 20, windowMs: 60_000 });
   if (limited) return limited;
 
   const gate = await requireRole("manager", "org_admin", "platform_owner");

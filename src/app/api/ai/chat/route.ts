@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+﻿import { cookies } from "next/headers";
 import { aiChat } from "@/server/ai-core";
 import { resolveLocale } from "@/i18n/config";
 import { ok, fail } from "@/server/http";
@@ -16,11 +16,11 @@ type ChatMsg = { role: "user" | "assistant"; content: string };
 export async function POST(req: Request) {
   // Limite por IP (coarse) + por usuário (o custo da Anthropic é por conta, então
   // o teto que importa é o do usuário — resiste à rotação de IP).
-  const limited = rateLimit(req, "ai-chat", { max: 30, windowMs: 60_000 });
+  const limited = await rateLimit(req, "ai-chat", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
   const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
   if (session) {
-    const byUser = rateLimitBy(session.sub, "ai-chat-user", { max: 30, windowMs: 60_000 });
+    const byUser = await rateLimitBy(session.sub, "ai-chat-user", { max: 30, windowMs: 60_000 });
     if (byUser) return byUser;
   }
 

@@ -1,71 +1,51 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Rate-limit por IP+rota (janela fixa, in-memory). Dependency-free.
+// Rate-limit por IP+rota (janela fixa). Usa getKV().incr() para ser multi-
+// instância safe: com KV_URL+KV_TOKEN usa Upstash; sem env var usa Map in-memory.
 //
-// Produção multi-instância: o `store` in-memory não é partilhado entre lambdas.
-// Para limite global consistente, migre para `rateLimit` async via KVStore (Onda 6):
-//   const count = await getKV().incr(`rl:${bucket}:${ip}`, 1, windowMs);
-// Por enquanto, o limite in-memory protege contra abusos numa única instância.
+// Todas as funções são async — os callers devem `await rateLimit(...)`.
 // ─────────────────────────────────────────────────────────────────────────────
 import { NextResponse } from "next/server";
-
-interface Bucket {
-  count: number;
-  resetAt: number;
-}
-const store = new Map<string, Bucket>();
+import { getKV } from "@/server/kv/kvStore";
 
 // NOTA de confiança: atrás de um proxy gerenciado (Vercel), x-forwarded-for é
 // definido pela plataforma. Um cliente direto pode forjá-lo — por isso rotas
 // sensíveis também limitam por sujeito (e-mail/usuário) via `rateLimitBy`, o que
-// não depende do IP. Em produção multi-instância, trocar o `store` por KV.
+// não depende do IP.
 function clientIp(req: Request): string {
   const xff = req.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0].trim();
   return req.headers.get("x-real-ip") ?? "unknown";
 }
 
-function prune(now: number) {
-  if (store.size < 5000) return;
-  for (const [k, b] of store) if (now > b.resetAt) store.delete(k);
-}
-
-function tooMany(resetAt: number, now: number): NextResponse {
-  const retry = Math.max(1, Math.ceil((resetAt - now) / 1000));
+function tooMany(windowMs: number): NextResponse {
+  const retry = Math.max(1, Math.ceil(windowMs / 1000));
   return NextResponse.json(
     { data: null, meta: null, error: { code: "RATE_LIMITED", messageKey: "errors.rate_limited" } },
-    { status: 429, headers: { "Retry-After": String(retry), "X-RateLimit-Reset": String(resetAt) } },
+    { status: 429, headers: { "Retry-After": String(retry) } },
   );
 }
 
-/** Núcleo: incrementa o bucket `key`; retorna 429 quando estoura, ou null para seguir. */
-function hit(key: string, opts: { max: number; windowMs: number }): NextResponse | null {
-  const now = Date.now();
-  prune(now);
-  const b = store.get(key);
-
-  if (!b || now > b.resetAt) {
-    store.set(key, { count: 1, resetAt: now + opts.windowMs });
-    return null;
-  }
-  if (b.count >= opts.max) return tooMany(b.resetAt, now);
-  b.count++;
+/** Núcleo: incrementa o bucket via KV; retorna 429 quando estoura, ou null. */
+async function hit(key: string, opts: { max: number; windowMs: number }): Promise<NextResponse | null> {
+  const count = await getKV().incr(key, 1, opts.windowMs);
+  if (count > opts.max) return tooMany(opts.windowMs);
   return null;
 }
 
 /** Limite por IP+rota. Coarse — combine com `rateLimitBy` em rotas sensíveis. */
-export function rateLimit(
+export async function rateLimit(
   req: Request,
   bucket: string,
   opts: { max: number; windowMs: number },
-): NextResponse | null {
+): Promise<NextResponse | null> {
   return hit(`${bucket}:${clientIp(req)}`, opts);
 }
 
 /** Limite por sujeito (e-mail, id de usuário) — resiste à rotação de IP. */
-export function rateLimitBy(
+export async function rateLimitBy(
   subject: string,
   bucket: string,
   opts: { max: number; windowMs: number },
-): NextResponse | null {
+): Promise<NextResponse | null> {
   return hit(`${bucket}:${subject}`, opts);
 }

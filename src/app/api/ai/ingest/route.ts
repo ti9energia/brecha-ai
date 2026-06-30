@@ -1,4 +1,4 @@
-import { ingestDocument } from "@/server/ai-core";
+﻿import { ingestDocument } from "@/server/ai-core";
 import { ok, fail } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -8,7 +8,7 @@ import { rateLimit } from "@/server/security/rateLimit";
 // o RAG alimenta copiloto/agente/WhatsApp de TODO o tenant, então um viewer/member
 // não pode injetar conteúdo (evita RAG poisoning). Isolado por orgId.
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "ai-ingest", { max: 30, windowMs: 60_000 });
+  const limited = await rateLimit(req, "ai-ingest", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
   const gate = await requireRole("manager", "org_admin", "platform_owner");
   if (gate.error) return gate.error;

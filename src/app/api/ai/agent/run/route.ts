@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+﻿import { cookies } from "next/headers";
 import { agentRun } from "@/server/ai-core/agent";
 import { anthropicProvider } from "@/server/ai-core/provider";
 import { askClaudeText } from "@/server/ai/claude";
@@ -13,7 +13,7 @@ import { verifySession, SESSION_COOKIE } from "@/server/auth/session";
 // abre as brechas relevantes (cruzando o perfil da empresa com as normas) e devolve a
 // fila de recomendações. Cada run é auditado.
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "agent-run", { max: 30, windowMs: 60_000 });
+  const limited = await rateLimit(req, "agent-run", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
   const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!session) return fail("UNAUTHENTICATED", "auth.unauthenticated", 401);

@@ -188,10 +188,30 @@ export async function handleWhatsappMessage(input: InboundMessage): Promise<What
 // ── Saída (0B §7) ────────────────────────────────────────────────────────────
 const SENT_LOG: { at: string; to: string; text: string }[] = [];
 
-export function sendWhatsapp(to: string, text: string): { ok: boolean; to: string } {
-  // SWAP (produção): POST na API do Meta/Twilio (/whatsapp/send), respeitando
-  // janelas/templates do WhatsApp Business. No demo, registra o envio.
+export async function sendWhatsapp(to: string, text: string): Promise<{ ok: boolean; to: string }> {
   const dest = normalizeNumber(to);
+  const token = process.env.WHATSAPP_API_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  if (token && phoneId) {
+    // Chamada real à Meta Cloud API — ativa quando as credenciais estão presentes.
+    const body = {
+      messaging_product: "whatsapp",
+      to: dest.replace(/^\+/, ""),
+      type: "text",
+      text: { body: text.slice(0, 4096) },
+    };
+    const res = await fetch(`https://graph.facebook.com/v20.0/${phoneId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const ok = res.ok;
+    SENT_LOG.push({ at: new Date().toISOString(), to: dest, text: text.slice(0, 4000) });
+    return { ok, to: dest };
+  }
+
+  // Stub: sem credenciais → registra localmente (demo/CI).
   SENT_LOG.push({ at: new Date().toISOString(), to: dest, text: text.slice(0, 4000) });
   return { ok: true, to: dest };
 }
@@ -201,9 +221,9 @@ export function sentWhatsappCount(): number {
 
 // Push proativo do Agente (0B §4): roda o agente e envia os alertas urgentes ao
 // número vinculado. Em produção, é um job agendado (0A §4 "agendado").
-export function agentProactivePush(to: string): { pushed: number } {
+export async function agentProactivePush(to: string): Promise<{ pushed: number }> {
   const urgent = agentRun().filter((r) => r.kind === "window_closing");
-  for (const r of urgent) sendWhatsapp(to, `⚠️ ${r.title}\n${r.body}`);
+  for (const r of urgent) await sendWhatsapp(to, `⚠️ ${r.title}\n${r.body}`);
   return { pushed: urgent.length };
 }
 

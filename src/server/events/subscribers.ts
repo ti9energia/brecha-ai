@@ -23,28 +23,28 @@ export function registerSubscribers(): void {
 
   // Antes, estes três eventos eram emitidos mas sem assinante — "eventos mortos".
   // Agora são auditados + o RAG do AI Core é atualizado para o tenant correto.
-  on<{ id?: string; gain?: number }>("savings.reconciled", (p) => {
+  on<{ id?: string; gain?: number; orgId?: string }>("savings.reconciled", (p) => {
     recordAiAction({ actor: "event-bus", action: "savings.reconciled", detail: `id=${p.id} gain=${p.gain ?? 0}` });
-    ingestDocument("org-acme", {
+    ingestDocument(p.orgId ?? "org-acme", {
       title: "Economia conciliada",
       text: `R$ ${(p.gain ?? 0).toLocaleString("pt-BR")} — id ${p.id ?? ""}`,
     });
   });
-  on<{ id?: string; gain?: number }>("opportunity.simulated", (p) => {
+  on<{ id?: string; gain?: number; orgId?: string }>("opportunity.simulated", (p) => {
     recordAiAction({ actor: "event-bus", action: "opportunity.simulated", detail: `id=${p.id} gain=${p.gain ?? 0}` });
-    ingestDocument("org-acme", {
+    ingestDocument(p.orgId ?? "org-acme", {
       title: "Oportunidade detectada pelo simulador",
       text: `id=${p.id ?? ""} ganho projetado R$ ${(p.gain ?? 0).toLocaleString("pt-BR")}`,
     });
   });
-  on<{ id?: string; opportunityId?: string; status?: string }>("plan.updated", (p) => {
+  on<{ id?: string; opportunityId?: string; status?: string; orgId?: string }>("plan.updated", (p) => {
     recordAiAction({
       actor: "event-bus",
       action: "plan.updated",
       detail: `plan=${p.id ?? ""} opp=${p.opportunityId ?? ""} status=${p.status ?? ""}`,
     });
     if (p.status === "captured") {
-      ingestDocument("org-acme", {
+      ingestDocument(p.orgId ?? "org-acme", {
         title: "Execução concluída — economia capturada",
         text: `Oportunidade ${p.opportunityId ?? ""} chegou a 100% e gerou um SavingsRecord.`,
       });

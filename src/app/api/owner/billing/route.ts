@@ -1,4 +1,4 @@
-import { listInvoices, billingSummary, generateInvoice } from "@/server/domain/store";
+﻿import { listInvoices, billingSummary, generateInvoice } from "@/server/domain/store";
 import { ok, fail } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -11,7 +11,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "owner-billing", { max: 30, windowMs: 60_000 });
+  const limited = await rateLimit(req, "owner-billing", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
   const gate = await requireRole("platform_owner");
   if (gate.error) return gate.error;

@@ -56,6 +56,26 @@ describe("subscribers — eventos originais continuam funcionando", () => {
   });
 });
 
+describe("subscribers — orgId passa pelo payload (multi-tenant RAG)", () => {
+  it("savings.reconciled com orgId customizado: emit não lança (subscriber usa orgId)", () => {
+    expect(() =>
+      emit("savings.reconciled", { id: "sav-t", gain: 500, orgId: "org-cliente-x" })
+    ).not.toThrow();
+  });
+
+  it("opportunity.simulated com orgId customizado: emit não lança", () => {
+    expect(() =>
+      emit("opportunity.simulated", { id: "opp-t", gain: 1000, orgId: "org-cliente-x" })
+    ).not.toThrow();
+  });
+
+  it("plan.updated captured com orgId customizado: emit não lança", () => {
+    expect(() =>
+      emit("plan.updated", { id: "p-t", opportunityId: "opp-t", status: "captured", orgId: "org-cliente-x" })
+    ).not.toThrow();
+  });
+});
+
 describe("subscribers — registerSubscribers é idempotente", () => {
   it("chamar duas vezes não duplica handlers", () => {
     // Conta handlers antes da segunda chamada (spy no retorno do emit)

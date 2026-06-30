@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { listTenants } from "@/server/domain/store";
 import { signSession, SESSION_COOKIE, cookieOptions } from "@/server/auth/session";
 import { fail } from "@/server/http";
@@ -9,7 +9,7 @@ import { rateLimit } from "@/server/security/rateLimit";
 // de um tenant: re-emite o cookie com orgId do tenant e `imp` = sub do dono (para
 // poder encerrar). O workspace recarrega operando como o tenant.
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const limited = rateLimit(req, "impersonate", { max: 20, windowMs: 60_000 });
+  const limited = await rateLimit(req, "impersonate", { max: 20, windowMs: 60_000 });
   if (limited) return limited;
   const gate = await requireRole("platform_owner");
   if (gate.error) return gate.error;
