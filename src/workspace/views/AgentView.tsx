@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bot, Timer, Sparkles, AlertTriangle, Wallet, ArrowRight, X, Radar, Play, Loader2 } from "lucide-react";
-import { listAgentRecs } from "@/server/domain/store";
+import { api } from "@/lib/api/client";
 import type { AgentRecommendation } from "@/server/domain/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
@@ -32,12 +32,16 @@ export function AgentView() {
   const ws = useWorkspace();
   const { toast } = useToast();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  // Antes de rodar, a fila vem do seed (listAgentRecs). Após rodar, mostra o que o
-  // Agente Autônomo de fato produziu sobre os dados ao vivo (/api/ai/agent/run).
-  const [liveRecs, setLiveRecs] = useState<AgentRecommendation[] | null>(null);
+  // Onda 6: store.ts é server-only → carga inicial via API; após "Rodar", substitui
+  // pelo resultado ao vivo do Agente Autônomo (/api/ai/agent/run).
+  const [allRecs, setAllRecs] = useState<AgentRecommendation[]>([]);
   const [running, setRunning] = useState(false);
 
-  const recs = (liveRecs ?? listAgentRecs()).filter((r) => !dismissed.has(r.id));
+  useEffect(() => {
+    api.agent.recommendations().then(setAllRecs).catch(() => {});
+  }, []);
+
+  const recs = allRecs.filter((r) => !dismissed.has(r.id));
 
   async function runAgent() {
     setRunning(true);
@@ -48,7 +52,7 @@ export function AgentView() {
       return;
     }
     const next = res.data as AgentRecommendation[];
-    setLiveRecs(next);
+    setAllRecs(next);
     setDismissed(new Set());
     toast({
       title: t("ranTitle"),

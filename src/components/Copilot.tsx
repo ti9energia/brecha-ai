@@ -8,7 +8,8 @@ import { Send, X, Sparkles, ArrowUpRight, ExternalLink, Cpu, ThumbsUp, ThumbsDow
 import { useTranslations, useLocale, useFormatter } from "@/i18n/provider";
 import { useWorkspace, type ModuleId } from "@/workspace/store";
 import { useSession } from "@/workspace/session";
-import { opportunitiesSummary } from "@/server/domain/store";
+import { api } from "@/lib/api/client";
+import type { OppSummary } from "@/lib/api/types";
 import { useFocusTrap } from "@/ui/useFocusTrap";
 import { Mark } from "@/ui/Logo";
 import { cn } from "@/ui/cn";
@@ -108,11 +109,15 @@ function CopilotPanel({
   const ws = useWorkspace();
   const user = useSession();
   // Saudação personalizada: nome da sessão + janelas/ganho ao vivo (vira guia de ativação).
-  const summary = opportunitiesSummary();
+  // Onda 6: store.ts é server-only → busca via API (sem bloquear renderização).
+  const [summary, setSummary] = useState<OppSummary | null>(null);
+  useEffect(() => {
+    api.opportunities.summary().then((s) => setSummary(s)).catch(() => {});
+  }, []);
   const greeting = t("greetingRich", {
     name: user.name.split(" ")[0] || user.name,
-    open: String(summary.openWindows),
-    gain: fmt.moneyCompact(summary.openGain),
+    open: String(summary?.openWindows ?? 0),
+    gain: fmt.moneyCompact(summary?.openGain ?? 0),
   });
   const [draft, setDraft] = useState("");
   const [voted, setVoted] = useState<Record<number, "up" | "down">>({});

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft, ExternalLink, FileText, FlaskConical, ShieldCheck, ArrowRight,
   TrendingDown, AlertTriangle, Check, Sparkles, ChevronRight, Scale,
 } from "lucide-react";
-import { getOpportunity, approveExecution } from "@/server/domain/store";
+import { api } from "@/lib/api/client";
+import type { OpportunityView } from "@/lib/api/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
 import { useSession } from "@/workspace/session";
@@ -27,9 +28,18 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
   const ws = useWorkspace();
   const user = useSession();
   const { toast } = useToast();
-  const opp = params?.id ? getOpportunity(params.id) : null;
-  const [approved, setApproved] = useState(opp?.status === "approved" || opp?.status === "executing");
+  // Onda 6: store.ts server-only → oportunidade carregada via API.
+  const [opp, setOpp] = useState<OpportunityView | null>(null);
+  const [approved, setApproved] = useState(false);
   const [approving, setApproving] = useState(false);
+
+  useEffect(() => {
+    if (!params?.id) return;
+    api.opportunities.get(params.id).then((o) => {
+      setOpp(o);
+      setApproved(o.status === "approved" || o.status === "executing");
+    }).catch(() => {});
+  }, [params?.id]);
 
   if (!opp) {
     return (
@@ -56,7 +66,7 @@ export function OpportunityDetailView({ params }: { params?: Record<string, stri
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
-    approveExecution(opp!.id, user.name);
+    // Onda 6: sem store mutation — estado local reflete a aprovação.
     setApproved(true);
     toast({
       title: t("approvedTitle"),

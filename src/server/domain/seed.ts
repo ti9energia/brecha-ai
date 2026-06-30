@@ -1,3 +1,4 @@
+import "server-only";
 // ─────────────────────────────────────────────────────────────────────────────
 // SEED — conteúdo regulatório brasileiro real (referências autênticas).
 // Cliente de demonstração: Acme Participações S.A. (holding industrial, SP).

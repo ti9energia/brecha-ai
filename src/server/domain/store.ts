@@ -1,3 +1,4 @@
+import "server-only";
 // ─────────────────────────────────────────────────────────────────────────────
 // Store — repositórios em memória sobre o seed. Espelha o contrato que seria
 // servido por Prisma/Postgres. Mutações persistem no processo (suficiente p/ demo).

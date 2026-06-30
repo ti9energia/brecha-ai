@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   Building2, Pencil, MapPin, Users, Receipt, Landmark, CalendarClock, Check, X, Plus, Sparkles,
 } from "lucide-react";
-import { getStructure, updateStructure } from "@/server/domain/store";
+import { api } from "@/lib/api/client";
+import type { ClientStructure } from "@/lib/api/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
 import { ApertureRing } from "@/ui/ApertureRing";
@@ -14,27 +15,39 @@ import { ViewScroll, ViewHeader, Section, writeJson, writeErrorKey } from "./sha
 const REGIMES = ["Lucro Real", "Lucro Presumido", "Simples Nacional"];
 const UFS = ["SP", "RJ", "MG", "SC", "RS", "PR", "BA", "PE", "CE", "GO", "AM", "DF"];
 
+// Tipo estendido do draft (inclui campos editáveis que o servidor retorna).
+type StructureDraft = Pick<ClientStructure, "legalName" | "regime" | "headquarters" | "businessProfile" | "annualRevenue" | "headcount" | "jurisdictions">;
+// Base completo inclui campos read-only (taxId, mainActivity, entities…).
+type StructureBase = ClientStructure;
+
 export function StructureView() {
   const t = useTranslations("structure");
   const tc = useTranslations("common");
   const fmt = useFormatter();
   const { toast } = useToast();
-  const base = getStructure();
-
+  // Onda 6: store.ts server-only → carga via API.
+  const [base, setBase] = useState<StructureBase | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [draft, setDraft] = useState({
-    legalName: base.legalName,
-    regime: base.regime,
-    headquarters: base.headquarters,
-    businessProfile: base.businessProfile,
-    annualRevenue: base.annualRevenue,
-    headcount: base.headcount,
-    jurisdictions: [...base.jurisdictions],
+  const [draft, setDraft] = useState<StructureDraft>({
+    legalName: "", regime: "Lucro Real", headquarters: "",
+    businessProfile: "", annualRevenue: 0, headcount: 0, jurisdictions: [],
   });
   const [newUf, setNewUf] = useState("");
 
+  useEffect(() => {
+    api.structure.get().then((b) => {
+      setBase(b);
+      setDraft({
+        legalName: b.legalName, regime: b.regime, headquarters: b.headquarters,
+        businessProfile: b.businessProfile, annualRevenue: b.annualRevenue,
+        headcount: b.headcount, jurisdictions: [...b.jurisdictions],
+      });
+    }).catch(() => {});
+  }, []);
+
   function cancel() {
+    if (!base) return;
     setDraft({
       legalName: base.legalName, regime: base.regime, headquarters: base.headquarters,
       businessProfile: base.businessProfile,
@@ -43,6 +56,8 @@ export function StructureView() {
     setEditing(false);
   }
 
+  if (!base) return null; // carregando
+
   async function save() {
     setSaving(true);
     const payload = {
@@ -50,16 +65,16 @@ export function StructureView() {
       businessProfile: draft.businessProfile,
       annualRevenue: draft.annualRevenue, headcount: draft.headcount, jurisdictions: draft.jurisdictions,
     };
-    // Server-confirmed: só reflete no store isomórfico (a UI lê dele) DEPOIS que o
-    // servidor aceitar. Em 403 (papel sem permissão) / 429 / erro, nada muda e o
-    // usuário é avisado — o modo de edição continua aberto para tentar de novo.
+    // Server-confirmed: só reflete localmente DEPOIS que o servidor aceitar.
+    // Em 403 (papel sem permissão) / 429 / erro, nada muda.
     const res = await writeJson("/api/structure", payload, "PUT");
     setSaving(false);
     if (!res.ok) {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
-    updateStructure(payload);
+    // Onda 6: sem store mutation — state local já reflete o novo valor.
+    if (res.data) setBase(res.data as StructureBase);
     setEditing(false);
     toast({ title: t("saved"), description: draft.legalName, tone: "success" });
   }

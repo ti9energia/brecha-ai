@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Settings, Building2, Radar, Bot, MessageCircle, Users, Check, Save, Globe } from "lucide-react";
-import { getSettings, updateSettings, getSectors } from "@/server/domain/store";
+import { api } from "@/lib/api/client";
+import { SECTORS } from "@/lib/sectors";
 import { useTranslations } from "@/i18n/provider";
 import { locales, localeMeta } from "@/i18n/config";
 import { Button, Chip } from "@/ui/primitives";
@@ -31,21 +32,32 @@ export function SettingsView() {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
   const { toast } = useToast();
-  const settings = getSettings();
-  const sectors = getSectors();
-
-  const [orgName, setOrgName] = useState(settings.orgName);
-  const [defaultLocale, setDefaultLocale] = useState(settings.defaultLocale);
-  const [timezone, setTimezone] = useState(settings.timezone);
-  const [aiPersona, setAiPersona] = useState(settings.aiPersona);
-  const [aiTone, setAiTone] = useState(settings.aiTone);
-  const [whatsapp, setWhatsapp] = useState(settings.whatsapp);
-  const [sectorSel, setSectorSel] = useState<Set<string>>(() => new Set(settings.sectors));
-  const [ufSel, setUfSel] = useState<Set<string>>(() => new Set(settings.jurisdictions));
+  // Onda 6: store.ts é server-only → configurações carregadas via API no mount.
+  const [orgName, setOrgName] = useState("");
+  const [defaultLocale, setDefaultLocale] = useState("pt-BR");
+  const [timezone, setTimezone] = useState("America/Sao_Paulo (BRT)");
+  const [aiPersona, setAiPersona] = useState("Vega");
+  const [aiTone, setAiTone] = useState("Consultivo e direto");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [sectorSel, setSectorSel] = useState<Set<string>>(new Set());
+  const [ufSel, setUfSel] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const savedTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    api.settings.get().then((s) => {
+      setOrgName(s.orgName);
+      setDefaultLocale(s.defaultLocale);
+      setTimezone(s.timezone);
+      setAiPersona(s.aiPersona);
+      setAiTone(s.aiTone);
+      setWhatsapp(s.whatsapp);
+      setSectorSel(new Set(s.sectors));
+      setUfSel(new Set(s.jurisdictions));
+    }).catch(() => {});
+  }, []);
 
   // Equipe real da org (substitui o antigo mock hardcoded) — via /api/team.
   useEffect(() => {
@@ -78,7 +90,7 @@ export function SettingsView() {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
-    updateSettings(payload); // store isomórfico — reflete na hora
+    // Onda 6: store.ts server-only → estado local já reflete o novo valor (sem store mutation).
     setSaved(true);
     if (savedTimer.current) clearTimeout(savedTimer.current);
     savedTimer.current = window.setTimeout(() => setSaved(false), 2000);
@@ -157,7 +169,7 @@ export function SettingsView() {
       <Section title={t("monitoredSectors")} subtitle={t("monitoredSectorsHint")}>
         <Panel icon={<Radar size={15} />} label={t("monitoredSectors")}>
           <div className="flex flex-wrap gap-2">
-            {sectors.map((s) => (
+            {SECTORS.map((s) => (
               <ToggleChip
                 key={s.id}
                 active={sectorSel.has(s.id)}

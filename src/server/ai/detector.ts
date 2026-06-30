@@ -1,3 +1,4 @@
+import "server-only";
 // ─────────────────────────────────────────────────────────────────────────────
 // Detector de brechas — o CORAÇÃO do Brecha.ai (spec 08 §6/§12).
 //

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import { FlaskConical, Play, Loader2, ArrowRight, Save, Crosshair, TrendingDown, Scale, ShieldAlert, Clock } from "lucide-react";
-import { runScenario, listScenarios, getOpportunity, saveScenario, createOpportunityFromScenario } from "@/server/domain/store";
-import type { ScenarioParams, ScenarioResult, Level } from "@/server/domain/types";
+import { api } from "@/lib/api/client";
+import type { ScenarioParams, ScenarioResult, Scenario, OpportunityView, Level } from "@/lib/api/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
 import { useToast } from "@/ui/Toast";
@@ -24,30 +24,49 @@ export function SimulatorView({ params }: { params?: Record<string, string> }) {
   const ws = useWorkspace();
   const { toast } = useToast();
 
-  const baseline = useMemo(() => listScenarios().find((s) => s.isBaseline)!, []);
-  const fromOpp = params?.from ? getOpportunity(params.from) : null;
+  // Onda 6: store.ts server-only → tudo via API. Remove setTimeout fake-delay.
+  const [baseline, setBaseline] = useState<Scenario | null>(null);
+  const [fromOpp, setFromOpp] = useState<OpportunityView | null>(null);
+  const [saved, setSaved] = useState<Scenario[]>([]);
+
+  useEffect(() => {
+    api.simulator.list().then((list) => {
+      setBaseline(list.find((s) => s.isBaseline) ?? null);
+      setSaved(list.filter((s) => s.id.startsWith("scn-user")));
+    }).catch(() => {});
+    if (params?.from) {
+      api.opportunities.get(params.from).then(setFromOpp).catch(() => {});
+    }
+  }, [params?.from]);
 
   const [form, setForm] = useState<ScenarioParams>({
     regime: "Lucro Real",
-    jurisdiction: fromOpp?.type === "jurisdiction" ? "Área SUDENE" : "SP",
+    jurisdiction: "SP",
     classification: "Indústria metalúrgica",
     revenue: 480_000_000,
   });
+  // Ajusta jurisdição quando a oportunidade de origem carrega.
+  useEffect(() => {
+    if (fromOpp?.type === "jurisdiction") setForm((f) => ({ ...f, jurisdiction: "Área SUDENE" }));
+  }, [fromOpp]);
+
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<ScenarioResult | null>(null);
-  const [savedTick, setSavedTick] = useState(0);
-  const saved = useMemo(() => listScenarios().filter((s) => s.id.startsWith("scn-user")), [savedTick]);
 
-  function run() {
+  async function run() {
     setRunning(true);
     setResult(null);
-    setTimeout(() => {
-      setResult(runScenario(form));
+    try {
+      const res = await api.simulator.run(form);
+      setResult(res);
+    } catch {
+      toast({ title: t("runError") ?? "Erro ao simular", tone: "error" });
+    } finally {
       setRunning(false);
-    }, 560);
+    }
   }
 
-  const maxBurden = Math.max(baseline.result.annualBurden, result?.annualBurden ?? 0, 1);
+  const maxBurden = Math.max(baseline?.result.annualBurden ?? 0, result?.annualBurden ?? 0, 1);
 
   return (
     <ViewScroll>
@@ -93,7 +112,7 @@ export function SimulatorView({ params }: { params?: Record<string, string> }) {
         <div className="space-y-5">
           <Section title={t("compare")}>
             <div className="panel hairline p-6 space-y-5">
-              <ScenarioBar label={t("baseline")} value={baseline.result.annualBurden} max={maxBurden} fmt={fmt} tone="neutral" />
+              <ScenarioBar label={t("baseline")} value={baseline?.result.annualBurden ?? 0} max={maxBurden} fmt={fmt} tone="neutral" />
               {result ? (
                 <ScenarioBar label={t("newScenario")} value={result.annualBurden} max={maxBurden} fmt={fmt} tone="gold" />
               ) : (
@@ -115,20 +134,28 @@ export function SimulatorView({ params }: { params?: Record<string, string> }) {
 
               <div className="flex flex-wrap gap-2.5 animate-rise">
                 <button
-                  onClick={() => {
-                    const scn = saveScenario(`${form.regime} · ${form.jurisdiction}`, form, result);
-                    setSavedTick((n) => n + 1);
-                    toast({ title: t("saveScenario"), description: `${scn.name} · ${fmt.moneyCompact(result.annualSaving)}${tc("perYear")}`, tone: "success" });
+                  onClick={async () => {
+                    try {
+                      const scn = await api.simulator.save(`${form.regime} · ${form.jurisdiction}`, form, result);
+                      setSaved((prev) => [...prev, scn]);
+                      toast({ title: t("saveScenario"), description: `${scn.name} · ${fmt.moneyCompact(result.annualSaving)}${tc("perYear")}`, tone: "success" });
+                    } catch {
+                      toast({ title: tc("saveErrorTitle"), tone: "error" });
+                    }
                   }}
                   className={buttonClass("secondary", "md")}
                 >
                   <Save size={15} />{t("saveScenario")}
                 </button>
                 <button
-                  onClick={() => {
-                    const opp = createOpportunityFromScenario(form, result);
-                    toast({ title: t("turnIntoOpportunity"), description: opp.title, tone: "success" });
-                    ws.open("opportunity", { id: opp.id }, opp.title);
+                  onClick={async () => {
+                    try {
+                      const opp = await api.simulator.createOpportunity(form, result);
+                      toast({ title: t("turnIntoOpportunity"), description: opp.title, tone: "success" });
+                      ws.open("opportunity", { id: opp.id }, opp.title);
+                    } catch {
+                      toast({ title: tc("saveErrorTitle"), tone: "error" });
+                    }
                   }}
                   className={buttonClass("primary", "md", "group")}
                 >

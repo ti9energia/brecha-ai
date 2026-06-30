@@ -9,6 +9,14 @@ export function fail(code: string, messageKey: string, status = 400) {
   return NextResponse.json({ data: null, meta: null, error: { code, messageKey } }, { status });
 }
 
+export function notFound(message = "Não encontrado") {
+  return fail("not_found", message, 404);
+}
+
+export function badRequest(message = "Requisição inválida") {
+  return fail("bad_request", message, 400);
+}
+
 // Paginação por cursor opaco (00-PADRÃO §4). O cursor codifica o offset (base64);
 // em produção, keyset (id + sortKey). Limite default 50, teto 100.
 export function paginate<T>(rows: T[], cursor: string | null, limit?: number): { page: T[]; nextCursor: string | null } {
