@@ -114,11 +114,11 @@ export function SavingsView() {
             <table className="w-full min-w-[44rem] text-left border-collapse">
               <thead>
                 <tr className="bg-surface-2 border-b border-line">
-                  <th className="eyebrow font-normal px-5 py-3">{t("capturedPlays")}</th>
-                  <th className="eyebrow font-normal px-5 py-3">{tc("status")}</th>
-                  <th className="eyebrow font-normal px-5 py-3 text-right">{t("realizedGain")}</th>
-                  <th className="eyebrow font-normal px-5 py-3 text-right">{tc("deadline")}</th>
-                  <th className="eyebrow font-normal px-5 py-3 text-right">{t("reconciled")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3">{t("capturedPlays")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3">{tc("status")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3 text-right">{t("realizedGain")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3 text-right">{tc("deadline")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3 text-right">{t("reconciled")}</th>
                 </tr>
               </thead>
               <tbody>

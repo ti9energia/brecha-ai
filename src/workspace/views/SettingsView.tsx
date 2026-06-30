@@ -263,9 +263,9 @@ export function SettingsView() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left">
-                  <th className="px-5 py-3 eyebrow font-normal">{t("memberName")}</th>
-                  <th className="px-5 py-3 eyebrow font-normal">{t("role")}</th>
-                  <th className="px-5 py-3 eyebrow font-normal">{t("memberEmail")}</th>
+                  <th scope="col" className="px-5 py-3 eyebrow font-normal">{t("memberName")}</th>
+                  <th scope="col" className="px-5 py-3 eyebrow font-normal">{t("role")}</th>
+                  <th scope="col" className="px-5 py-3 eyebrow font-normal">{t("memberEmail")}</th>
                 </tr>
               </thead>
               <tbody>

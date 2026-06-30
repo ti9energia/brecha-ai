@@ -246,10 +246,10 @@ export function StructureView() {
             <table className="w-full min-w-[40rem] text-left border-collapse">
               <thead>
                 <tr className="bg-surface-2 border-b border-line">
-                  <th className="eyebrow font-normal px-5 py-3">{t("legalName")}</th>
-                  <th className="eyebrow font-normal px-5 py-3">{t("taxId")}</th>
-                  <th className="eyebrow font-normal px-5 py-3">{t("regime")}</th>
-                  <th className="eyebrow font-normal px-5 py-3 text-right">UF</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3">{t("legalName")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3">{t("taxId")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3">{t("regime")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3 text-right">UF</th>
                 </tr>
               </thead>
               <tbody>

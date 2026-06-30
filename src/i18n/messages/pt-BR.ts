@@ -415,6 +415,7 @@ const messages = {
     saveScenario: "Salvar cenário",
     turnIntoOpportunity: "Transformar em oportunidade",
     vsBaseline: "vs. linha de base",
+    runError: "Não foi possível simular agora. Tente novamente.",
   },
 
   execution: {
@@ -685,6 +686,8 @@ const messages = {
     systemSessionTtl: "TTL de sessão (horas)",
     systemSessionTtlHint: "Quanto tempo até o cookie expirar.",
     systemSaved: "Configurações do sistema salvas",
+    consoleSections: "Seções do console",
+    pricePerMonth: "Preço/mês (R$)",
     aiPanel: {
       connectors: "Connectors",
       sync: "Sincronizar",
