@@ -155,6 +155,7 @@ const messages = {
     closeTab: "Fechar aba",
     backToSite: "Sair",
     logout: "Encerrar sessão",
+    mobileNav: "Navegação",
   },
 
   landing: {

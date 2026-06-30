@@ -155,6 +155,7 @@ const messages: Deep<Messages> = {
     closeTab: "关闭标签页",
     backToSite: "退出",
     logout: "退出登录",
+    mobileNav: "导航",
   },
 
   landing: {

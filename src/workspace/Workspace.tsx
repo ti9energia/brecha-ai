@@ -9,6 +9,7 @@ import { FlagsProvider } from "./flags";
 import { useIsNarrow } from "./useIsNarrow";
 import { CopilotProvider, useCopilot } from "@/components/Copilot";
 import { NavRail } from "./NavRail";
+import { BottomNav } from "./BottomNav";
 import { TopBar } from "./TopBar";
 import { StatusBar } from "./StatusBar";
 import { PaneView } from "./Pane";
@@ -86,6 +87,7 @@ function Shell() {
           ))}
         </div>
         <StatusBar />
+        <BottomNav />
       </div>
       <CommandPalette open={palette.open} onClose={() => setPalette({ open: false })} targetPaneId={palette.pane} />
       <ShortcutsHelp open={help} onClose={() => setHelp(false)} onWelcome={() => { setHelp(false); setWelcomeSignal((n) => n + 1); }} />
