@@ -1,11 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Seam de persistência (0D / "// SWAP produção"). Um único contrato de leitura que
-// duas implementações satisfazem: InMemory (seed, default zero-config) e Prisma
-// (Postgres, quando DATABASE_URL existe). As rotas falam SÓ com este contrato —
-// trocar o backing store é configuração, não reescrita.
+// Seam de persistência (0D / "// SWAP produção"). Um único contrato (leitura +
+// escrita) que duas implementações satisfazem: InMemory (seed, default zero-config)
+// e Prisma (Postgres, quando DATABASE_URL existe). As rotas falam SÓ com este
+// contrato — trocar o backing store é configuração, não reescrita.
 // ─────────────────────────────────────────────────────────────────────────────
-import type { OpportunityView, RadarItem, OppSort } from "@/server/domain/store";
-import type { OpportunityType, ClientStructure } from "@/server/domain/types";
+import type { OpportunityView, RadarItem, OppSort, AppSettings, AiFeedback } from "@/server/domain/store";
+import type { OpportunityType, ClientStructure, SavingsSummary, AgentRecommendation } from "@/server/domain/types";
 import { InMemoryRepository } from "./inMemoryRepository";
 import { PrismaRepository } from "./prismaRepository";
 
@@ -27,17 +27,30 @@ export interface ListOpportunitiesOpts {
   status?: "active" | "all";
 }
 
+export interface AiFeedbackStats {
+  total: number;
+  up: number;
+  down: number;
+}
+
 export interface Repository {
-  // leitura
+  // ── leitura ──────────────────────────────────────────────────────────────
   listOpportunities(opts?: ListOpportunitiesOpts): Promise<OpportunityView[]>;
   getOpportunity(id: string): Promise<OpportunityView | null>;
   opportunitiesSummary(): Promise<OpportunitiesSummary>;
   listRadar(opts?: { level?: string; sector?: string }): Promise<RadarRow[]>;
   getStructure(orgId?: string): Promise<ClientStructure>; // multi-tenant: escopado por orgId
-  // escrita (write-side — 0D §2): mantém leitura e escrita no MESMO backing store,
+  getSavings(orgId?: string): Promise<SavingsSummary>;   // loop da economia (08 §7)
+  listAgentRecs(): Promise<AgentRecommendation[]>;        // recomendações do agente (0A §2.6)
+  getSettings(orgId?: string): Promise<AppSettings>;     // configurações da org
+  // ── escrita (write-side — 0D §2): mesmo backing store para leitura e escrita, ──
   // evitando split-brain quando DATABASE_URL está setado.
   updateStructure(patch: Record<string, unknown>, orgId?: string): Promise<ClientStructure>;
   approveExecution(opportunityId: string, approver: string): Promise<unknown>;
+  advanceExecutionStep(planId: string, stepId: string): Promise<unknown>; // loop captura (08 §7)
+  reconcileSaving(id: string): Promise<SavingsSummary | null>;            // conciliação (08 §7)
+  updateSettings(patch: Record<string, unknown>, orgId?: string): Promise<AppSettings>;
+  recordAiFeedback(f: Omit<AiFeedback, "at">): Promise<AiFeedbackStats>; // treino (0A §2.9)
 }
 
 let cached: Repository | null = null;

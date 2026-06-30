@@ -1,12 +1,13 @@
-import { getSettings, updateSettings } from "@/server/domain/store";
+import { getRepository } from "@/server/db/repository";
 import { ok } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
 
 // GET/PUT /api/settings — configurações da org (nome, idioma, fuso, persona da IA,
-// tom, WhatsApp, setores e jurisdições monitorados). Coage e persiste in-memory.
+// tom, WhatsApp, setores e jurisdições monitorados). Coage e persiste via seam.
+// Passado pelo seam do repositório (0D §2) — sem DATABASE_URL usa in-memory.
 export async function GET() {
-  return ok(getSettings());
+  return ok(await getRepository().getSettings());
 }
 
 export async function PUT(req: Request) {
@@ -19,6 +20,8 @@ export async function PUT(req: Request) {
   if (gate.error) return gate.error;
 
   const patch = await req.json().catch(() => ({}));
-  const saved = updateSettings(patch && typeof patch === "object" ? (patch as Record<string, unknown>) : {});
+  const saved = await getRepository().updateSettings(
+    patch && typeof patch === "object" ? (patch as Record<string, unknown>) : {}
+  );
   return ok(saved, { saved: true });
 }

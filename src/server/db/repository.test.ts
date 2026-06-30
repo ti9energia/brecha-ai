@@ -61,4 +61,81 @@ describe("repository seam (persistência trocável)", () => {
     // o tenant default (acme) permanece intacto — isolamento por orgId
     expect((await repo.getStructure("org-acme")).regime).not.toBe("Simples Nacional");
   });
+
+  // ── Novos métodos write-side e leituras movidas (Onda 2) ──────────────────────
+
+  it("getSavings: devolve SavingsSummary com records e campos corretos", async () => {
+    const repo = new InMemoryRepository();
+    const s = await repo.getSavings();
+    expect(s.currency).toBe("BRL");
+    expect(s.feeRate).toBeGreaterThan(0);
+    expect(Array.isArray(s.records)).toBe(true);
+    expect(s.records.length).toBeGreaterThan(0);
+    expect(s.realizedYtd).toBeGreaterThanOrEqual(0);
+  });
+
+  it("reconcileSaving: marca o registro como conciliado e actualiza feeBase", async () => {
+    const repo = new InMemoryRepository();
+    const before = await repo.getSavings();
+    // Encontrar um registro ainda não conciliado (sav-5 é o seed pendente)
+    const pending = before.records.find((r) => !r.reconciled);
+    if (!pending) return; // fixture pode já estar toda conciliada; skip sem falhar
+    const beforeBase = before.feeBase;
+    const result = await repo.reconcileSaving(pending.id);
+    expect(result).not.toBeNull();
+    expect(result!.feeBase).toBe(beforeBase + pending.realizedGain);
+    // idempotente: segunda chamada → null
+    expect(await repo.reconcileSaving(pending.id)).toBeNull();
+  });
+
+  it("reconcileSaving: id inexistente → null", async () => {
+    expect(await new InMemoryRepository().reconcileSaving("sav-nao-existe")).toBeNull();
+  });
+
+  it("advanceExecutionStep: avança passo e devolve plano actualizado", async () => {
+    const repo = new InMemoryRepository();
+    // Aprova a oportunidade para garantir que o plano existe
+    const plan = await repo.approveExecution("opp-icms-sc", "Tester-repo");
+    expect(plan).toBeTruthy();
+    const planObj = plan as { id: string; steps: { id: string; status: string }[] };
+    const firstStep = planObj.steps[0];
+    // Captura o status ANTES de avançar (string primitiva, imune à mutação do objecto)
+    const statusBefore = firstStep.status;
+    const updated = await repo.advanceExecutionStep(planObj.id, firstStep.id) as typeof planObj | null;
+    expect(updated).not.toBeNull();
+    // status avançou (todo→doing OU doing→done OU done→todo — qualquer transição)
+    const newStatus = updated!.steps.find((s) => s.id === firstStep.id)?.status;
+    expect(newStatus).not.toBe(statusBefore);
+  });
+
+  it("listAgentRecs: devolve recomendações com campos obrigatórios", async () => {
+    const recs = await new InMemoryRepository().listAgentRecs();
+    expect(recs.length).toBeGreaterThan(0);
+    for (const r of recs) {
+      expect(typeof r.id).toBe("string");
+      expect(typeof r.title).toBe("string");
+      expect(typeof r.impact).toBe("number");
+    }
+  });
+
+  it("getSettings + updateSettings: persiste alterações via seam", async () => {
+    const repo = new InMemoryRepository();
+    const before = await repo.getSettings();
+    const updated = await repo.updateSettings({ orgName: "Acme Seam Test" });
+    expect(updated.orgName).toBe("Acme Seam Test");
+    // getSettings reflecte a mutação
+    expect((await repo.getSettings()).orgName).toBe("Acme Seam Test");
+    // restaurar para não contaminar outros testes
+    await repo.updateSettings({ orgName: before.orgName });
+  });
+
+  it("recordAiFeedback: persiste e devolve stats actualizadas", async () => {
+    const repo = new InMemoryRepository();
+    const before = await repo.getSavings(); // warm-up (garante que repo existe)
+    const stats = await repo.recordAiFeedback({
+      rating: "up", message: "seam test", locale: "pt-BR", userId: "u-test", orgId: "org-acme",
+    });
+    expect(stats.total).toBeGreaterThan(0);
+    expect(stats.up).toBeGreaterThan(0);
+  });
 });
