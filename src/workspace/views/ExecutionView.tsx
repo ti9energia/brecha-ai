@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ListChecks, CheckCircle2, Circle, Loader2, AlertCircle, FileText,
   ShieldCheck, ChevronDown, User, CalendarClock,
 } from "lucide-react";
-import { listExecutionPlans, approveExecution, listOpportunities, advanceExecutionStep } from "@/server/domain/store";
-import type { ExecutionStep, AuditEntry, StepStatus } from "@/server/domain/types";
+import { api } from "@/lib/api/client";
+import type { ExecutionStep, AuditEntry, StepStatus, ExecutionPlan, OpportunityView } from "@/lib/api/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
 import { useSession } from "@/workspace/session";
@@ -37,32 +37,30 @@ export function ExecutionView({ params }: { params?: Record<string, string> }) {
   const { toast } = useToast();
   const focus = params?.focus;
 
-  // bump para forçar releitura do store em memória após mutação
-  const [tick, setTick] = useState(0);
-
-  const pending = useMemo(
-    () => listOpportunities({ status: "all" }).filter((o) => o.status === "pending_approval"),
-    [tick],
-  );
-  const plans = useMemo(() => listExecutionPlans(), [tick]);
+  // Onda 6: store.ts server-only → dados via API com refresh após mutações.
+  const [pending, setPending] = useState<OpportunityView[]>([]);
+  const [plans, setPlans] = useState<ExecutionPlan[]>([]);
 
   function refresh() {
-    setTick((n) => n + 1);
+    api.execution.list().then(({ plans: p, opportunities: opps }) => {
+      setPlans(p);
+      setPending(opps.filter((o) => o.status === "pending_approval"));
+    }).catch(() => {});
   }
+  useEffect(() => { refresh(); }, []);
 
   // Server-confirmed (governança real): a rota exige manager+, atribui o aprovador
-  // pela sessão e audita; só então reflete no store client.
+  // pela sessão e audita; só então reflete no estado local.
   async function approve(opportunityId: string) {
     const res = await writeJson(`/api/opportunities/${opportunityId}/execute`, {}, "POST");
     if (!res.ok) {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
-    approveExecution(opportunityId, user.name);
     refresh();
   }
-  function advanceStep(planId: string, stepId: string) {
-    advanceExecutionStep(planId, stepId);
+  async function advanceStep(planId: string, stepId: string) {
+    await writeJson(`/api/execution/${planId}/advance`, { stepId }, "POST");
     refresh();
   }
 
@@ -137,7 +135,7 @@ export function ExecutionView({ params }: { params?: Record<string, string> }) {
 }
 
 // ── Card de plano de execução ────────────────────────────────────────────────
-type Plan = ReturnType<typeof listExecutionPlans>[number];
+type Plan = ExecutionPlan;
 
 function PlanCard({
   plan,

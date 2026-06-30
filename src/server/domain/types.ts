@@ -151,6 +151,7 @@ export interface AuditEntry {
   id: string;
   at: string; // ISO
   actor: string;
+  tenant?: string; // presente na trilha owner (recordAiAction); ausente nas audits de execução
   action: string;
   detail: string;
 }

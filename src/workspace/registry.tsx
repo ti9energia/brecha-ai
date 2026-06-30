@@ -6,7 +6,6 @@ import {
 import type { ModuleId, Tab } from "./store";
 import type { AccountType } from "./session";
 import type { Translator } from "@/i18n/translate";
-import { getOpportunity, getFirmClient } from "@/server/domain/store";
 
 export interface ViewProps {
   params?: Record<string, string>;
@@ -86,13 +85,10 @@ export const MODULE_MAP: Record<ModuleId, ModuleDef> = Object.fromEntries(
   MODULES.map((m) => [m.id, m]),
 ) as Record<ModuleId, ModuleDef>;
 
+// tabTitle: usa o título armazenado na aba (passado no ws.open() pela view que abre
+// a entidade) ou cai no label genérico do nav. Onda 6: sem import de store.ts —
+// a view passa o título como terceiro argumento de ws.open("opportunity", params, title).
 export function tabTitle(tab: Tab, tNav: Translator): string {
   if (tab.title) return tab.title;
-  if (tab.module === "opportunity" && tab.params?.id) {
-    return getOpportunity(tab.params.id)?.title ?? tNav("detail");
-  }
-  if (tab.module === "client" && tab.params?.id) {
-    return getFirmClient(tab.params.id)?.name ?? tNav("clientDetail");
-  }
   return tNav(MODULE_MAP[tab.module].navKey);
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight, FileText } from "lucide-react";
-import type { OpportunityView } from "@/server/domain/store";
+import type { OpportunityView } from "@/lib/api/types";
 import { useFormatter, useTranslations, useLocale } from "@/i18n/provider";
 import { useWorkspaceOptional } from "@/workspace/store";
 import { ApertureRing } from "@/ui/ApertureRing";

@@ -1,12 +1,17 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Briefcase, ArrowLeft, MapPin, Receipt, Crosshair, Sparkles } from "lucide-react";
-import { getFirmClient, clientBrechas, getSectors } from "@/server/domain/store";
+import { api } from "@/lib/api/client";
+import { SECTORS } from "@/lib/sectors";
+import type { ClientDetail } from "@/lib/api/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
 import { Chip, Meter } from "@/ui/primitives";
 import { ViewScroll, ViewHeader, StatTiles, StatTile, Section } from "./shared";
 import type { ViewProps } from "../registry";
+
+const sectorLabel = Object.fromEntries(SECTORS.map((s) => [s.id, s.label]));
 
 // Detalhe de UM cliente do escritório: perfil + as brechas que o MESMO detector achou
 // cruzando o perfil DESTE cliente com as normas + a economia capturada. É a profundidade
@@ -17,7 +22,17 @@ export function ClientDetailView({ params }: ViewProps) {
   const fmt = useFormatter();
   const ws = useWorkspace();
   const id = params?.id ?? "";
-  const c = getFirmClient(id);
+  // Onda 6: store.ts server-only → detalhe do cliente via API.
+  const [detail, setDetail] = useState<ClientDetail | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    api.clients.get(id).then(setDetail).catch(() => {});
+  }, [id]);
+
+  const c = detail?.client ?? null;
+  const brechas = detail?.brechas ?? [];
+  const totalGain = brechas.reduce((s, o) => s + o.estimatedGain, 0);
 
   if (!c) {
     return (
@@ -26,10 +41,6 @@ export function ClientDetailView({ params }: ViewProps) {
       </ViewScroll>
     );
   }
-
-  const brechas = clientBrechas(id);
-  const totalGain = brechas.reduce((s, o) => s + o.estimatedGain, 0);
-  const sectorLabel = Object.fromEntries(getSectors().map((s) => [s.id, s.label]));
 
   return (
     <ViewScroll>

@@ -1,14 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import { Crosshair, SlidersHorizontal, TrendingUp, Timer, Coins, Sparkles, Radar } from "lucide-react";
-import { listOpportunities, opportunitiesSummary, getSectors, type OppSort } from "@/server/domain/store";
+import { api } from "@/lib/api/client";
+import { SECTORS } from "@/lib/sectors";
+import type { OpportunityView, OppSummary } from "@/lib/api/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
 import { OpportunityCard } from "@/components/OpportunityCard";
 import { ViewScroll, ViewHeader, StatTiles, StatTile, UpdatedAt } from "./shared";
 import { EmptyState, buttonClass } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
+
+// Onda 6: type local (era importado do store server-only).
+type OppSort = "gain" | "deadline" | "confidence";
 
 export function OpportunitiesView() {
   const t = useTranslations("opportunities");
@@ -19,10 +24,18 @@ export function OpportunitiesView() {
   const ws = useWorkspace();
   const [sort, setSort] = useState<OppSort>("gain");
   const [sector, setSector] = useState<string>("all");
+  const [rows, setRows] = useState<OpportunityView[]>([]);
+  const [summary, setSummary] = useState<OppSummary | null>(null);
 
-  const sectors = getSectors();
-  const summary = useMemo(() => opportunitiesSummary(), []);
-  const rows = useMemo(() => listOpportunities({ sort, sector }), [sort, sector]);
+  // Onda 6: store.ts server-only → carga via API.
+  useEffect(() => {
+    api.opportunities.summary().then(setSummary).catch(() => {});
+  }, []);
+  useEffect(() => {
+    api.opportunities.list({ sort, sector: sector === "all" ? undefined : sector })
+      .then(setRows)
+      .catch(() => {});
+  }, [sort, sector]);
 
   const sorts: { id: OppSort; label: string }[] = [
     { id: "gain", label: t("sortGain") },
@@ -40,10 +53,10 @@ export function OpportunitiesView() {
       />
 
       <StatTiles>
-        <StatTile label={t("openWindows")} value={fmt.number(summary.openWindows)} accent="gold" hint={<span className="inline-flex items-center gap-1"><TrendingUp size={11} className="text-positive" />{ts("radarActive")}</span>} />
-        <StatTile label={t("potentialGain")} value={fmt.moneyCompact(summary.openGain)} accent="gold" hint={tc("estimated") + " · " + tc("perYear")} />
-        <StatTile label={t("closingSoon")} value={fmt.number(summary.closingSoon)} accent="danger" hint={<span className="inline-flex items-center gap-1"><Timer size={11} />≤ 21 {tc("days")}</span>} />
-        <StatTile label={t("captured")} value={fmt.moneyCompact(summary.capturedYtd)} accent="positive" hint={<span className="inline-flex items-center gap-1"><Coins size={11} />{tc("realized")}</span>} />
+        <StatTile label={t("openWindows")} value={fmt.number(summary?.openWindows ?? 0)} accent="gold" hint={<span className="inline-flex items-center gap-1"><TrendingUp size={11} className="text-positive" />{ts("radarActive")}</span>} />
+        <StatTile label={t("potentialGain")} value={fmt.moneyCompact(summary?.openGain ?? 0)} accent="gold" hint={tc("estimated") + " · " + tc("perYear")} />
+        <StatTile label={t("closingSoon")} value={fmt.number(summary?.closingSoon ?? 0)} accent="danger" hint={<span className="inline-flex items-center gap-1"><Timer size={11} />≤ 21 {tc("days")}</span>} />
+        <StatTile label={t("captured")} value={fmt.moneyCompact(summary?.capturedYtd ?? 0)} accent="positive" hint={<span className="inline-flex items-center gap-1"><Coins size={11} />{tc("realized")}</span>} />
       </StatTiles>
 
       {/* barra de filtros/ordenação */}
@@ -67,7 +80,7 @@ export function OpportunitiesView() {
 
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
           <FilterChip active={sector === "all"} onClick={() => setSector("all")}>{t("filterAll")}</FilterChip>
-          {sectors.map((s) => (
+          {SECTORS.map((s) => (
             <FilterChip key={s.id} active={sector === s.id} onClick={() => setSector(s.id)}>
               {s.label}
             </FilterChip>

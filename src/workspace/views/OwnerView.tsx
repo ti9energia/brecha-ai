@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Crown, Building2, CreditCard, ToggleLeft, ScrollText, TrendingUp,
   Sparkles, ArrowUpRight, ShieldCheck, Plus, FileText, Wallet, Settings, Check,
   Users, Bot, Plug, RefreshCw, Play, Loader2, Lock, Unlock, UserPlus, Pencil, Globe,
 } from "lucide-react";
-import {
-  ownerKpis, listTenants, getPlans, listFlags, ownerAudit, aiFeedbackStats,
-  createTenant, setTenantStatus, updatePlan, getLandingContent, updateLandingContent, LANDING_FIELDS,
-  listInvoices, billingSummary, markInvoicePaid, generateInvoice, type Invoice,
-  getTenantConfig, updateTenantConfig,
-  getSystemSettings, updateSystemSettings, type SystemSettings,
-} from "@/server/domain/store";
-import { permissionMatrix, ROLES_ORDER } from "@/server/ai-core/tools";
-import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
+import { api } from "@/lib/api/client";
+import type {
+  Tenant, Plan, FeatureFlag, OwnerKpis, Invoice, BillingSummary,
+  SystemSettings, AiFeedbackStats, PermissionRow, AuditEntry,
+} from "@/lib/api/types";
 import { locales, localeMeta, type Locale } from "@/i18n/config";
+
+// Onda 6: LANDING_FIELDS inlined (era importado de store.ts server-only).
+const LANDING_FIELDS = ["heroTitleA", "heroTitleB", "heroSub", "heroCta", "heroNote"] as const;
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
 import { useSession } from "@/workspace/session";
@@ -34,15 +33,26 @@ export function OwnerView() {
   const fmt = useFormatter();
   const user = useSession();
   const [section, setSection] = useState<Section>("overview");
-  // Mutações do CRUD bumpam o tick → re-lê o store in-memory (mesmo padrão da Execução).
-  const [tick, setTick] = useState(0);
-  const refresh = () => setTick((n) => n + 1);
 
-  const k = useMemo(() => ownerKpis(), []);
-  const tenants = useMemo(() => [...listTenants()], [tick]);
-  const plans = useMemo(() => [...getPlans()], [tick]);
-  const flags = useMemo(() => listFlags(), []);
-  const audit = useMemo(() => [...ownerAudit()], [tick]);
+  // Onda 6: store.ts server-only → snapshot via API; refresh() re-busca.
+  const [k, setK] = useState<OwnerKpis | null>(null);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [flags, setFlags] = useState<FeatureFlag[]>([]);
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [aiFbStats, setAiFbStats] = useState<AiFeedbackStats>({ total: 0, up: 0, down: 0, approvalRate: 0 });
+
+  function refresh() {
+    api.owner.snapshot().then((snap) => {
+      setK(snap.kpis);
+      setTenants([...snap.tenants]);
+      setPlans([...snap.plans]);
+      setFlags(snap.flags);
+      setAudit([...snap.audit]);
+      setAiFbStats(snap.aiFeedbackStats);
+    }).catch(() => {});
+  }
+  useEffect(() => { refresh(); }, []);
 
   const tabs: { id: Section; label: string; icon: React.ReactNode }[] = [
     { id: "overview", label: t("overview"), icon: <TrendingUp size={14} /> },
@@ -107,7 +117,7 @@ export function OwnerView() {
         </div>
       </div>
 
-      {section === "overview" && <Overview k={k} t={t} tc={tc} fmt={fmt} />}
+      {section === "overview" && k && <Overview k={k} fb={aiFbStats} t={t} tc={tc} fmt={fmt} />}
       {section === "tenants" && <Tenants rows={tenants} t={t} fmt={fmt} refresh={refresh} />}
       {section === "users" && <UsersTab t={t} />}
       {section === "plans" && <Plans rows={plans} t={t} fmt={fmt} refresh={refresh} />}
@@ -126,8 +136,7 @@ type Tr = ReturnType<typeof useTranslations>;
 type Fmt = ReturnType<typeof useFormatter>;
 
 // ── OVERVIEW ─────────────────────────────────────────────────────────────────
-function Overview({ k, t, tc, fmt }: { k: ReturnType<typeof ownerKpis>; t: Tr; tc: Tr; fmt: Fmt }) {
-  const fb = aiFeedbackStats();
+function Overview({ k, fb, t, tc, fmt }: { k: OwnerKpis; fb: AiFeedbackStats; t: Tr; tc: Tr; fmt: Fmt }) {
   const aiSat = fb.total ? Math.round((fb.up / fb.total) * 100) : 0;
   return (
     <div>
@@ -275,29 +284,26 @@ function Tenants({ rows, t, fmt, refresh }: { rows: Tenant[]; t: Tr; fmt: Fmt; r
     }
   }
 
-  // Padrão do demo: muta o store client-side (UI atualiza no refresh) e espelha no
-  // endpoint admin (servidor, com RBAC). 0C §2.2. Se o servidor recusar (429/erro),
-  // avisa em vez de fingir sucesso silenciosamente.
+  // Onda 6: mutações só via API (store.ts server-only). refresh() re-busca do servidor.
   async function setStatus(tn: Tenant) {
     const status = tn.status === "suspended" ? "active" : "suspended";
-    setTenantStatus(tn.id, status);
-    refresh();
     const res = await writeJson(`/api/owner/tenants/${tn.id}`, { status }, "PATCH");
     if (!res.ok) {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
+    refresh();
     toast({ title: tn.name, description: t(`tenantStatus.${status}`), tone: status === "suspended" ? "warning" : "success" });
   }
   async function create() {
-    const created = createTenant({ name: "Nova Holding S.A.", plan: "plan-structure", sector: "industry" });
-    refresh();
-    const res = await writeJson("/api/owner/tenants", { name: created.name, plan: created.plan, sector: created.sector }, "POST");
+    const payload = { name: "Nova Holding S.A.", plan: "plan-structure", sector: "industry" };
+    const res = await writeJson("/api/owner/tenants", payload, "POST");
     if (!res.ok) {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
-    toast({ title: t("tenantCreated"), description: created.name, tone: "success" });
+    refresh();
+    toast({ title: t("tenantCreated"), description: payload.name, tone: "success" });
   }
 
   return (
@@ -394,26 +400,26 @@ function Plans({ rows, t, fmt, refresh }: { rows: Plan[]; t: Tr; fmt: Fmt; refre
     const price = parseFloat(ed.price);
     const quotas = { users: parseInt(ed.users), jurisdictions: parseInt(ed.jurisdictions), aiCredits: parseInt(ed.aiCredits) };
     if (!isFinite(price) || price < 0) return;
-    updatePlan(p.id, { price, quotas });
-    refresh();
+    // Onda 6: apenas API (sem store mutation).
     const res = await writeJson(`/api/owner/plans/${p.id}`, { price, quotas }, "PUT");
     if (!res.ok) {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
     setEditing((e) => { const n = { ...e }; delete n[p.id]; return n; });
+    refresh();
     toast({ title: t("planSaved"), description: p.name, tone: "success" });
   }
 
   async function toggleEnt(p: Plan, mod: string) {
     const next = p.entitlements.includes(mod) ? p.entitlements.filter((e) => e !== mod) : [...p.entitlements, mod];
-    updatePlan(p.id, { entitlements: next });
-    refresh();
+    // Onda 6: apenas API.
     const res = await writeJson(`/api/owner/plans/${p.id}`, { entitlements: next }, "PUT");
     if (!res.ok) {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
+    refresh();
     toast({ title: t("planSaved"), description: p.name, tone: "success" });
   }
 
@@ -519,20 +525,40 @@ function QuotaRow({ label, value }: { label: string; value: number | string }) {
 }
 
 // ── CONFIG por tenant + matriz de permissões (0C §2.8/2.9/2.10) ────────────────
+// Onda 6: getTenantConfig/updateTenantConfig e permissionMatrix/ROLES_ORDER
+// eram importados do store server-only. Agora vêm de /api/owner/tenants/[id]/config
+// e /api/owner/permissions respectivamente.
 function Config({ t, tenants }: { t: Tr; tenants: Tenant[] }) {
   const { toast } = useToast();
   const ts = useTranslations("settings");
   const tc = useTranslations("common");
   const [tid, setTid] = useState<string>(tenants[0]?.id ?? "");
-  const [cfg, setCfg] = useState<Record<string, string>>(() => ({ ...getTenantConfig(tenants[0]?.id ?? "") }));
-  const matrix = permissionMatrix();
+  const [cfg, setCfg] = useState<Record<string, string>>({});
+  const [matrix, setMatrix] = useState<PermissionRow[]>([]);
+  const [rolesOrder, setRolesOrder] = useState<string[]>([]);
+
+  useEffect(() => {
+    api.owner.permissions().then((p) => {
+      setMatrix(p.matrix);
+      setRolesOrder(p.roles);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!tid) return;
+    api.owner.tenantConfig(tid).then(setCfg).catch(() => {});
+  }, [tid]);
+
+  // Keep tid in sync when tenants load (initially empty)
+  useEffect(() => {
+    if (!tid && tenants[0]) setTid(tenants[0].id);
+  }, [tenants]);
 
   function pick(id: string) {
     setTid(id);
-    setCfg({ ...getTenantConfig(id) });
   }
   async function save() {
-    updateTenantConfig(tid, cfg);
+    // Onda 6: apenas API — sem updateTenantConfig no store.
     const res = await writeJson(`/api/owner/tenants/${tid}/config`, cfg, "PUT");
     if (!res.ok) {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
@@ -566,64 +592,73 @@ function Config({ t, tenants }: { t: Tr; tenants: Tenant[] }) {
         <Button variant="primary" onClick={save}>{tc("save")}</Button>
       </div>
 
-      {/* Matriz de permissões (derivada das tools — fonte da verdade do RBAC) */}
-      <div className="panel hairline overflow-hidden">
-        <div className="px-5 py-3 border-b border-line"><p className="eyebrow">{t("permissions")}</p></div>
-        <div className="overflow-x-auto no-scrollbar">
-          <table className="w-full min-w-[680px] text-sm">
-            <thead>
-              <tr className="border-b border-line text-left">
-                <th className="eyebrow px-4 pl-5 py-3 font-normal">Tool</th>
-                {ROLES_ORDER.map((r) => <th key={r} className="eyebrow px-3 py-3 font-normal text-center">{r}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {matrix.map((row) => (
-                <tr key={row.id} className="border-b border-line last:border-0">
-                  <td className="px-4 pl-5 py-2.5 mono text-xs text-ink-2">{row.id}</td>
-                  {ROLES_ORDER.map((r) => (
-                    <td key={r} className="px-3 py-2.5 text-center">
-                      {row.roles[r] ? <Check size={14} className="inline text-positive" /> : <span className="text-ink-4">—</span>}
-                    </td>
-                  ))}
+      {/* Matriz de permissões (derivada das tools via /api/owner/permissions) */}
+      {matrix.length > 0 && (
+        <div className="panel hairline overflow-hidden">
+          <div className="px-5 py-3 border-b border-line"><p className="eyebrow">{t("permissions")}</p></div>
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full min-w-[680px] text-sm">
+              <thead>
+                <tr className="border-b border-line text-left">
+                  <th className="eyebrow px-4 pl-5 py-3 font-normal">Tool</th>
+                  {rolesOrder.map((r) => <th key={r} className="eyebrow px-3 py-3 font-normal text-center">{r}</th>)}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {matrix.map((row) => (
+                  <tr key={row.id} className="border-b border-line last:border-0">
+                    <td className="px-4 pl-5 py-2.5 mono text-xs text-ink-2">{row.id}</td>
+                    {rolesOrder.map((r) => (
+                      <td key={r} className="px-3 py-2.5 text-center">
+                        {row.roles[r] ? <Check size={14} className="inline text-positive" /> : <span className="text-ink-4">—</span>}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
 // ── BILLING (0C §2.7) ────────────────────────────────────────────────────────
-function Billing({ t, fmt, refresh, tenants }: { t: Tr; fmt: Fmt; refresh: () => void; tenants: Tenant[] }) {
+// Onda 6: listInvoices/billingSummary/markInvoicePaid/generateInvoice removidos do store.
+function Billing({ t, fmt, refresh: _refresh, tenants }: { t: Tr; fmt: Fmt; refresh: () => void; tenants: Tenant[] }) {
   const { toast } = useToast();
   const tc = useTranslations("common");
-  const invoices = listInvoices();
-  const sum = billingSummary();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [sum, setSum] = useState<BillingSummary>({ mrr: 0, outstanding: 0, collected: 0 });
+
+  function load() {
+    api.owner.billing().then(({ invoices: inv, summary }) => {
+      setInvoices(inv);
+      setSum(summary);
+    }).catch(() => {});
+  }
+  useEffect(() => { load(); }, []);
 
   async function pay(inv: Invoice) {
-    markInvoicePaid(inv.id);
-    refresh();
     const res = await writeJson(`/api/owner/billing/${inv.id}/pay`, {}, "POST");
     if (!res.ok) {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
+    load();
     toast({ title: t("invoicePaid"), description: `${inv.tenantName} · ${inv.period}`, tone: "success" });
   }
   async function generate() {
     const tn = tenants.find((x) => x.status === "active") ?? tenants[0];
     if (!tn) return;
-    const inv = generateInvoice(tn.id);
-    refresh();
     const res = await writeJson("/api/owner/billing", { tenantId: tn.id }, "POST");
     if (!res.ok) {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
-    if (inv) toast({ title: t("invoiceGenerated"), description: `${inv.tenantName} · ${inv.period}`, tone: "success" });
+    load();
+    toast({ title: t("invoiceGenerated"), description: tn.name, tone: "success" });
   }
   const tone = (s: Invoice["status"]) => (s === "paid" ? "positive" : s === "past_due" ? "danger" : "warning");
 
@@ -670,18 +705,22 @@ function Billing({ t, fmt, refresh, tenants }: { t: Tr; fmt: Fmt; refresh: () =>
 }
 
 // ── LANDING CMS (0C §2.5) ────────────────────────────────────────────────────
+// Onda 6: getLandingContent/updateLandingContent removidos do store; carga via API.
 function LandingCms({ t }: { t: Tr }) {
   const { toast } = useToast();
   const tc = useTranslations("common");
   const [loc, setLoc] = useState<Locale>(locales[0]);
-  const [vals, setVals] = useState<Record<string, string>>(() => ({ ...getLandingContent(locales[0]) }));
+  const [vals, setVals] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    api.owner.landing(loc).then(setVals).catch(() => {});
+  }, [loc]);
 
   function pick(l: Locale) {
     setLoc(l);
-    setVals({ ...getLandingContent(l) });
   }
   async function save() {
-    updateLandingContent(loc, vals); // store client-side (a landing aplica o override)
+    // Onda 6: apenas API.
     const res = await writeJson("/api/owner/landing", { locale: loc, ...vals }, "PUT");
     if (!res.ok) {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
@@ -1055,7 +1094,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 // ── AUDIT ────────────────────────────────────────────────────────────────────
-function Audit({ rows, t, fmt }: { rows: ReturnType<typeof ownerAudit>; t: Tr; fmt: Fmt }) {
+function Audit({ rows, t, fmt }: { rows: AuditEntry[]; t: Tr; fmt: Fmt }) {
   return (
     <div>
       <div className="panel hairline overflow-hidden">
@@ -1096,15 +1135,21 @@ function Audit({ rows, t, fmt }: { rows: ReturnType<typeof ownerAudit>; t: Tr; f
 }
 
 // ── SYSTEM (função 12 / 0C §2.11) — configurações globais da plataforma ─────────
+// Onda 6: getSystemSettings/updateSystemSettings removidos do store; carga via API.
 function SystemSection({ t }: { t: Tr }) {
   const { toast } = useToast();
   const tc = useTranslations("common");
-  const [cfg, setCfg] = useState<SystemSettings>(() => getSystemSettings());
+  const [cfg, setCfg] = useState<SystemSettings | null>(null);
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    api.owner.system().then(setCfg).catch(() => {});
+  }, []);
+
   async function save() {
+    if (!cfg) return;
     setSaving(true);
-    updateSystemSettings(cfg); // store in-memory (otimista)
+    // Onda 6: apenas API (sem store mutation).
     const res = await fetch("/api/owner/system", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -1120,6 +1165,8 @@ function SystemSection({ t }: { t: Tr }) {
 
   const ALL_LOCALES = ["pt-BR", "en", "zh-CN", "fr-FR"];
 
+  if (!cfg) return null; // carregando
+
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Identidade da plataforma */}
@@ -1128,11 +1175,11 @@ function SystemSection({ t }: { t: Tr }) {
         <div className="grid sm:grid-cols-2 gap-4">
           <label className="block">
             <span className="block text-xs font-medium text-ink-2 mb-1.5">{t("systemName")}</span>
-            <input className="input" value={cfg.platformName} onChange={(e) => setCfg((c) => ({ ...c, platformName: e.target.value }))} />
+            <input className="input" value={cfg.platformName} onChange={(e) => setCfg((c) => c ? ({ ...c, platformName: e.target.value }) : c)} />
           </label>
           <label className="block">
             <span className="block text-xs font-medium text-ink-2 mb-1.5">{t("systemSupportEmail")}</span>
-            <input className="input" type="email" value={cfg.supportEmail} onChange={(e) => setCfg((c) => ({ ...c, supportEmail: e.target.value }))} />
+            <input className="input" type="email" value={cfg.supportEmail} onChange={(e) => setCfg((c) => c ? ({ ...c, supportEmail: e.target.value }) : c)} />
           </label>
         </div>
       </div>
@@ -1142,7 +1189,7 @@ function SystemSection({ t }: { t: Tr }) {
         <p className="eyebrow">{t("systemLocales")}</p>
         <div>
           <p className="text-xs text-ink-4 mb-2">{t("systemDefaultLocale")}</p>
-          <select className="input" value={cfg.defaultLocale} onChange={(e) => setCfg((c) => ({ ...c, defaultLocale: e.target.value }))}>
+          <select className="input" value={cfg.defaultLocale} onChange={(e) => setCfg((c) => c ? ({ ...c, defaultLocale: e.target.value }) : c)}>
             {ALL_LOCALES.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
@@ -1155,10 +1202,10 @@ function SystemSection({ t }: { t: Tr }) {
                 <button
                   key={l}
                   aria-pressed={on}
-                  onClick={() => setCfg((c) => ({
+                  onClick={() => setCfg((c) => c ? ({
                     ...c,
                     activeLocales: on ? c.activeLocales.filter((x) => x !== l) : [...c.activeLocales, l],
-                  }))}
+                  }) : c)}
                   className={cn("chip mono text-[0.7rem] transition-colors", on ? "text-brand border-[color:var(--border-gold)] bg-[var(--brand-soft)]" : "text-ink-4 border-line bg-surface-2 hover:text-ink-2")}
                 >
                   {l}
@@ -1178,28 +1225,28 @@ function SystemSection({ t }: { t: Tr }) {
               <p className="text-sm text-ink">{t("systemStrongPassword")}</p>
               <p className="text-xs text-ink-4">{t("systemStrongPasswordHint")}</p>
             </div>
-            <Switch on={cfg.enforceStrongPassword} onClick={() => setCfg((c) => ({ ...c, enforceStrongPassword: !c.enforceStrongPassword }))} />
+            <Switch on={cfg.enforceStrongPassword} onClick={() => setCfg((c) => c ? ({ ...c, enforceStrongPassword: !c.enforceStrongPassword }) : c)} />
           </div>
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm text-ink">{t("systemMfa")}</p>
               <p className="text-xs text-ink-4">{t("systemMfaHint")}</p>
             </div>
-            <Switch on={cfg.mfaEnabled} onClick={() => setCfg((c) => ({ ...c, mfaEnabled: !c.mfaEnabled }))} />
+            <Switch on={cfg.mfaEnabled} onClick={() => setCfg((c) => c ? ({ ...c, mfaEnabled: !c.mfaEnabled }) : c)} />
           </div>
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm text-ink">{t("systemMaintenance")}</p>
               <p className="text-xs text-ink-4">{t("systemMaintenanceHint")}</p>
             </div>
-            <Switch on={cfg.maintenanceMode} onClick={() => setCfg((c) => ({ ...c, maintenanceMode: !c.maintenanceMode }))} />
+            <Switch on={cfg.maintenanceMode} onClick={() => setCfg((c) => c ? ({ ...c, maintenanceMode: !c.maintenanceMode }) : c)} />
           </div>
           <label className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm text-ink">{t("systemSessionTtl")}</p>
               <p className="text-xs text-ink-4">{t("systemSessionTtlHint")}</p>
             </div>
-            <input className="input w-20 text-right" type="number" min="1" max="168" value={cfg.sessionTtlHours} onChange={(e) => setCfg((c) => ({ ...c, sessionTtlHours: parseInt(e.target.value) || 8 }))} />
+            <input className="input w-20 text-right" type="number" min="1" max="168" value={cfg.sessionTtlHours} onChange={(e) => setCfg((c) => c ? ({ ...c, sessionTtlHours: parseInt(e.target.value) || 8 }) : c)} />
           </label>
         </div>
       </div>

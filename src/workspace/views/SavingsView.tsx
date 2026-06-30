@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Coins, TrendingUp, Receipt, BadgeCheck, Clock, Wallet, Loader2 } from "lucide-react";
-import { getSavings, reconcileSaving } from "@/server/domain/store";
-import type { SavingsRecord } from "@/server/domain/types";
+import { api } from "@/lib/api/client";
+import type { SavingsRecord, SavingsSummary } from "@/lib/api/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useToast } from "@/ui/Toast";
 import { CountUp } from "@/ui/CountUp";
@@ -17,11 +17,16 @@ export function SavingsView() {
   const tc = useTranslations("common");
   const fmt = useFormatter();
   const { toast } = useToast();
-  const s = getSavings();
+  const [s, setS] = useState<SavingsSummary | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [, bump] = useState(0); // força re-render após o store mutar
 
-  // Conciliação server-confirmed (08 §7): só reflete no store do cliente DEPOIS que o
+  // Onda 6: store.ts server-only → carga via API.
+  function load() {
+    api.savings.get().then(setS).catch(() => {});
+  }
+  useEffect(() => { load(); }, []);
+
+  // Conciliação server-confirmed (08 §7): só reflete no estado local DEPOIS que o
   // servidor aceitar (manager+). Em 403/429/erro, nada muda e o usuário é avisado.
   async function reconcile(r: SavingsRecord) {
     setBusyId(r.id);
@@ -31,10 +36,12 @@ export function SavingsView() {
       toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
       return;
     }
-    reconcileSaving(r.id);
-    bump((v) => v + 1);
+    // Recarrega do servidor para refletir o estado real após conciliação.
+    load();
     toast({ title: t("reconciledToast"), description: r.playTitle, tone: "success" });
   }
+
+  if (!s) return null; // carregando
 
   return (
     <ViewScroll>

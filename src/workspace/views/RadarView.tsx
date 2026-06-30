@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Radar, FileText, ArrowUpRight, ExternalLink, Dot } from "lucide-react";
-import { listRadar, opportunityForNorm, type RadarItem } from "@/server/domain/store";
+import { api } from "@/lib/api/client";
+import type { RadarItem } from "@/lib/api/types";
 import { useFormatter, useTranslations } from "@/i18n/provider";
 import { useWorkspace } from "@/workspace/store";
 import { Chip, Meter, buttonClass, EmptyState } from "@/ui/primitives";
@@ -36,8 +37,14 @@ export function RadarView() {
   const ws = useWorkspace();
 
   const [level, setLevel] = useState<LevelFilter>("all");
+  const [items, setItems] = useState<RadarItem[]>([]);
 
-  const items = useMemo(() => listRadar({ level }), [level]);
+  // Onda 6: store.ts server-only → carga via API. Re-busca quando o filtro muda.
+  useEffect(() => {
+    api.radar.list({ level: level === "all" ? undefined : level })
+      .then(setItems)
+      .catch(() => {});
+  }, [level]);
 
   // Agrupa reativamente nos três baldes, preservando a ordenação por recência.
   const groups = useMemo(() => {
@@ -154,7 +161,8 @@ function RadarRow({
   tc: ReturnType<typeof useTranslations>;
   onOpen: ReturnType<typeof useWorkspace>["open"];
 }) {
-  const opp = opportunityForNorm(norm.id);
+  // opportunityId já vem enriquecido pelo servidor (Onda 6 — elimina import de store).
+  const oppId = norm.opportunityId;
   const tone = LEVEL_TONE[norm.level];
 
   return (
@@ -215,9 +223,9 @@ function RadarRow({
               </a>
             )}
 
-            {opp ? (
+            {oppId ? (
               <button
-                onClick={() => onOpen("opportunity", { id: opp.id })}
+                onClick={() => onOpen("opportunity", { id: oppId })}
                 className={buttonClass("outline", "sm")}
               >
                 <FileText size={13} />

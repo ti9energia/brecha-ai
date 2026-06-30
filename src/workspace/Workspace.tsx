@@ -19,15 +19,23 @@ import { ShortcutsHelp } from "./ShortcutsHelp";
 import { Onboarding } from "./Onboarding";
 import { cn } from "@/ui/cn";
 
-export function Workspace({ user }: { user: WorkspaceUser }) {
+interface WorkspaceProps {
+  user: WorkspaceUser;
+  /** IDs dos módulos liberados pelo plano do tenant — computado server-side. */
+  entitlementIds?: string[];
+  /** Estado inicial das feature flags — computado server-side. */
+  initialFlags?: Record<string, boolean>;
+}
+
+export function Workspace({ user, entitlementIds, initialFlags }: WorkspaceProps) {
   // O perfil (autônomo/escritório/dono) decide o módulo de partida e as abas visíveis.
   const allowed = allowedModuleIds(user.accountType);
   const defaultModule = defaultModuleFor(user.accountType);
   return (
     <SessionProvider user={user}>
-      <EntitlementsProvider>
+      <EntitlementsProvider entitlementIds={entitlementIds ?? []}>
         <WorkspaceProvider defaultModule={defaultModule} allowed={allowed}>
-          <FlagsProvider>
+          <FlagsProvider initialFlags={initialFlags ?? {}}>
             <CopilotProvider>
               <ToastProvider>
                 <Shell />

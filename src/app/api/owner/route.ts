@@ -1,9 +1,10 @@
-import { ownerKpis, listTenants, getPlans, listFlags, ownerAudit } from "@/server/domain/store";
+import { ownerKpis, listTenants, getPlans, listFlags, ownerAudit, aiFeedbackStats } from "@/server/domain/store";
 import { ok } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 
 // GET /api/owner — agregado do Painel do Dono (0C). Exige papel platform_owner:
 // expõe dados cross-tenant (MRR, gasto de IA, trilha de auditoria da plataforma).
+// Onda 6: inclui aiFeedbackStats para eliminar import de store nas views cliente.
 export async function GET() {
   const { error } = await requireRole("platform_owner");
   if (error) return error;
@@ -14,5 +15,6 @@ export async function GET() {
     plans: getPlans(),
     flags: listFlags(),
     audit: ownerAudit(),
+    aiFeedbackStats: aiFeedbackStats(),
   });
 }

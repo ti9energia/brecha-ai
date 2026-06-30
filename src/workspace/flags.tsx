@@ -4,7 +4,6 @@
 // rail/command palette refletem na hora. Inicializa do seed; Onda 4: persiste
 // via PATCH /api/owner/flags para sobreviver a recargas de página.
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
-import { listFlags, setFlag } from "@/server/domain/store";
 
 interface FlagsApi {
   enabled: Record<string, boolean>;
@@ -14,17 +13,21 @@ interface FlagsApi {
 
 const Ctx = createContext<FlagsApi | null>(null);
 
-export function FlagsProvider({ children }: { children: ReactNode }) {
-  const [enabled, setEnabled] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(listFlags().map((f) => [f.module, f.enabled])),
-  );
+export function FlagsProvider({
+  children,
+  initialFlags,
+}: {
+  children: ReactNode;
+  /** Estado inicial das flags — computado server-side em page.tsx. */
+  initialFlags: Record<string, boolean>;
+}) {
+  const [enabled, setEnabled] = useState<Record<string, boolean>>(initialFlags);
 
   const toggle = useCallback((module: string) => {
     setEnabled((s) => {
       const next = !s[module];
-      // Persistência otimista: atualiza o store in-memory imediatamente e dispara
-      // PATCH /api/owner/flags no background (sem bloquear a UI).
-      setFlag(module, next); // store in-memory (client — sem round-trip para demo)
+      // Persistência otimista: atualiza o estado local imediatamente e dispara
+      // PATCH /api/owner/flags no background (persiste no store do servidor).
       fetch("/api/owner/flags", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
