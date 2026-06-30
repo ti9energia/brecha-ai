@@ -246,6 +246,8 @@ const messages: Deep<Messages> = {
     },
     successFeeShort: "success fee",
     testimonial: "We captured R$14.8M in windows that would have closed unseen. The fee only showed up after the money landed.",
+    testimonialAuthor: "Marina Alves",
+    testimonialRole: "CFO · Acme Participações S.A.",
     flink: {
       how: "How it works",
       pricing: "Pricing",

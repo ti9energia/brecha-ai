@@ -16,7 +16,7 @@ import {
 } from "./seed";
 import type {
   Norm, Opportunity, ScenarioParams, ScenarioResult, Level, OpportunityType, ClientStructure,
-  Tenant, Plan, SectorId, Scenario, StepStatus, SavingsSummary,
+  Tenant, Plan, SectorId, Scenario, StepStatus, SavingsSummary, SavingsRecord,
 } from "./types";
 import { emit } from "@/server/events/bus";
 import { detectOpportunities } from "@/server/ai/detector";
@@ -368,6 +368,14 @@ const STEP_NEXT: Record<StepStatus, StepStatus> = {
   done: "todo",
   blocked: "doing",
 };
+
+/** Retorna o trimestre corrente no formato "YYYY-QN" (UTC). */
+function currentQuarter(now = new Date()): string {
+  const q = Math.ceil((now.getUTCMonth() + 1) / 3);
+  return `${now.getUTCFullYear()}-Q${q}`;
+}
+
+let capSeq = 0;
 export function advanceExecutionStep(planId: string, stepId: string) {
   const plan = EXECUTION_PLANS.find((p) => p.id === planId);
   if (!plan) return null;
@@ -376,9 +384,40 @@ export function advanceExecutionStep(planId: string, stepId: string) {
   step.status = STEP_NEXT[step.status] ?? "doing";
   const done = plan.steps.filter((s) => s.status === "done").length;
   plan.progress = plan.steps.length ? Math.round((done / plan.steps.length) * 100) / 100 : 0;
+  const wasCaptured = plan.status === "captured";
   if (plan.progress >= 1) plan.status = "captured";
   else if (plan.approved) plan.status = "executing";
+
+  // Loop da economia (08 §7): ao completar o plano (100%) cria automaticamente um
+  // SavingsRecord — a etapa "capturar" que antes era só seed. Idempotente: pula se
+  // já existe um registro para esta oportunidade.
+  if (plan.status === "captured" && !wasCaptured) {
+    const opp = OPPORTUNITIES.find((o) => o.id === plan.opportunityId);
+    const alreadyCaptured = SAVINGS.records.some((r) => r.opportunityId === plan.opportunityId);
+    if (!alreadyCaptured) {
+      const realizedGain = Math.max(0, opp?.simulation?.annualGain ?? opp?.estimatedGain ?? 0);
+      const rec: SavingsRecord = {
+        id: `sav-auto-${++capSeq}-${plan.opportunityId}`,
+        opportunityId: plan.opportunityId,
+        playTitle: plan.title || opp?.title || plan.opportunityId,
+        type: opp?.type ?? "regime",
+        realizedGain,
+        quarter: currentQuarter(),
+        reconciled: false,
+        capturedAt: new Date().toISOString(),
+      };
+      SAVINGS.records.unshift(rec);
+      SAVINGS.realizedYtd += realizedGain;
+      recordAiAction({
+        actor: "Execução",
+        action: "Economia capturada",
+        detail: `${rec.playTitle} — R$ ${realizedGain.toLocaleString("pt-BR")}`,
+      });
+    }
+  }
+
   recordAiAction({ actor: "Execução", action: "Passo atualizado", detail: `${step.title} → ${step.status}` });
+  emit("plan.updated", { id: plan.id, opportunityId: plan.opportunityId, status: plan.status });
   return getExecutionPlan(plan.id);
 }
 
@@ -634,7 +673,9 @@ export function updateLandingContent(locale: string, patch: Record<string, unkno
 }
 
 // Governança (0A §2.8 / 0B §3): toda ação da IA (tool invocada, comando de
-// WhatsApp) entra na trilha imutável — prepende (mais recente no topo).
+// WhatsApp) entra na trilha imutável — prepende (mais recente no topo). Cap de
+// 1000 entradas: descarta as mais antigas quando ultrapassa (rotação em memória).
+const AUDIT_LOG_MAX = 1000;
 let aiAuditSeq = 0;
 export function recordAiAction(entry: { actor: string; action: string; detail: string }) {
   AUDIT_LOG.unshift({
@@ -645,6 +686,8 @@ export function recordAiAction(entry: { actor: string; action: string; detail: s
     action: entry.action,
     detail: entry.detail.slice(0, 160),
   });
+  // Rotação: mantém só as N mais recentes; a memória não cresce sem fim.
+  if (AUDIT_LOG.length > AUDIT_LOG_MAX) AUDIT_LOG.splice(AUDIT_LOG_MAX);
 }
 
 // ── Feedback da IA (0A §2.7/§2.9) — alimenta o dataset de treino do AI Core ─────

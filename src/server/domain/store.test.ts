@@ -7,6 +7,11 @@ import {
   opportunitiesSummary,
   approveExecution,
   getOpportunity,
+  getExecutionPlan,
+  advanceExecutionStep,
+  getSavings,
+  recordAiAction,
+  ownerAudit,
   recordAiFeedback,
   aiFeedbackStats,
   updateStructure,
@@ -210,5 +215,83 @@ describe("AI feedback (0A §2.9)", () => {
     expect(after.total).toBe(before.total + 2);
     expect(after.up).toBe(before.up + 1);
     expect(after.down).toBe(before.down + 1);
+  });
+});
+
+// ── Loop da economia: capture-on-complete (08 §7) ────────────────────────────
+// O teste de approveExecution (acima) já criou o plano exec-opp-cbs-credito com
+// s1=doing, s2=todo, s3=todo. Aqui avançamos todos os passos até done e verificamos
+// que o SavingsRecord é criado automaticamente.
+describe("advanceExecutionStep — capture-on-complete (08 §7)", () => {
+  it("100% de progresso → status 'captured' e cria SavingsRecord automaticamente", () => {
+    // Garantir plano aprovado (idempotente se já foi aprovado no bloco anterior)
+    const approved = approveExecution("opp-cbs-credito", "Tester");
+    expect(approved).not.toBeNull();
+    const planId = approved!.id; // "exec-opp-cbs-credito"
+
+    // Avançar cada passo até "done"; o estado inicial pode ser todo/doing dependendo
+    // de quantas vezes já foi chamado antes neste arquivo.
+    const planBefore = getExecutionPlan("opp-cbs-credito")!;
+    for (const step of planBefore.steps) {
+      // todo → doing → done (2 advances) / doing → done (1 advance) / done = skip
+      if (step.status === "todo") {
+        advanceExecutionStep(planId, step.id); // todo → doing
+        advanceExecutionStep(planId, step.id); // doing → done
+      } else if (step.status === "doing") {
+        advanceExecutionStep(planId, step.id); // doing → done
+      }
+      // se já "done", nada a fazer
+    }
+
+    const plan = getExecutionPlan("opp-cbs-credito")!;
+    expect(plan.status).toBe("captured");
+    expect(plan.progress).toBe(1);
+
+    // SavingsRecord criado com os dados da oportunidade (annualGain = 8_420_000)
+    const savings = getSavings();
+    const rec = savings.records.find((r) => r.opportunityId === "opp-cbs-credito");
+    expect(rec).not.toBeUndefined();
+    expect(rec!.realizedGain).toBe(8_420_000);
+    expect(rec!.reconciled).toBe(false); // recém capturado, ainda não conciliado
+    expect(rec!.quarter).toMatch(/^\d{4}-Q[1-4]$/); // formato YYYY-QN
+    expect(rec!.type).toBe("credit"); // tipo herdado da oportunidade
+  });
+
+  it("idempotente: segunda completação não duplica o SavingsRecord", () => {
+    // Plano já captured. Regredir um passo (done → todo) e voltar a done não deve
+    // criar um segundo registro porque alreadyCaptured=true.
+    const plan = getExecutionPlan("opp-cbs-credito")!;
+    const stepId = plan.steps[0].id;
+
+    // done → todo (regride progresso, muda status para "executing")
+    advanceExecutionStep(plan.id, stepId);
+    // todo → doing → done (volta a 100%)
+    advanceExecutionStep(plan.id, stepId);
+    advanceExecutionStep(plan.id, stepId);
+
+    const countAfter = getSavings().records.filter(
+      (r) => r.opportunityId === "opp-cbs-credito"
+    ).length;
+    expect(countAfter).toBe(1); // ainda um único registro
+  });
+});
+
+// ── AUDIT_LOG: cap de 1 000 entradas ─────────────────────────────────────────
+// Verifica que ownerAudit() nunca retorna mais de 1 000 itens,
+// mesmo com invocações acima do limite (rotação em FIFO reverso).
+describe("recordAiAction — AUDIT_LOG cap (1 000 entradas)", () => {
+  it("nunca ultrapassa 1 000 entradas após muitas chamadas", () => {
+    const LIMIT = 1_000;
+    // Chama mais do que o limite; as mais antigas devem ser descartadas
+    for (let i = 0; i < LIMIT + 50; i++) {
+      recordAiAction({ actor: "test", action: `ação ${i}`, detail: `detalhe ${i}` });
+    }
+    expect(ownerAudit().length).toBeLessThanOrEqual(LIMIT);
+  });
+
+  it("a entrada mais recente fica na posição 0 (unshift)", () => {
+    recordAiAction({ actor: "cap-test", action: "última", detail: "topo" });
+    expect(ownerAudit()[0].action).toBe("última");
+    expect(ownerAudit()[0].actor).toBe("cap-test");
   });
 });

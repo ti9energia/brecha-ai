@@ -3,6 +3,7 @@ import type { OpportunityType } from "@/server/domain/types";
 import type { OppSort } from "@/server/domain/store";
 import { getRepository } from "@/server/db/repository";
 import { ok, paginate } from "@/server/http";
+import { rateLimit } from "@/server/security/rateLimit";
 
 const SORTS: OppSort[] = ["gain", "deadline", "confidence"];
 const TYPES: OpportunityType[] = ["regime", "incentive", "jurisdiction", "classification", "credit"];
@@ -10,6 +11,8 @@ const TYPES: OpportunityType[] = ["regime", "incentive", "jurisdiction", "classi
 // GET /api/opportunities — janelas ranqueadas + sumário de topo. Lê pelo seam de
 // persistência (Postgres se DATABASE_URL; senão o seed in-memory).
 export async function GET(req: NextRequest) {
+  const rl = rateLimit(req, "opportunities-read", { max: 120, windowMs: 60_000 });
+  if (rl) return rl;
   const sp = req.nextUrl.searchParams;
   const sortP = sp.get("sort");
   const typeP = sp.get("type");

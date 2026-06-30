@@ -98,7 +98,7 @@ export function SettingsView() {
     <ViewScroll>
       <ViewHeader
         icon={<Settings size={20} />}
-        eyebrow={tc("updatedAt") + " · Acme Participações"}
+        eyebrow={`${tc("updatedAt")} · ${orgName}`}
         title={t("title")}
         actions={
           <div className="flex items-center gap-3">

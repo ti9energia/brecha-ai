@@ -109,7 +109,12 @@ export class PrismaRepository implements Repository {
     const rows = await getPrisma().opportunity.findMany();
     const active = rows.filter((o) => isActive(o.status));
     const openGain = active.reduce((s, o) => s + o.estimatedGain, 0);
-    const closingSoon = active.filter((o) => daysUntil(o.windowEnd.toISOString()) <= 21).length;
+    // Mesmo critério do store in-memory (store.ts opportunitiesSummary): piso >= 0
+    // para não contar janelas já vencidas como "fechando em breve".
+    const closingSoon = active.filter((o) => {
+      const d = daysUntil(o.windowEnd.toISOString());
+      return d >= 0 && d <= 21;
+    }).length;
     const savings = await getPrisma().savingsRecord.aggregate({ _sum: { realizedGain: true } });
     return {
       openWindows: active.length,

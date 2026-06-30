@@ -241,6 +241,8 @@ const messages: Deep<Messages> = {
     },
     successFeeShort: "commission de succès",
     testimonial: "Nous avons capté 14,8 M R$ dans des fenêtres qui se seraient refermées sans que personne ne le voie. La commission n'est apparue qu'une fois l'argent encaissé.",
+    testimonialAuthor: "Marina Alves",
+    testimonialRole: "CFO · Acme Participações S.A.",
     flink: {
       how: "Comment ça marche",
       pricing: "Tarifs",
