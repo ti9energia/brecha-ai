@@ -21,7 +21,7 @@ export interface Retrieved extends KnowledgeChunk {
 export interface KnowledgeStore {
   readonly id: string;
   /** Chunks mais relevantes para a consulta (isolado por tenant via orgId). */
-  retrieve(query: string, orgId: string, k?: number): Retrieved[];
+  retrieve(query: string, orgId: string, k?: number): Promise<Retrieved[]>;
 }
 
 function corpus(): KnowledgeChunk[] {
@@ -59,7 +59,7 @@ export function ingestedCount(orgId: string): number {
 
 export const inMemoryKnowledge: KnowledgeStore = {
   id: "in-memory",
-  retrieve(query, orgId, k = 4) {
+  async retrieve(query, orgId, k = 4) {
     const terms = query.toLowerCase().split(/\W+/).filter((t) => t.length > 2);
     if (terms.length === 0) return [];
     // corpus de domínio (demo) + o que ESTE tenant ingeriu (isolamento por orgId).

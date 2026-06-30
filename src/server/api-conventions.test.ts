@@ -23,10 +23,10 @@ describe("paginação por cursor (00-PADRÃO §4)", () => {
 });
 
 describe("Idempotency-Key (00-PADRÃO §4)", () => {
-  it("guarda e devolve o mesmo resultado pela chave", () => {
-    expect(getIdempotent("k-inexistente")).toBeNull();
-    setIdempotent("k-1", { plan: "x" }, { approvedBy: "Ana" });
-    const e = getIdempotent("k-1");
+  it("guarda e devolve o mesmo resultado pela chave (async KVStore, Onda 3)", async () => {
+    expect(await getIdempotent("k-inexistente")).toBeNull();
+    await setIdempotent("k-1", { plan: "x" }, { approvedBy: "Ana" });
+    const e = await getIdempotent("k-1");
     expect(e?.data).toEqual({ plan: "x" });
     expect(e?.meta).toEqual({ approvedBy: "Ana" });
   });
