@@ -134,7 +134,7 @@ export const api = {
   },
 
   agent: {
-    recommendations: () => get<AgentRecommendation[]>("/api/agent/recommendations"),
+    recommendations: () => get<AgentRecommendation[]>("/api/ai/recommendations"),
   },
 
   clients: {

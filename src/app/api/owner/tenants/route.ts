@@ -1,4 +1,4 @@
-import { listTenants, createTenant } from "@/server/domain/store";
+﻿import { listTenants, createTenant } from "@/server/domain/store";
 import type { SectorId } from "@/server/domain/types";
 import { ok } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
@@ -12,7 +12,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "owner-tenants", { max: 30, windowMs: 60_000 });
+  const limited = await rateLimit(req, "owner-tenants", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
   const gate = await requireRole("platform_owner");
   if (gate.error) return gate.error;

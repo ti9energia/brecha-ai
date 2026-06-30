@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+﻿import { cookies } from "next/headers";
 import { invokeTool } from "@/server/ai-core";
 import { orgEntitlements } from "@/server/domain/store";
 import { ok, fail } from "@/server/http";
@@ -8,7 +8,7 @@ import { verifySession, SESSION_COOKIE } from "@/server/auth/session";
 // POST /api/ai/tools/invoke — execução governada de uma tool (0A §2.9). Checa
 // sessão + RBAC da tool antes de rodar. Usado pelo AI Core/agente/WhatsApp.
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "ai-tools", { max: 60, windowMs: 60_000 });
+  const limited = await rateLimit(req, "ai-tools", { max: 60, windowMs: 60_000 });
   if (limited) return limited;
 
   const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);

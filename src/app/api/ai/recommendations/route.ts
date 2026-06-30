@@ -4,10 +4,10 @@ import { ok } from "@/server/http";
 import { requireSession } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
 
-// GET /api/agent/recommendations — fila do Agente Autônomo (0A §4).
-// Mantido por compatibilidade; path canônico: /api/ai/recommendations.
+// GET /api/ai/recommendations — path canônico da spec 0A (alias de /agent/recommendations).
+// Requer sessão válida (auth-gated).
 export async function GET(req: NextRequest) {
-  const rl = await rateLimit(req, "agent-recs-read", { max: 60, windowMs: 60_000 });
+  const rl = await rateLimit(req, "ai-recs-read", { max: 60, windowMs: 60_000 });
   if (rl) return rl;
   const gate = await requireSession();
   if (gate.error) return gate.error;

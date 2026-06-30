@@ -1,4 +1,4 @@
-import { ok, fail } from "@/server/http";
+﻿import { ok, fail } from "@/server/http";
 import { rateLimit, rateLimitBy } from "@/server/security/rateLimit";
 import { recordAiAction } from "@/server/domain/store";
 
@@ -6,7 +6,7 @@ import { recordAiAction } from "@/server/domain/store";
 // nunca revela se o e-mail existe). SWAP (produção): se existir, envia o link por e-mail.
 // No demo, registra a solicitação. Público (middleware libera /api/auth).
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "forgot", { max: 10, windowMs: 60_000 });
+  const limited = await rateLimit(req, "forgot", { max: 10, windowMs: 60_000 });
   if (limited) return limited;
 
   let body: { email?: string };
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const email = String(body?.email ?? "").slice(0, 160).trim().toLowerCase();
   if (!email) return fail("MISSING_EMAIL", "errors.missing_params");
 
-  const byEmail = rateLimitBy(email, "forgot-email", { max: 3, windowMs: 60_000 });
+  const byEmail = await rateLimitBy(email, "forgot-email", { max: 3, windowMs: 60_000 });
   if (byEmail) return byEmail;
 
   recordAiAction({ actor: email, action: "Reset de senha solicitado", detail: "(demo: e-mail não enviado)" });

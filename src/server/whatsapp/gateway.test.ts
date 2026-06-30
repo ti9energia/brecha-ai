@@ -53,17 +53,17 @@ describe("WhatsApp gateway (0B)", () => {
     expect(extractInbound(null)).toBeNull();
   });
 
-  it("saída (0B §7): sendWhatsapp registra o envio normalizando o número", () => {
+  it("saída (0B §7): sendWhatsapp registra o envio normalizando o número (stub sem token)", async () => {
     const before = sentWhatsappCount();
-    const r = sendWhatsapp("+55 11 99999-0000", "alerta");
+    const r = await sendWhatsapp("+55 11 99999-0000", "alerta");
     expect(r.ok).toBe(true);
     expect(r.to).toBe("+5511999990000");
     expect(sentWhatsappCount()).toBe(before + 1);
   });
 
-  it("push proativo (0B §4): envia os alertas urgentes do agente", () => {
+  it("push proativo (0B §4): envia os alertas urgentes do agente", async () => {
     const before = sentWhatsappCount();
-    const r = agentProactivePush("+5511999990000");
+    const r = await agentProactivePush("+5511999990000");
     expect(r.pushed).toBeGreaterThanOrEqual(0);
     expect(sentWhatsappCount()).toBe(before + r.pushed);
   });

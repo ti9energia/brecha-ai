@@ -1,4 +1,4 @@
-import { runScheduledJobs } from "@/server/ai-core";
+﻿import { runScheduledJobs } from "@/server/ai-core";
 import { ok, fail } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -16,7 +16,7 @@ import { cookies } from "next/headers";
 //   2. Humano (manager+): cookie de sessão com role manager/org_admin/platform_owner —
 //      para disparar manualmente via UI ou API.
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "ai-jobs", { max: 10, windowMs: 60_000 });
+  const limited = await rateLimit(req, "ai-jobs", { max: 10, windowMs: 60_000 });
   if (limited) return limited;
 
   // Verificar autenticação cron primeiro (mais rápido, sem cookie overhead)

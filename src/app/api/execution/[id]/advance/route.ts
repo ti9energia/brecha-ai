@@ -1,4 +1,4 @@
-import { advanceExecutionStep } from "@/server/domain/store";
+﻿import { advanceExecutionStep } from "@/server/domain/store";
 import { ok, notFound, badRequest } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -8,7 +8,7 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
-  const limited = rateLimit(req, "execution-advance", { max: 60, windowMs: 60_000 });
+  const limited = await rateLimit(req, "execution-advance", { max: 60, windowMs: 60_000 });
   if (limited) return limited;
   const gate = await requireRole("member", "tributarista", "manager", "org_admin", "platform_staff", "platform_owner");
   if (gate.error) return gate.error;

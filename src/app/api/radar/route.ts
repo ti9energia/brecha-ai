@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server";
+﻿import type { NextRequest } from "next/server";
 import { getRepository } from "@/server/db/repository";
 import { opportunityForNorm } from "@/server/domain/store";
 import { ok, paginate } from "@/server/http";
@@ -12,7 +12,7 @@ const LEVELS = ["federal", "state", "municipal"];
 // Onda 6: cada item carrega opportunityId quando há oportunidade detectada,
 // para que a view cliente não precise importar store.ts.
 export async function GET(req: NextRequest) {
-  const rl = rateLimit(req, "radar-read", { max: 120, windowMs: 60_000 });
+  const rl = await rateLimit(req, "radar-read", { max: 120, windowMs: 60_000 });
   if (rl) return rl;
   const sp = req.nextUrl.searchParams;
   const levelP = sp.get("level");

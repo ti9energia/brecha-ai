@@ -1,11 +1,11 @@
-import { listFlags, setFlag } from "@/server/domain/store";
+﻿import { listFlags, setFlag } from "@/server/domain/store";
 import { ok, fail } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
 
 // GET /api/owner/flags — lista os feature flags da plataforma (0C §2.6).
 export async function GET(req: Request) {
-  const limited = rateLimit(req, "owner-flags", { max: 60, windowMs: 60_000 });
+  const limited = await rateLimit(req, "owner-flags", { max: 60, windowMs: 60_000 });
   if (limited) return limited;
   const gate = await requireRole("platform_owner", "platform_staff");
   if (gate.error) return gate.error;
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
 // PATCH /api/owner/flags — persiste o estado de um flag (on/off). platform_owner only.
 export async function PATCH(req: Request) {
-  const limited = rateLimit(req, "owner-flags-write", { max: 30, windowMs: 60_000 });
+  const limited = await rateLimit(req, "owner-flags-write", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
   const gate = await requireRole("platform_owner");
   if (gate.error) return gate.error;

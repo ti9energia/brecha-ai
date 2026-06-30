@@ -201,7 +201,7 @@ export function saveScenario(name: string, params: ScenarioParams, result: Scena
 // Cria uma Oportunidade real a partir de um cenário do simulador (botão "Transformar
 // em oportunidade"). Vira uma janela aberta de verdade — abre no detalhe.
 let simOppSeq = 0;
-export function createOpportunityFromScenario(params: ScenarioParams, result: ScenarioResult): Opportunity {
+export function createOpportunityFromScenario(params: ScenarioParams, result: ScenarioResult, orgId?: string): Opportunity {
   const norm = NORMS[0]; // norma-gatilho de referência (demo)
   const now = new Date();
   const burdenBefore = result.annualBurden + Math.max(0, result.annualSaving);
@@ -241,7 +241,7 @@ export function createOpportunityFromScenario(params: ScenarioParams, result: Sc
   };
   OPPORTUNITIES.unshift(opp);
   recordAiAction({ actor: "Simulador", action: "Oportunidade criada", detail: opp.title });
-  emit("opportunity.simulated", { id: opp.id, gain: opp.estimatedGain });
+  emit("opportunity.simulated", { id: opp.id, gain: opp.estimatedGain, orgId: orgId ?? "org-acme" });
   return opp;
 }
 
@@ -377,7 +377,7 @@ function currentQuarter(now = new Date()): string {
 }
 
 let capSeq = 0;
-export function advanceExecutionStep(planId: string, stepId: string) {
+export function advanceExecutionStep(planId: string, stepId: string, orgId?: string) {
   const plan = EXECUTION_PLANS.find((p) => p.id === planId);
   if (!plan) return null;
   const step = plan.steps.find((s) => s.id === stepId);
@@ -418,7 +418,7 @@ export function advanceExecutionStep(planId: string, stepId: string) {
   }
 
   recordAiAction({ actor: "Execução", action: "Passo atualizado", detail: `${step.title} → ${step.status}` });
-  emit("plan.updated", { id: plan.id, opportunityId: plan.opportunityId, status: plan.status });
+  emit("plan.updated", { id: plan.id, opportunityId: plan.opportunityId, status: plan.status, orgId: orgId ?? "org-acme" });
   return getExecutionPlan(plan.id);
 }
 
@@ -429,14 +429,14 @@ export function getSavings() {
 // Concilia um registro de economia (08 §7): a economia capturada só entra na BASE do
 // success fee depois de conciliada (bancária). Marca o registro, soma o ganho à feeBase
 // e recalcula a feeDue. Idempotente: registro inexistente ou já conciliado → null.
-export function reconcileSaving(id: string): SavingsSummary | null {
+export function reconcileSaving(id: string, orgId?: string): SavingsSummary | null {
   const rec = SAVINGS.records.find((r) => r.id === id);
   if (!rec || rec.reconciled) return null;
   rec.reconciled = true;
   SAVINGS.feeBase += rec.realizedGain;
   SAVINGS.feeDue = Math.round(SAVINGS.feeBase * SAVINGS.feeRate);
   recordAiAction({ actor: "Conciliação", action: "Economia conciliada", detail: `${rec.playTitle} (${id})` });
-  emit("savings.reconciled", { id, gain: rec.realizedGain });
+  emit("savings.reconciled", { id, gain: rec.realizedGain, orgId: orgId ?? "org-acme" });
   return SAVINGS;
 }
 

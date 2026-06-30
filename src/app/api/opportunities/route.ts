@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server";
+﻿import type { NextRequest } from "next/server";
 import type { OpportunityType } from "@/server/domain/types";
 import type { OppSort } from "@/server/domain/store";
 import { getRepository } from "@/server/db/repository";
@@ -11,7 +11,7 @@ const TYPES: OpportunityType[] = ["regime", "incentive", "jurisdiction", "classi
 // GET /api/opportunities — janelas ranqueadas + sumário de topo. Lê pelo seam de
 // persistência (Postgres se DATABASE_URL; senão o seed in-memory).
 export async function GET(req: NextRequest) {
-  const rl = rateLimit(req, "opportunities-read", { max: 120, windowMs: 60_000 });
+  const rl = await rateLimit(req, "opportunities-read", { max: 120, windowMs: 60_000 });
   if (rl) return rl;
   const sp = req.nextUrl.searchParams;
   const sortP = sp.get("sort");

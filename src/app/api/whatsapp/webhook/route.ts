@@ -1,4 +1,4 @@
-import { handleWhatsappMessage, verifyWhatsappSignature, extractInbound } from "@/server/whatsapp/gateway";
+﻿import { handleWhatsappMessage, verifyWhatsappSignature, extractInbound } from "@/server/whatsapp/gateway";
 import { ok, fail } from "@/server/http";
 import { rateLimit } from "@/server/security/rateLimit";
 
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
 // contrário qualquer POST seria processado como o usuário vinculado ao número
 // (impersonação + forja de auditoria). Espelha o fail-closed do AUTH_SECRET.
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "whatsapp", { max: 60, windowMs: 60_000 });
+  const limited = await rateLimit(req, "whatsapp", { max: 60, windowMs: 60_000 });
   if (limited) return limited;
 
   const raw = await req.text();

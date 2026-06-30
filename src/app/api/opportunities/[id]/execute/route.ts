@@ -1,4 +1,4 @@
-import { getRepository } from "@/server/db/repository";
+﻿import { getRepository } from "@/server/db/repository";
 import { ok, fail } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -8,7 +8,7 @@ import { idempotencyKey, getIdempotent, setIdempotent } from "@/server/security/
 // plano. Mutação privilegiada: exige papel de aprovação e atribui o aprovador a
 // partir da SESSÃO (nunca do corpo — senão a trilha de auditoria seria forjável).
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const limited = rateLimit(req, "execute", { max: 20, windowMs: 60_000 });
+  const limited = await rateLimit(req, "execute", { max: 20, windowMs: 60_000 });
   if (limited) return limited;
 
   const { session, error } = await requireRole("manager", "org_admin", "platform_owner");

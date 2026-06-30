@@ -1,11 +1,11 @@
-import { setTenantStatus } from "@/server/domain/store";
+﻿import { setTenantStatus } from "@/server/domain/store";
 import { ok, fail } from "@/server/http";
 import { requireRole } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
 
 // PATCH /api/owner/tenants/[id] — suspender/reativar (0C §2.2). platform_owner only.
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const limited = rateLimit(req, "owner-tenant", { max: 30, windowMs: 60_000 });
+  const limited = await rateLimit(req, "owner-tenant", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
   const gate = await requireRole("platform_owner");
   if (gate.error) return gate.error;

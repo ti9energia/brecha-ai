@@ -1,4 +1,4 @@
-import { getRepository } from "@/server/db/repository";
+﻿import { getRepository } from "@/server/db/repository";
 import { ok } from "@/server/http";
 import { requireRole, requireSession } from "@/server/auth/guard";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -13,7 +13,7 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  const limited = rateLimit(req, "structure", { max: 30, windowMs: 60_000 });
+  const limited = await rateLimit(req, "structure", { max: 30, windowMs: 60_000 });
   if (limited) return limited;
 
   // Escrita = manager+ (espelha a tool `structure:update`, tools.ts WRITERS).

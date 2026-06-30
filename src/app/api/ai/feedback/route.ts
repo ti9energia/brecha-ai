@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+﻿import { cookies } from "next/headers";
 import { getRepository } from "@/server/db/repository";
 import { ok, fail } from "@/server/http";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -8,7 +8,7 @@ import { verifySession, SESSION_COOKIE } from "@/server/auth/session";
 // sinal para o dataset de treino do AI Core, isolado por tenant (orgId da sessão).
 // Passado pelo seam do repositório (0D §2) — em produção persiste no Postgres.
 export async function POST(req: Request) {
-  const limited = rateLimit(req, "ai-feedback", { max: 60, windowMs: 60_000 });
+  const limited = await rateLimit(req, "ai-feedback", { max: 60, windowMs: 60_000 });
   if (limited) return limited;
 
   let body: { rating?: unknown; message?: unknown; locale?: unknown };
