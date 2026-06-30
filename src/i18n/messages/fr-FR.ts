@@ -150,6 +150,7 @@ const messages: Deep<Messages> = {
     closeTab: "Fermer l'onglet",
     backToSite: "Quitter",
     logout: "Se déconnecter",
+    mobileNav: "Navigation",
   },
 
   landing: {

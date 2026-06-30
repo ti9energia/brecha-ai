@@ -29,7 +29,7 @@ export function NavRail() {
   const groups: ("product" | "intelligence" | "governance")[] = ["product", "intelligence", "governance"];
 
   return (
-    <nav className="w-[3.75rem] shrink-0 flex flex-col items-center border-r border-line bg-[var(--canvas-deep)] py-3">
+    <nav className="hidden md:flex w-[3.75rem] shrink-0 flex-col items-center border-r border-line bg-[var(--canvas-deep)] py-3">
       <Link href={`/${locale}`} className="grid place-items-center size-10 rounded-[var(--radius-md)] hover:bg-surface-2 transition-colors mb-3" title={tNav("backToSite")} aria-label={tNav("backToSite")}>
         <Mark size={26} />
       </Link>
