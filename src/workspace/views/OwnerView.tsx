@@ -98,7 +98,7 @@ export function OwnerView() {
 
       {/* sub-tabs (segmented control) */}
       <div className="mb-7 overflow-x-auto no-scrollbar">
-        <div role="tablist" className="inline-flex items-center gap-1 p-1 rounded-[var(--radius-md)] border border-line bg-surface-2">
+        <div role="tablist" aria-label={t("consoleSections")} className="inline-flex items-center gap-1 p-1 rounded-[var(--radius-md)] border border-line bg-surface-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -447,13 +447,13 @@ function Plans({ rows, t, fmt, refresh }: { rows: Plan[]; t: Tr; fmt: Fmt; refre
             {ed ? (
               <div className="mt-4 space-y-2">
                 <label className="block">
-                  <span className="text-[0.7rem] text-ink-4 uppercase tracking-wide">Preço/mês (R$)</span>
+                  <span className="text-[0.7rem] text-ink-4 uppercase tracking-wide">{t("pricePerMonth")}</span>
                   <input className="input mt-0.5" type="number" min="0" step="1" value={ed.price} onChange={(e) => setEditing((s) => ({ ...s, [p.id]: { ...s[p.id], price: e.target.value } }))} />
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
                   {(["users", "jurisdictions", "aiCredits"] as const).map((k) => (
                     <label key={k} className="block">
-                      <span className="text-[0.65rem] text-ink-4 uppercase tracking-wide">{k}</span>
+                      <span className="text-[0.65rem] text-ink-4 uppercase tracking-wide">{t(k)}</span>
                       <input className="input mt-0.5" type="number" min="0" step="1" value={ed[k]} onChange={(e) => setEditing((s) => ({ ...s, [p.id]: { ...s[p.id], [k]: e.target.value } }))} />
                     </label>
                   ))}
@@ -600,7 +600,7 @@ function Config({ t, tenants }: { t: Tr; tenants: Tenant[] }) {
             <table className="w-full min-w-[680px] text-sm">
               <thead>
                 <tr className="border-b border-line text-left">
-                  <th className="eyebrow px-4 pl-5 py-3 font-normal">Tool</th>
+                  <th scope="col" className="eyebrow px-4 pl-5 py-3 font-normal">Tool</th>
                   {rolesOrder.map((r) => <th key={r} className="eyebrow px-3 py-3 font-normal text-center">{r}</th>)}
                 </tr>
               </thead>
@@ -781,10 +781,10 @@ function Flags({ rows, t }: { rows: FeatureFlag[]; t: Tr }) {
         <table className="w-full min-w-[680px] text-sm border-collapse">
           <thead>
             <tr className="border-b border-line">
-              <th className="eyebrow px-4 pl-5 py-3 text-left font-medium">{t("module")}</th>
-              <th className="eyebrow px-4 py-3 text-left font-medium">{t("system")}</th>
-              <th className="eyebrow px-4 py-3 text-center font-medium w-px whitespace-nowrap">{t("state")}</th>
-              <th className="eyebrow px-4 pr-5 py-3 text-left font-medium">{t("rollout")}</th>
+              <th scope="col" className="eyebrow px-4 pl-5 py-3 text-left font-medium">{t("module")}</th>
+              <th scope="col" className="eyebrow px-4 py-3 text-left font-medium">{t("system")}</th>
+              <th scope="col" className="eyebrow px-4 py-3 text-center font-medium w-px whitespace-nowrap">{t("state")}</th>
+              <th scope="col" className="eyebrow px-4 pr-5 py-3 text-left font-medium">{t("rollout")}</th>
             </tr>
           </thead>
           <tbody>
@@ -949,11 +949,11 @@ function UsersTab({ t }: { t: Tr }) {
           <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-line text-left">
-                <th className="eyebrow px-4 pl-5 py-3 font-normal">{ts("memberName")}</th>
-                <th className="eyebrow px-4 py-3 font-normal">{ts("memberEmail")}</th>
-                <th className="eyebrow px-4 py-3 font-normal">{ts("role")}</th>
-                <th className="eyebrow px-4 py-3 font-normal text-right">{t("org")}</th>
-                <th className="eyebrow px-4 pr-5 py-3 font-normal text-right">{t("system")}</th>
+                <th scope="col" className="eyebrow px-4 pl-5 py-3 font-normal">{ts("memberName")}</th>
+                <th scope="col" className="eyebrow px-4 py-3 font-normal">{ts("memberEmail")}</th>
+                <th scope="col" className="eyebrow px-4 py-3 font-normal">{ts("role")}</th>
+                <th scope="col" className="eyebrow px-4 py-3 font-normal text-right">{t("org")}</th>
+                <th scope="col" className="eyebrow px-4 pr-5 py-3 font-normal text-right">{t("system")}</th>
               </tr>
             </thead>
             <tbody>

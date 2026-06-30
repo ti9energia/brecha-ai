@@ -415,6 +415,7 @@ const messages: Deep<Messages> = {
     saveScenario: "保存方案",
     turnIntoOpportunity: "转化为机会",
     vsBaseline: "对比基准线",
+    runError: "暂时无法模拟，请重试。",
   },
 
   execution: {
@@ -685,6 +686,8 @@ const messages: Deep<Messages> = {
     systemSessionTtl: "会话有效期（小时）",
     systemSessionTtlHint: "会话Cookie的过期时间。",
     systemSaved: "系统设置已保存",
+    consoleSections: "控制台版块",
+    pricePerMonth: "单价/月（R$）",
     aiPanel: {
       connectors: "连接器",
       sync: "同步",

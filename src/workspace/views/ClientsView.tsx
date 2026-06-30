@@ -70,12 +70,12 @@ export function ClientsView() {
             <table className="w-full min-w-[48rem] text-left border-collapse">
               <thead>
                 <tr className="bg-surface-2 border-b border-line">
-                  <th className="eyebrow font-normal px-5 py-3">{t("colClient")}</th>
-                  <th className="eyebrow font-normal px-5 py-3">{t("colSector")}</th>
-                  <th className="eyebrow font-normal px-5 py-3">{t("colRegime")}</th>
-                  <th className="eyebrow font-normal px-5 py-3 text-right">{t("colBrechas")}</th>
-                  <th className="eyebrow font-normal px-5 py-3 text-right">{t("colCaptured")}</th>
-                  <th className="eyebrow font-normal px-5 py-3 text-right">{tc("status")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3">{t("colClient")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3">{t("colSector")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3">{t("colRegime")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3 text-right">{t("colBrechas")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3 text-right">{t("colCaptured")}</th>
+                  <th scope="col" className="eyebrow font-normal px-5 py-3 text-right">{tc("status")}</th>
                   <th className="px-3 py-3" aria-hidden></th>
                 </tr>
               </thead>

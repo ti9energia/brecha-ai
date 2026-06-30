@@ -415,6 +415,7 @@ const messages: Deep<Messages> = {
     saveScenario: "Save scenario",
     turnIntoOpportunity: "Turn into opportunity",
     vsBaseline: "vs. baseline",
+    runError: "Could not simulate right now. Please try again.",
   },
 
   execution: {
@@ -685,6 +686,8 @@ const messages: Deep<Messages> = {
     systemSessionTtl: "Session TTL (hours)",
     systemSessionTtlHint: "How long until the session cookie expires.",
     systemSaved: "System settings saved",
+    consoleSections: "Console sections",
+    pricePerMonth: "Price/month (R$)",
     aiPanel: {
       connectors: "Connectors",
       sync: "Sync",

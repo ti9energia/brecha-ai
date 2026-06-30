@@ -8,6 +8,7 @@
 import { useRef, useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { useFocusTrap } from "./useFocusTrap";
+import { useTranslations } from "@/i18n/provider";
 import { cn } from "./cn";
 
 // ── Dialog ───────────────────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ export function Dialog({
   size = "md",
   className,
 }: DialogProps) {
+  const tc = useTranslations("common");
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, open);
 
@@ -90,7 +92,7 @@ export function Dialog({
             </div>
             <button
               onClick={onClose}
-              aria-label="Fechar"
+              aria-label={tc("close")}
               className="shrink-0 grid place-items-center size-8 rounded-[var(--radius-sm)] text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors"
             >
               <X size={16} />
@@ -122,6 +124,7 @@ export function Sheet({
   children,
   widthClass = "w-[min(28rem,100vw)]",
 }: SheetProps) {
+  const tc = useTranslations("common");
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, open);
 
@@ -149,6 +152,7 @@ export function Sheet({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={title ? "sheet-title" : undefined}
         className={cn(
           "relative h-full glass border-l border-line shadow-[var(--shadow-lg)] flex flex-col",
           "animate-[slide-in-right_0.25s_var(--ease-out-expo)_both]",
@@ -156,10 +160,10 @@ export function Sheet({
         )}
       >
         <div className="flex items-center justify-between gap-4 p-5 border-b border-line shrink-0">
-          {title && <h2 className="font-semibold text-ink">{title}</h2>}
+          {title && <h2 id="sheet-title" className="font-semibold text-ink">{title}</h2>}
           <button
             onClick={onClose}
-            aria-label="Fechar"
+            aria-label={tc("close")}
             className="ml-auto grid place-items-center size-8 rounded-[var(--radius-sm)] text-ink-3 hover:text-ink hover:bg-surface-2 transition-colors"
           >
             <X size={16} />

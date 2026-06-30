@@ -60,7 +60,7 @@ export function SimulatorView({ params }: { params?: Record<string, string> }) {
       const res = await api.simulator.run(form);
       setResult(res);
     } catch {
-      toast({ title: t("runError") ?? "Erro ao simular", tone: "error" });
+      toast({ title: t("runError"), tone: "error" });
     } finally {
       setRunning(false);
     }
