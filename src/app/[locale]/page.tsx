@@ -283,8 +283,8 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
                 <div className="mt-6 flex items-center gap-3">
                   <span className="grid place-items-center size-10 rounded-full bg-surface-3 text-brand font-display font-semibold">MA</span>
                   <div>
-                    <p className="text-sm text-ink font-medium">Marina Alves</p>
-                    <p className="text-xs text-ink-4">CFO · Acme Participações S.A.</p>
+                    <p className="text-sm text-ink font-medium">{t("testimonialAuthor")}</p>
+                    <p className="text-xs text-ink-4">{t("testimonialRole")}</p>
                   </div>
                 </div>
                 <div className="mt-8 grid grid-cols-3 gap-px bg-[color:var(--border)] rounded-[var(--radius-md)] overflow-hidden border border-line">

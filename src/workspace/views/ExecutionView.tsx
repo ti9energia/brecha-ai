@@ -15,7 +15,6 @@ import { Button, Chip, Meter, EmptyState } from "@/ui/primitives";
 import { ViewScroll, ViewHeader, UpdatedAt, writeJson, writeErrorKey } from "./shared";
 import { cn } from "@/ui/cn";
 
-const APPROVER = "Helena Vasconcelos — Tributarista";
 
 // chip tone por status da jogada (reaproveita rótulos de oppStatus)
 const STATUS_TONE: Record<string, "gold" | "positive" | "warning" | "info" | "neutral"> = {
@@ -106,7 +105,7 @@ export function ExecutionView({ params }: { params?: Record<string, string> }) {
                   <h2 className="mt-2.5 font-display font-semibold text-lg text-ink text-balance">{opp.title}</h2>
                   <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-ink-3">
                     <User size={13} className="text-ink-4" />
-                    {t("approver")}: <span className="text-ink-2">{APPROVER}</span>
+                    {t("approver")}: <span className="text-ink-2">{user.name}</span>
                   </p>
                 </div>
                 <div className="shrink-0">

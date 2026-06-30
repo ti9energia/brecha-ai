@@ -246,6 +246,8 @@ const messages = {
     },
     successFeeShort: "success fee",
     testimonial: "Capturamos R$ 14,8 mi em janelas que teriam fechado sem ninguém ver. O fee só apareceu depois que o dinheiro entrou.",
+    testimonialAuthor: "Marina Alves",
+    testimonialRole: "CFO · Acme Participações S.A.",
     flink: {
       how: "Como funciona",
       pricing: "Planos",

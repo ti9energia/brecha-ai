@@ -246,6 +246,8 @@ const messages: Deep<Messages> = {
     },
     successFeeShort: "成功费",
     testimonial: "我们在无人察觉、本会悄然关闭的窗口中捕获了 1480 万雷亚尔。费用只在资金到账后才产生。",
+    testimonialAuthor: "Marina Alves",
+    testimonialRole: "首席财务官 · Acme Participações S.A.",
     flink: {
       how: "工作原理",
       pricing: "价格方案",
