@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import {
   Crown, Building2, CreditCard, ToggleLeft, ScrollText, TrendingUp,
   Sparkles, ArrowUpRight, ShieldCheck, Plus, FileText, Wallet, Settings, Check,
-  Users, Bot, Plug, RefreshCw, Play, Loader2,
+  Users, Bot, Plug, RefreshCw, Play, Loader2, Lock, Unlock, UserPlus, Pencil, Globe,
 } from "lucide-react";
 import {
   ownerKpis, listTenants, getPlans, listFlags, ownerAudit, aiFeedbackStats,
   createTenant, setTenantStatus, updatePlan, getLandingContent, updateLandingContent, LANDING_FIELDS,
   listInvoices, billingSummary, markInvoicePaid, generateInvoice, type Invoice,
   getTenantConfig, updateTenantConfig,
+  getSystemSettings, updateSystemSettings, type SystemSettings,
 } from "@/server/domain/store";
 import { permissionMatrix, ROLES_ORDER } from "@/server/ai-core/tools";
 import type { Tenant, Plan, FeatureFlag } from "@/server/domain/types";
@@ -25,7 +26,7 @@ import { SectorIcon } from "@/ui/SectorIcon";
 import { Button, Chip, Meter } from "@/ui/primitives";
 import { cn } from "@/ui/cn";
 
-type Section = "overview" | "tenants" | "users" | "plans" | "billing" | "landing" | "config" | "ai" | "flags" | "audit";
+type Section = "overview" | "tenants" | "users" | "plans" | "billing" | "landing" | "config" | "ai" | "flags" | "system" | "audit";
 
 export function OwnerView() {
   const t = useTranslations("owner");
@@ -53,6 +54,7 @@ export function OwnerView() {
     { id: "config", label: t("config"), icon: <Settings size={14} /> },
     { id: "ai", label: t("ai"), icon: <Bot size={14} /> },
     { id: "flags", label: t("flags"), icon: <ToggleLeft size={14} /> },
+    { id: "system", label: t("system"), icon: <Globe size={14} /> },
     { id: "audit", label: t("audit"), icon: <ScrollText size={14} /> },
   ];
 
@@ -114,6 +116,7 @@ export function OwnerView() {
       {section === "config" && <Config t={t} tenants={tenants} />}
       {section === "ai" && <AiPanel t={t} fmt={fmt} />}
       {section === "flags" && <Flags rows={flags} t={t} />}
+      {section === "system" && <SystemSection t={t} />}
       {section === "audit" && <Audit rows={audit} t={t} fmt={fmt} />}
     </ViewScroll>
   );
@@ -370,6 +373,38 @@ const ALL_ENTITLEMENTS = ["radar", "structure", "opportunities", "simulator", "e
 function Plans({ rows, t, fmt, refresh }: { rows: Plan[]; t: Tr; fmt: Fmt; refresh: () => void }) {
   const { toast } = useToast();
   const tc = useTranslations("common");
+  // Edição de preço/quotas: estado local por plano.
+  const [editing, setEditing] = useState<Record<string, { price: string; users: string; jurisdictions: string; aiCredits: string }>>({});
+
+  function startEdit(p: Plan) {
+    setEditing((e) => ({
+      ...e,
+      [p.id]: {
+        price: String(p.price),
+        users: String(p.quotas.users),
+        jurisdictions: String(p.quotas.jurisdictions),
+        aiCredits: String(p.quotas.aiCredits),
+      },
+    }));
+  }
+
+  async function saveEdit(p: Plan) {
+    const ed = editing[p.id];
+    if (!ed) return;
+    const price = parseFloat(ed.price);
+    const quotas = { users: parseInt(ed.users), jurisdictions: parseInt(ed.jurisdictions), aiCredits: parseInt(ed.aiCredits) };
+    if (!isFinite(price) || price < 0) return;
+    updatePlan(p.id, { price, quotas });
+    refresh();
+    const res = await writeJson(`/api/owner/plans/${p.id}`, { price, quotas }, "PUT");
+    if (!res.ok) {
+      toast({ title: tc("saveErrorTitle"), description: tc(writeErrorKey(res.status)), tone: "error" });
+      return;
+    }
+    setEditing((e) => { const n = { ...e }; delete n[p.id]; return n; });
+    toast({ title: t("planSaved"), description: p.name, tone: "success" });
+  }
+
   async function toggleEnt(p: Plan, mod: string) {
     const next = p.entitlements.includes(mod) ? p.entitlements.filter((e) => e !== mod) : [...p.entitlements, mod];
     updatePlan(p.id, { entitlements: next });
@@ -381,67 +416,95 @@ function Plans({ rows, t, fmt, refresh }: { rows: Plan[]; t: Tr; fmt: Fmt; refre
     }
     toast({ title: t("planSaved"), description: p.name, tone: "success" });
   }
+
   return (
     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
-      {rows.map((p) => (
-        <div
-          key={p.id}
-          className={cn(
-            "relative panel p-5 flex flex-col",
-            p.popular ? "border border-line-gold gold-edge" : "hairline",
-          )}
-        >
-          {p.popular && (
-            <span className="absolute top-4 right-4 inline-flex items-center gap-1 chip text-brand border-[color:var(--border-gold)] bg-[var(--brand-soft)]">
-              <Sparkles size={11} />{t("popular")}
-            </span>
-          )}
-          <h3 className="font-display font-semibold text-lg text-ink">{p.name}</h3>
-          <p className="mt-0.5 text-sm text-ink-3 text-pretty max-w-[18rem]">{p.tagline}</p>
+      {rows.map((p) => {
+        const ed = editing[p.id];
+        return (
+          <div
+            key={p.id}
+            className={cn(
+              "relative panel p-5 flex flex-col",
+              p.popular ? "border border-line-gold gold-edge" : "hairline",
+            )}
+          >
+            {p.popular && (
+              <span className="absolute top-4 right-4 inline-flex items-center gap-1 chip text-brand border-[color:var(--border-gold)] bg-[var(--brand-soft)]">
+                <Sparkles size={11} />{t("popular")}
+              </span>
+            )}
+            <h3 className="font-display font-semibold text-lg text-ink">{p.name}</h3>
+            <p className="mt-0.5 text-sm text-ink-3 text-pretty max-w-[18rem]">{p.tagline}</p>
 
-          <div className="mt-4 flex items-baseline gap-1.5">
-            <span className="font-display font-bold text-2xl tnum text-ink">{fmt.money(p.price)}</span>
-            <span className="text-sm text-ink-4">{t("perMonth")}</span>
-          </div>
-          {p.feeRate > 0 && (
-            <p className="mt-1.5 inline-flex w-fit items-center gap-1 chip text-positive border-[color:var(--positive)]/25 bg-[var(--positive-soft)]">
-              + {fmt.percent(p.feeRate)} {t("successFee")}
-            </p>
-          )}
+            {/* Preço — exibição ou edição */}
+            {ed ? (
+              <div className="mt-4 space-y-2">
+                <label className="block">
+                  <span className="text-[0.7rem] text-ink-4 uppercase tracking-wide">Preço/mês (R$)</span>
+                  <input className="input mt-0.5" type="number" min="0" step="1" value={ed.price} onChange={(e) => setEditing((s) => ({ ...s, [p.id]: { ...s[p.id], price: e.target.value } }))} />
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(["users", "jurisdictions", "aiCredits"] as const).map((k) => (
+                    <label key={k} className="block">
+                      <span className="text-[0.65rem] text-ink-4 uppercase tracking-wide">{k}</span>
+                      <input className="input mt-0.5" type="number" min="0" step="1" value={ed[k]} onChange={(e) => setEditing((s) => ({ ...s, [p.id]: { ...s[p.id], [k]: e.target.value } }))} />
+                    </label>
+                  ))}
+                </div>
+                <div className="flex gap-2 mt-1">
+                  <Button variant="primary" size="sm" onClick={() => saveEdit(p)}>{tc("save")}</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setEditing((s) => { const n = { ...s }; delete n[p.id]; return n; })}>{tc("cancel")}</Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 flex items-baseline gap-1.5">
+                  <span className="font-display font-bold text-2xl tnum text-ink">{fmt.money(p.price)}</span>
+                  <span className="text-sm text-ink-4">{t("perMonth")}</span>
+                  <Button variant="ghost" size="sm" className="ml-auto" onClick={() => startEdit(p)}><Pencil size={13} /></Button>
+                </div>
+                {p.feeRate > 0 && (
+                  <p className="mt-1.5 inline-flex w-fit items-center gap-1 chip text-positive border-[color:var(--positive)]/25 bg-[var(--positive-soft)]">
+                    + {fmt.percent(p.feeRate)} {t("successFee")}
+                  </p>
+                )}
+                <div className="mt-5 pt-5 border-t border-line">
+                  <p className="eyebrow mb-2.5">{t("quotas")}</p>
+                  <dl className="space-y-2 text-sm">
+                    <QuotaRow label={t("users")} value={p.quotas.users} />
+                    <QuotaRow label={t("jurisdictions")} value={p.quotas.jurisdictions} />
+                    <QuotaRow label={t("aiCredits")} value={p.quotas.aiCredits} />
+                  </dl>
+                </div>
+              </>
+            )}
 
-          <div className="mt-5 pt-5 border-t border-line">
-            <p className="eyebrow mb-1">{t("entitlements")}</p>
-            <p className="text-[0.68rem] text-ink-4 mb-2.5">{t("editEntitlements")}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {ALL_ENTITLEMENTS.map((e) => {
-                const on = p.entitlements.includes(e);
-                return (
-                  <button
-                    key={e}
-                    onClick={() => toggleEnt(p, e)}
-                    aria-pressed={on}
-                    className={cn(
-                      "chip mono text-[0.68rem] transition-colors",
-                      on ? "text-brand border-[color:var(--border-gold)] bg-[var(--brand-soft)]" : "text-ink-4 border-line bg-surface-2 hover:text-ink-2",
-                    )}
-                  >
-                    {e}
-                  </button>
-                );
-              })}
+            <div className="mt-5 pt-5 border-t border-line">
+              <p className="eyebrow mb-1">{t("entitlements")}</p>
+              <p className="text-[0.68rem] text-ink-4 mb-2.5">{t("editEntitlements")}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {ALL_ENTITLEMENTS.map((e) => {
+                  const on = p.entitlements.includes(e);
+                  return (
+                    <button
+                      key={e}
+                      onClick={() => toggleEnt(p, e)}
+                      aria-pressed={on}
+                      className={cn(
+                        "chip mono text-[0.68rem] transition-colors",
+                        on ? "text-brand border-[color:var(--border-gold)] bg-[var(--brand-soft)]" : "text-ink-4 border-line bg-surface-2 hover:text-ink-2",
+                      )}
+                    >
+                      {e}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-
-          <div className="mt-5 pt-5 border-t border-line">
-            <p className="eyebrow mb-2.5">{t("quotas")}</p>
-            <dl className="space-y-2 text-sm">
-              <QuotaRow label={t("users")} value={p.quotas.users} />
-              <QuotaRow label={t("jurisdictions")} value={p.quotas.jurisdictions} />
-              <QuotaRow label={t("aiCredits")} value={p.quotas.aiCredits} />
-            </dl>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -746,55 +809,143 @@ function Switch({ on, onClick }: { on: boolean; onClick: () => void }) {
 }
 
 // ── USERS (0C §2.3) — lista global de usuários, via /api/owner/users ───────────
-type OwnerUser = { id: string; email: string; name: string; role: string; orgId: string };
+type OwnerUser = { id: string; email: string; name: string; role: string; orgId: string; blocked: boolean };
+const ALL_ROLES = ["viewer", "member", "tributarista", "manager", "org_admin", "platform_support", "platform_staff", "platform_owner"];
 const ROLE_TONE: Record<string, "gold" | "info" | "neutral"> = {
-  platform_owner: "gold",
-  org_admin: "info",
-  manager: "info",
-  member: "neutral",
-  viewer: "neutral",
+  platform_owner: "gold", platform_staff: "gold", platform_support: "info",
+  org_admin: "info", manager: "info", tributarista: "info",
+  member: "neutral", viewer: "neutral",
 };
+const BLANK_FORM = { name: "", email: "", role: "member", orgId: "org-acme" };
+
 function UsersTab({ t }: { t: Tr }) {
   const ts = useTranslations("settings");
+  const tc = useTranslations("common");
+  const { toast } = useToast();
   const [rows, setRows] = useState<OwnerUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState(BLANK_FORM);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
+  function load() {
     fetch("/api/owner/users")
       .then((r) => r.json())
-      .then((j) => { if (alive) setRows(Array.isArray(j?.data) ? j.data : []); })
+      .then((j) => { setRows(Array.isArray(j?.data) ? j.data : []); })
       .catch(() => {})
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, []);
+      .finally(() => setLoading(false));
+  }
+  useEffect(() => { load(); }, []);
+
+  async function create() {
+    setSaving(true);
+    const res = await fetch("/api/owner/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    }).then((r) => r.json()).catch(() => ({ error: true }));
+    setSaving(false);
+    if (res?.data?.id) {
+      toast({ title: t("userCreated"), description: form.email, tone: "success" });
+      setShowCreate(false);
+      setForm(BLANK_FORM);
+      load();
+    } else {
+      toast({ title: tc("saveErrorTitle"), description: res?.error?.code ?? "Erro", tone: "error" });
+    }
+  }
+
+  async function patchUser(u: OwnerUser, patch: { role?: string; blocked?: boolean }) {
+    const res = await fetch(`/api/owner/users/${u.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }).then((r) => r.json()).catch(() => ({ error: true }));
+    if (res?.data?.id) {
+      setRows((prev) => prev.map((x) => x.id === u.id ? { ...x, ...patch } : x));
+      toast({ title: u.name, description: patch.blocked ? t("userBlocked") : patch.role ?? t("roleUpdated"), tone: patch.blocked ? "warning" : "success" });
+    } else {
+      toast({ title: tc("saveErrorTitle"), tone: "error" });
+    }
+  }
 
   return (
-    <div className="panel hairline overflow-hidden">
-      <div className="overflow-x-auto no-scrollbar">
-        <table className="w-full min-w-[640px] text-sm">
-          <thead>
-            <tr className="border-b border-line text-left">
-              <th className="eyebrow px-4 pl-5 py-3 font-normal">{ts("memberName")}</th>
-              <th className="eyebrow px-4 py-3 font-normal">{ts("memberEmail")}</th>
-              <th className="eyebrow px-4 py-3 font-normal">{ts("role")}</th>
-              <th className="eyebrow px-4 pr-5 py-3 font-normal text-right">{t("org")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((u) => (
-              <tr key={u.id} className="border-b border-line last:border-0 hover:bg-surface-2/60 transition-colors">
-                <td className="px-4 pl-5 py-3.5 text-ink font-medium">{u.name}</td>
-                <td className="px-4 py-3.5 mono text-xs text-ink-3">{u.email}</td>
-                <td className="px-4 py-3.5"><Chip tone={ROLE_TONE[u.role] ?? "neutral"}>{u.role}</Chip></td>
-                <td className="px-4 pr-5 py-3.5 text-right mono text-xs text-ink-4">{u.orgId}</td>
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button variant="secondary" size="sm" onClick={() => setShowCreate((v) => !v)}>
+          <UserPlus size={14} />{t("newUser")}
+        </Button>
+      </div>
+      {showCreate && (
+        <div className="panel hairline p-5 space-y-3 max-w-2xl">
+          <p className="eyebrow">{t("newUser")}</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-xs font-medium text-ink-2 mb-1 block">{ts("memberName")}</span>
+              <input className="input" placeholder="João Silva" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-ink-2 mb-1 block">{ts("memberEmail")}</span>
+              <input className="input" type="email" placeholder="joao@empresa.com" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-ink-2 mb-1 block">{ts("role")}</span>
+              <select className="input" value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
+                {ALL_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-ink-2 mb-1 block">{t("org")}</span>
+              <input className="input" value={form.orgId} onChange={(e) => setForm((f) => ({ ...f, orgId: e.target.value }))} />
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="primary" size="sm" onClick={create} disabled={saving}>{saving ? <Loader2 size={13} className="animate-spin" /> : null}{tc("save")}</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setShowCreate(false); setForm(BLANK_FORM); }}>{tc("cancel")}</Button>
+          </div>
+        </div>
+      )}
+      <div className="panel hairline overflow-hidden">
+        <div className="overflow-x-auto no-scrollbar">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead>
+              <tr className="border-b border-line text-left">
+                <th className="eyebrow px-4 pl-5 py-3 font-normal">{ts("memberName")}</th>
+                <th className="eyebrow px-4 py-3 font-normal">{ts("memberEmail")}</th>
+                <th className="eyebrow px-4 py-3 font-normal">{ts("role")}</th>
+                <th className="eyebrow px-4 py-3 font-normal text-right">{t("org")}</th>
+                <th className="eyebrow px-4 pr-5 py-3 font-normal text-right">{t("system")}</th>
               </tr>
-            ))}
-            {loading && (
-              <tr><td colSpan={4} className="px-5 py-10 text-center text-ink-4"><Loader2 size={16} className="inline animate-spin" /></td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((u) => (
+                <tr key={u.id} className={cn("border-b border-line last:border-0 hover:bg-surface-2/60 transition-colors", u.blocked && "opacity-50")}>
+                  <td className="px-4 pl-5 py-3.5 text-ink font-medium">{u.name}</td>
+                  <td className="px-4 py-3.5 mono text-xs text-ink-3">{u.email}</td>
+                  <td className="px-4 py-3.5">
+                    <select
+                      className="chip text-[0.72rem] bg-transparent border-none cursor-pointer"
+                      value={u.role}
+                      onChange={(e) => patchUser(u, { role: e.target.value })}
+                      aria-label={ts("role")}
+                    >
+                      {ALL_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-4 py-3.5 text-right mono text-xs text-ink-4">{u.orgId}</td>
+                  <td className="px-4 pr-5 py-3.5 text-right">
+                    <Button variant="ghost" size="sm" onClick={() => patchUser(u, { blocked: !u.blocked })}>
+                      {u.blocked ? <Unlock size={13} className="text-positive" /> : <Lock size={13} className="text-ink-3" />}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+              {loading && (
+                <tr><td colSpan={5} className="px-5 py-10 text-center text-ink-4"><Loader2 size={16} className="inline animate-spin" /></td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -940,6 +1091,123 @@ function Audit({ rows, t, fmt }: { rows: ReturnType<typeof ownerAudit>; t: Tr; f
         <ShieldCheck size={12} className="text-ink-4" />
         {t("auditNote")}
       </p>
+    </div>
+  );
+}
+
+// ── SYSTEM (função 12 / 0C §2.11) — configurações globais da plataforma ─────────
+function SystemSection({ t }: { t: Tr }) {
+  const { toast } = useToast();
+  const tc = useTranslations("common");
+  const [cfg, setCfg] = useState<SystemSettings>(() => getSystemSettings());
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    updateSystemSettings(cfg); // store in-memory (otimista)
+    const res = await fetch("/api/owner/system", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cfg),
+    }).then((r) => r.json()).catch(() => ({ error: true }));
+    setSaving(false);
+    if (res?.data) {
+      toast({ title: t("systemSaved"), tone: "success" });
+    } else {
+      toast({ title: tc("saveErrorTitle"), tone: "error" });
+    }
+  }
+
+  const ALL_LOCALES = ["pt-BR", "en", "zh-CN", "fr-FR"];
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      {/* Identidade da plataforma */}
+      <div className="panel hairline p-6 space-y-4">
+        <p className="eyebrow">{t("systemIdentity")}</p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <label className="block">
+            <span className="block text-xs font-medium text-ink-2 mb-1.5">{t("systemName")}</span>
+            <input className="input" value={cfg.platformName} onChange={(e) => setCfg((c) => ({ ...c, platformName: e.target.value }))} />
+          </label>
+          <label className="block">
+            <span className="block text-xs font-medium text-ink-2 mb-1.5">{t("systemSupportEmail")}</span>
+            <input className="input" type="email" value={cfg.supportEmail} onChange={(e) => setCfg((c) => ({ ...c, supportEmail: e.target.value }))} />
+          </label>
+        </div>
+      </div>
+
+      {/* Idiomas */}
+      <div className="panel hairline p-6 space-y-4">
+        <p className="eyebrow">{t("systemLocales")}</p>
+        <div>
+          <p className="text-xs text-ink-4 mb-2">{t("systemDefaultLocale")}</p>
+          <select className="input" value={cfg.defaultLocale} onChange={(e) => setCfg((c) => ({ ...c, defaultLocale: e.target.value }))}>
+            {ALL_LOCALES.map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </div>
+        <div>
+          <p className="text-xs text-ink-4 mb-2">{t("systemActiveLocales")}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {ALL_LOCALES.map((l) => {
+              const on = cfg.activeLocales.includes(l);
+              return (
+                <button
+                  key={l}
+                  aria-pressed={on}
+                  onClick={() => setCfg((c) => ({
+                    ...c,
+                    activeLocales: on ? c.activeLocales.filter((x) => x !== l) : [...c.activeLocales, l],
+                  }))}
+                  className={cn("chip mono text-[0.7rem] transition-colors", on ? "text-brand border-[color:var(--border-gold)] bg-[var(--brand-soft)]" : "text-ink-4 border-line bg-surface-2 hover:text-ink-2")}
+                >
+                  {l}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Segurança */}
+      <div className="panel hairline p-6 space-y-4">
+        <p className="eyebrow">{t("systemSecurity")}</p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-ink">{t("systemStrongPassword")}</p>
+              <p className="text-xs text-ink-4">{t("systemStrongPasswordHint")}</p>
+            </div>
+            <Switch on={cfg.enforceStrongPassword} onClick={() => setCfg((c) => ({ ...c, enforceStrongPassword: !c.enforceStrongPassword }))} />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-ink">{t("systemMfa")}</p>
+              <p className="text-xs text-ink-4">{t("systemMfaHint")}</p>
+            </div>
+            <Switch on={cfg.mfaEnabled} onClick={() => setCfg((c) => ({ ...c, mfaEnabled: !c.mfaEnabled }))} />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-ink">{t("systemMaintenance")}</p>
+              <p className="text-xs text-ink-4">{t("systemMaintenanceHint")}</p>
+            </div>
+            <Switch on={cfg.maintenanceMode} onClick={() => setCfg((c) => ({ ...c, maintenanceMode: !c.maintenanceMode }))} />
+          </div>
+          <label className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-ink">{t("systemSessionTtl")}</p>
+              <p className="text-xs text-ink-4">{t("systemSessionTtlHint")}</p>
+            </div>
+            <input className="input w-20 text-right" type="number" min="1" max="168" value={cfg.sessionTtlHours} onChange={(e) => setCfg((c) => ({ ...c, sessionTtlHours: parseInt(e.target.value) || 8 }))} />
+          </label>
+        </div>
+      </div>
+
+      <Button variant="primary" onClick={save} disabled={saving}>
+        {saving ? <Loader2 size={14} className="animate-spin" /> : null}
+        {tc("save")}
+      </Button>
     </div>
   );
 }

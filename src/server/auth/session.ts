@@ -15,7 +15,7 @@ export interface SessionUser {
   sub: string; // user id
   email: string;
   name: string;
-  role: "platform_owner" | "org_admin" | "manager" | "member" | "viewer";
+  role: "platform_owner" | "platform_staff" | "platform_support" | "org_admin" | "manager" | "tributarista" | "member" | "viewer";
   orgId: string;
   accountType?: AccountType; // perfil do produto; ausente = "company" (retrocompat)
   imp?: string; // sub do dono original quando esta sessão é uma IMPERSONAÇÃO (0C §2.2)

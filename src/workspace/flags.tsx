@@ -1,11 +1,10 @@
 "use client";
 
 // Estado de feature flags compartilhado (0C/0D): o Painel do Dono alterna e o
-// rail/command palette refletem na hora. Inicializa do seed; em produção viria
-// do backend por tenant/plano. Um módulo SEM flag declarada é sempre habilitado
-// (núcleo); módulos COM flag respeitam o estado.
+// rail/command palette refletem na hora. Inicializa do seed; Onda 4: persiste
+// via PATCH /api/owner/flags para sobreviver a recargas de página.
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
-import { listFlags } from "@/server/domain/store";
+import { listFlags, setFlag } from "@/server/domain/store";
 
 interface FlagsApi {
   enabled: Record<string, boolean>;
@@ -21,7 +20,18 @@ export function FlagsProvider({ children }: { children: ReactNode }) {
   );
 
   const toggle = useCallback((module: string) => {
-    setEnabled((s) => ({ ...s, [module]: !s[module] }));
+    setEnabled((s) => {
+      const next = !s[module];
+      // Persistência otimista: atualiza o store in-memory imediatamente e dispara
+      // PATCH /api/owner/flags no background (sem bloquear a UI).
+      setFlag(module, next); // store in-memory (client — sem round-trip para demo)
+      fetch("/api/owner/flags", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ module, enabled: next }),
+      }).catch(() => {}); // falha silenciosa — a UI já reflete o estado
+      return { ...s, [module]: next };
+    });
   }, []);
 
   const isModuleEnabled = useCallback(

@@ -3,15 +3,26 @@
 // há ANTHROPIC_API_KEY. Sem SDK — fetch direto. Retorna null em erro/sem-chave,
 // e a rota cai no cérebro de domínio (brain.ts).
 // ─────────────────────────────────────────────────────────────────────────────
-import { copilotContext } from "../domain/store";
+import { copilotContext, getTenantConfig } from "../domain/store";
 import { localeMeta, type Locale } from "@/i18n/config";
 import type { CopilotReply } from "./brain";
 
 const ENDPOINT = "https://api.anthropic.com/v1/messages";
 
-function systemPrompt(locale: Locale): string {
+/** Injeta a persona/tom configurada pelo dono do SaaS para ESTE tenant.
+ *  Onda 4: campos aiPersona + aiTone do owner/config persistem e chegam aqui. */
+function buildSystemPrompt(locale: Locale, orgId?: string): string {
   const ctx = copilotContext();
   const lang = localeMeta[locale].native;
+  const cfg = orgId ? getTenantConfig(orgId) : {};
+
+  // Nome/persona da IA: padrão "Vega" se não configurado pelo dono.
+  const personaName = cfg.aiPersona?.trim() || "Vega";
+  // Tom personalizado (ex.: "formal", "direto", "consultivo").
+  const toneInstruction = cfg.aiTone?.trim()
+    ? `Adote o seguinte estilo de comunicação: ${cfg.aiTone}.`
+    : "";
+
   const compact = {
     organization: ctx.structure.legalName,
     regime: ctx.structure.regime,
@@ -43,19 +54,21 @@ function systemPrompt(locale: Locale): string {
   };
 
   return [
-    "Você é a Vega, copiloto regulatório da plataforma Brecha.ai (um GPS de oportunidade regulatória).",
+    `Você é ${personaName}, copiloto regulatório da plataforma Brecha.ai (um GPS de oportunidade regulatória).`,
     "Você entende a estrutura fiscal/jurídica do cliente, conhece cada janela regulatória aberta, sabe explicar a jogada recomendada e calcular a economia.",
     "Use o `businessProfile` (a descrição do que a empresa faz) para raciocinar sobre quais janelas abrem brechas para ESTE cliente e por quê — conectando o que ele descreveu (setores, exportação, projetos) às normas do contexto.",
     `Responda SEMPRE no idioma do usuário: ${lang}. Seja concisa, precisa e orientada à ação. Use valores em R$ (BRL) e cite a norma-fonte quando relevante.`,
+    toneInstruction,
     "Nunca invente números: use apenas os dados do contexto abaixo. Ações irreversíveis exigem aprovação humana do tributarista — apenas recomende, não afirme que executou.",
     "Contexto do tenant (JSON):",
     JSON.stringify(compact),
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 export async function askClaude(
   conversation: { role: "user" | "assistant"; content: string }[],
   locale: Locale,
+  orgId?: string, // Onda 4: orgId para injetar persona/tom configurado pelo dono
 ): Promise<CopilotReply | null> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
@@ -65,7 +78,8 @@ export async function askClaude(
     // Prompt caching (Onda 3): cache_control no system prompt reduz custo e latência
     // para chamadas frequentes ao copiloto (até 90% de economia em cache hit).
     // O contexto do tenant muda pouco entre turnos consecutivos → cache warm.
-    const sysContent = systemPrompt(locale);
+    // Onda 4: persona/tom do tenant injetados via buildSystemPrompt(locale, orgId).
+    const sysContent = buildSystemPrompt(locale, orgId);
     const res = await fetch(ENDPOINT, {
       method: "POST",
       headers: {

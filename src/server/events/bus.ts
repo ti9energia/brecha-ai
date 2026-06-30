@@ -9,7 +9,8 @@ export type DomainEvent =
   | "tenant.status_changed"
   | "plan.updated"
   | "opportunity.simulated"
-  | "savings.reconciled";
+  | "savings.reconciled"
+  | "flag.updated";
 
 type Handler<T = unknown> = (payload: T) => void;
 const handlers = new Map<string, Set<Handler>>();
