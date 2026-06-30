@@ -20,16 +20,17 @@ export interface LLMProvider {
   readonly id: string;
   /** Disponível agora? (ex.: tem chave / servidor de inferência up). */
   available(): boolean;
-  /** Refina/gera o texto. `null` → o AI Core usa o texto determinístico do domínio. */
-  refine(messages: LLMMessage[], locale: Locale): Promise<LLMResult | null>;
+  /** Refina/gera o texto. `null` → o AI Core usa o texto determinístico do domínio.
+   *  orgId: injetado no system prompt para persona/tom por tenant (Onda 4). */
+  refine(messages: LLMMessage[], locale: Locale, orgId?: string): Promise<LLMResult | null>;
 }
 
 // Provider 1 — Anthropic Claude (atual). Encapsula o fetch da Messages API.
 export const anthropicProvider: LLMProvider = {
   id: "anthropic",
   available: () => !!process.env.ANTHROPIC_API_KEY,
-  async refine(messages, locale) {
-    const r = await askClaude(messages, locale);
+  async refine(messages, locale, orgId) {
+    const r = await askClaude(messages, locale, orgId);
     return r ? { text: r.text, model: r.model } : null;
   },
 };
@@ -39,7 +40,7 @@ export const anthropicProvider: LLMProvider = {
 export const localProvider: LLMProvider = {
   id: "local",
   available: () => true,
-  async refine() {
+  async refine(_messages, _locale, _orgId) {
     return null;
   },
 };

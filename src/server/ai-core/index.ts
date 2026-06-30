@@ -59,7 +59,7 @@ export async function aiChat(
   // isso duplicaria os mesmos turnos (e poderia gerar sequência user/user que a
   // Anthropic rejeita, derrubando o caminho do modelo). A memória por usuário (0A
   // §2.3) é gravada abaixo via remember() para continuidade/captura de treino.
-  const refined = await provider.refine(messages, locale);
+  const refined = await provider.refine(messages, locale, orgId);
 
   const reply: CopilotReply = {
     text: refined?.text ?? grounding.text,

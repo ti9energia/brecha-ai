@@ -521,6 +521,17 @@ export function listTenants() {
 export function listFlags() {
   return FEATURE_FLAGS;
 }
+
+/** Persiste o estado de um feature flag (0C §2.6). Retorna null se o módulo não existe. */
+export function setFlag(module: string, enabled: boolean): typeof FEATURE_FLAGS[0] | null {
+  const f = FEATURE_FLAGS.find((x) => x.module === module);
+  if (!f) return null;
+  f.enabled = enabled;
+  recordAiAction({ actor: "platform_owner", action: "Flag atualizada", detail: `${module} → ${enabled ? "on" : "off"}` });
+  emit("flag.updated", { module, enabled });
+  return f;
+}
+
 export function ownerAudit() {
   return AUDIT_LOG;
 }
@@ -587,6 +598,47 @@ export function updateTenantConfig(tenantId: string, patch: Record<string, unkno
   if (typeof patch.whatsapp === "string") cur.whatsapp = patch.whatsapp.slice(0, 40);
   recordAiAction({ actor: "platform_owner", action: "Config do tenant atualizada", detail: tenantId });
   return cur;
+}
+
+// ── Configurações de sistema da plataforma (função 12 / 0C §2.11) ──────────────
+// Configurações globais (não por tenant): domínio, e-mail, idiomas ativos, segurança.
+export interface SystemSettings {
+  platformName: string;
+  supportEmail: string;
+  defaultLocale: string;
+  activeLocales: string[]; // subset de ["pt-BR","en","zh-CN","fr-FR"]
+  enforceStrongPassword: boolean;
+  mfaEnabled: boolean;
+  sessionTtlHours: number;
+  maintenanceMode: boolean;
+}
+
+const SYSTEM_SETTINGS: SystemSettings = {
+  platformName: "Brecha.ai",
+  supportEmail: "suporte@brecha.ai",
+  defaultLocale: "pt-BR",
+  activeLocales: ["pt-BR", "en", "zh-CN", "fr-FR"],
+  enforceStrongPassword: true,
+  mfaEnabled: false,
+  sessionTtlHours: 8,
+  maintenanceMode: false,
+};
+
+export function getSystemSettings(): SystemSettings {
+  return { ...SYSTEM_SETTINGS };
+}
+
+export function updateSystemSettings(patch: Partial<SystemSettings>): SystemSettings {
+  if (typeof patch.platformName === "string" && patch.platformName.trim()) SYSTEM_SETTINGS.platformName = patch.platformName.trim().slice(0, 80);
+  if (typeof patch.supportEmail === "string") SYSTEM_SETTINGS.supportEmail = patch.supportEmail.trim().slice(0, 120);
+  if (typeof patch.defaultLocale === "string") SYSTEM_SETTINGS.defaultLocale = patch.defaultLocale;
+  if (Array.isArray(patch.activeLocales)) SYSTEM_SETTINGS.activeLocales = patch.activeLocales.filter((l): l is string => typeof l === "string").slice(0, 10);
+  if (typeof patch.enforceStrongPassword === "boolean") SYSTEM_SETTINGS.enforceStrongPassword = patch.enforceStrongPassword;
+  if (typeof patch.mfaEnabled === "boolean") SYSTEM_SETTINGS.mfaEnabled = patch.mfaEnabled;
+  if (typeof patch.sessionTtlHours === "number" && patch.sessionTtlHours >= 1 && patch.sessionTtlHours <= 168) SYSTEM_SETTINGS.sessionTtlHours = patch.sessionTtlHours;
+  if (typeof patch.maintenanceMode === "boolean") SYSTEM_SETTINGS.maintenanceMode = patch.maintenanceMode;
+  recordAiAction({ actor: "platform_owner", action: "Configurações do sistema atualizadas", detail: JSON.stringify(Object.keys(patch)) });
+  return { ...SYSTEM_SETTINGS };
 }
 
 // ── Billing (0C §2.7): assinaturas/faturas in-memory por tenant ────────────────

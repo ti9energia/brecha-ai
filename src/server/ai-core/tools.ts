@@ -17,8 +17,11 @@ import type { SessionUser } from "@/server/auth/session";
 
 type Role = SessionUser["role"];
 
-const ALL: Role[] = ["viewer", "member", "manager", "org_admin", "platform_owner"];
-const WRITERS: Role[] = ["manager", "org_admin", "platform_owner"]; // aprovam/escrevem
+// Papéis ordenados do menor ao maior privilégio (0C §4.1).
+// platform_staff / platform_support: equipes internas da plataforma (suporte, ops).
+// tributarista: papel real (gestor de aprovações fiscais) — antes era "manager" rotulado.
+const ALL: Role[] = ["viewer", "member", "tributarista", "manager", "org_admin", "platform_support", "platform_staff", "platform_owner"];
+const WRITERS: Role[] = ["tributarista", "manager", "org_admin", "platform_staff", "platform_owner"]; // aprovam/escrevem
 
 export interface ToolContext {
   role: Role;
@@ -48,7 +51,7 @@ export const TOOLS: Tool[] = [
 ];
 
 // Ordem dos papéis (do menor ao maior privilégio) para a matriz de permissões (0C §2.10).
-export const ROLES_ORDER: Role[] = ["viewer", "member", "manager", "org_admin", "platform_owner"];
+export const ROLES_ORDER: Role[] = ["viewer", "member", "tributarista", "manager", "org_admin", "platform_support", "platform_staff", "platform_owner"];
 
 /** Matriz de permissões (0C §2.10): por tool (recurso:ação), quais papéis podem
  *  invocar. Derivada da fonte da verdade (TOOLS) — o que a UI/API/IA/WhatsApp usam. */
