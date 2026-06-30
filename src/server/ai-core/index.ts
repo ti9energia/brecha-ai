@@ -20,6 +20,7 @@ export type { LLMMessage, LLMProvider } from "./provider";
 export { resolveProvider, anthropicProvider, localProvider } from "./provider";
 export { listTools, invokeTool, TOOLS, type Tool, type ToolResult } from "./tools";
 export { inMemoryKnowledge, ingestDocument, ingestedCount, type KnowledgeStore, type Retrieved } from "./knowledge";
+export { getKnowledgeStore, __resetKnowledgeStore } from "./knowledgePgvector";
 export { remember, recall, memorySize, type MemoryTurn } from "./memory";
 export { listConnectors, getConnector, type Connector } from "./connectors";
 export { trainingSnapshot, trainingPipeline, type TrainingSnapshot, type TrainingPipeline } from "./training";
@@ -47,8 +48,8 @@ export async function aiChat(
   // Camada de tools/domínio: grounding determinístico (ações + fontes reais).
   const grounding = domainBrain(lastUser, locale);
   // Camada de RAG: enriquece as fontes com chunks relevantes (isolado por tenant).
-  const retrieved = inMemoryKnowledge
-    .retrieve(lastUser, orgId, 3)
+  // Usa getKnowledgeStore() → pgvector se DATABASE_URL, in-memory caso contrário.
+  const retrieved = (await inMemoryKnowledge.retrieve(lastUser, orgId, 3))
     .filter((r) => r.ref)
     .map((r) => ({ ref: r.ref as string }));
   const sources = dedupeSources([...grounding.sources, ...retrieved]);
@@ -67,8 +68,8 @@ export async function aiChat(
     actions: grounding.actions,
   };
   if (userId) {
-    remember(userId, { role: "user", content: lastUser });
-    remember(userId, { role: "assistant", content: reply.text });
+    await remember(userId, { role: "user", content: lastUser });
+    await remember(userId, { role: "assistant", content: reply.text });
   }
   return reply;
 }

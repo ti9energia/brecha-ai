@@ -17,9 +17,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
 
   // Idempotência (00-PADRÃO §4): a mesma Idempotency-Key não re-executa a aprovação.
+  // Backed pelo KVStore → seguro em lambdas serverless distintas (Onda 3).
   const idem = idempotencyKey(req);
   if (idem) {
-    const cached = getIdempotent(idem);
+    const cached = await getIdempotent(idem);
     if (cached) return ok(cached.data, { ...cached.meta, idempotent: true });
   }
 
@@ -30,6 +31,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const plan = await repo.approveExecution(id, session.name);
   const data = { plan };
   const meta: Record<string, unknown> = { approvedBy: session.name };
-  if (idem) setIdempotent(idem, data, meta);
+  if (idem) await setIdempotent(idem, data, meta);
   return ok(data, meta);
 }

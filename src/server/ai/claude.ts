@@ -62,17 +62,28 @@ export async function askClaude(
   const model = process.env.AI_CORE_MODEL || "claude-opus-4-8";
 
   try {
+    // Prompt caching (Onda 3): cache_control no system prompt reduz custo e latência
+    // para chamadas frequentes ao copiloto (até 90% de economia em cache hit).
+    // O contexto do tenant muda pouco entre turnos consecutivos → cache warm.
+    const sysContent = systemPrompt(locale);
     const res = await fetch(ENDPOINT, {
       method: "POST",
       headers: {
         "x-api-key": key,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
         "content-type": "application/json",
       },
       body: JSON.stringify({
         model,
         max_tokens: 700,
-        system: systemPrompt(locale),
+        system: [
+          {
+            type: "text",
+            text: sysContent,
+            cache_control: { type: "ephemeral" }, // // SWAP: "persistent" com ANTHROPIC_CACHE_TTL
+          },
+        ],
         messages: conversation.map((c) => ({ role: c.role, content: c.content })),
       }),
     });

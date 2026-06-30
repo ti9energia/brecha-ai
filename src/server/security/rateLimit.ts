@@ -1,7 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Rate-limit por IP+rota (janela fixa, in-memory). Dependency-free.
-// Em produção multi-instância, trocar o `store` por Upstash/Vercel KV
-// (mesma interface) para limite global consistente entre lambdas.
+//
+// Produção multi-instância: o `store` in-memory não é partilhado entre lambdas.
+// Para limite global consistente, migre para `rateLimit` async via KVStore (Onda 6):
+//   const count = await getKV().incr(`rl:${bucket}:${ip}`, 1, windowMs);
+// Por enquanto, o limite in-memory protege contra abusos numa única instância.
 // ─────────────────────────────────────────────────────────────────────────────
 import { NextResponse } from "next/server";
 

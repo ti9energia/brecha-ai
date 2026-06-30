@@ -4,15 +4,15 @@ import { listConnectors, getConnector } from "./connectors";
 import { trainingSnapshot } from "./training";
 
 describe("AI Core — knowledge (RAG) / connectors / training", () => {
-  it("knowledge recupera chunks relevantes, ordenados por score", () => {
-    const r = inMemoryKnowledge.retrieve("ICMS subvenção crédito", "org-acme", 3);
+  it("knowledge recupera chunks relevantes, ordenados por score", async () => {
+    const r = await inMemoryKnowledge.retrieve("ICMS subvenção crédito", "org-acme", 3);
     expect(r.length).toBeGreaterThan(0);
     expect(r[0].score).toBeGreaterThan(0);
     for (let i = 1; i < r.length; i++) expect(r[i - 1].score).toBeGreaterThanOrEqual(r[i].score);
   });
 
-  it("knowledge retorna vazio para consulta sem termos úteis", () => {
-    expect(inMemoryKnowledge.retrieve("a o e", "org-acme")).toEqual([]);
+  it("knowledge retorna vazio para consulta sem termos úteis", async () => {
+    expect(await inMemoryKnowledge.retrieve("a o e", "org-acme")).toEqual([]);
   });
 
   it("connectors lista o connector de demonstração e resolve por id", async () => {
